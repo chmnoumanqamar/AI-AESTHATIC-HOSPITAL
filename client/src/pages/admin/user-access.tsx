@@ -16,7 +16,10 @@ import {
   AlertTriangle,
   Stethoscope,
   ClipboardList,
-  User
+  User,
+  Lock,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { api } from '../../services/api';
 
@@ -55,6 +58,10 @@ export const AdminUserAccessView: React.FC = () => {
     role: 'DOCTOR' as 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT',
     specialization: 'Internal Medicine'
   });
+  const [confirmPassword, setConfirmPassword] = useState('Password123!');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -111,6 +118,15 @@ export const AdminUserAccessView: React.FC = () => {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (newUser.password !== confirmPassword) {
+      setPasswordError('Passwords do not match. Please ensure both fields are identical.');
+      return;
+    }
+    if (newUser.password.length < 6) {
+      setPasswordError('Password must be at least 6 characters long.');
+      return;
+    }
+    setPasswordError(null);
     setActionLoading(true);
     try {
       await api.post('/admin/users', newUser);
@@ -124,6 +140,8 @@ export const AdminUserAccessView: React.FC = () => {
         role: 'DOCTOR',
         specialization: 'Internal Medicine'
       });
+      setConfirmPassword('Password123!');
+      setPasswordError(null);
       await fetchUsers();
     } catch (err: any) {
       alert(err.response?.data?.error?.message || 'Failed to create user account');
@@ -544,16 +562,103 @@ export const AdminUserAccessView: React.FC = () => {
                 </div>
               )}
 
-              <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">Initial Password</label>
-                <input
-                  type="text"
-                  required
-                  value={newUser.password}
-                  onChange={e => setNewUser({ ...newUser, password: e.target.value })}
-                  className="clinical-input w-full text-xs font-mono dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
-                />
+              {passwordError && (
+                <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2 animate-in fade-in">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>{passwordError}</span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Password Input */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                    Password (Min 6 chars)
+                  </label>
+                  <div className="relative flex items-center">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                      <Lock className="w-3.5 h-3.5" />
+                    </div>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      minLength={6}
+                      placeholder="Enter password"
+                      value={newUser.password}
+                      onChange={e => {
+                        setNewUser({ ...newUser, password: e.target.value });
+                        if (passwordError) setPasswordError(null);
+                      }}
+                      style={{ paddingLeft: '2.25rem', paddingRight: '2.25rem' }}
+                      className="clinical-input w-full text-xs font-mono dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                      title={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm Password Input */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                    Confirm Password
+                  </label>
+                  <div className="relative flex items-center">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                      <Lock className="w-3.5 h-3.5" />
+                    </div>
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      required
+                      minLength={6}
+                      placeholder="Re-enter password"
+                      value={confirmPassword}
+                      onChange={e => {
+                        setConfirmPassword(e.target.value);
+                        if (passwordError) setPasswordError(null);
+                      }}
+                      style={{ paddingLeft: '2.25rem', paddingRight: '2.25rem' }}
+                      className={`clinical-input w-full text-xs font-mono dark:bg-[#171F13] dark:text-white ${
+                        confirmPassword && newUser.password
+                          ? confirmPassword === newUser.password
+                            ? 'border-emerald-500 focus:ring-emerald-500'
+                            : 'border-rose-500 focus:ring-rose-500'
+                          : 'dark:border-[#38482E]'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                      title={showConfirmPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
               </div>
+
+              {/* Password Match Badge */}
+              {newUser.password && confirmPassword && (
+                <div className="text-[11px] font-semibold flex items-center gap-1.5 transition-all">
+                  {newUser.password === confirmPassword ? (
+                    <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Passwords match</span>
+                    </span>
+                  ) : (
+                    <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      <span>Passwords do not match</span>
+                    </span>
+                  )}
+                </div>
+              )}
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-[#2F3E29]">
                 <button

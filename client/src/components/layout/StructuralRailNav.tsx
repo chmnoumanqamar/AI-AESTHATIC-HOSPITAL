@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   LayoutDashboard,
   CalendarCheck,
@@ -32,6 +32,8 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
   onToggleExpand,
   onLogout
 }) => {
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
   // Only real, working, verified functions per role
   const navItems = [
     // Doctor
@@ -161,7 +163,7 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
       {/* Footer Controls: Only Sign Out */}
       <div className="p-2 border-t border-[#E2E6D8] dark:border-[#333D29]">
         <button
-          onClick={onLogout}
+          onClick={() => setShowLogoutConfirm(true)}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-[#4A5543] hover:text-[#DC2626] hover:bg-[#FEF2F2] dark:text-[#C2C5AA] dark:hover:text-white dark:hover:bg-[#7F4F24]/30 transition-all cursor-pointer ${
             !isExpanded ? 'justify-center' : ''
           }`}
@@ -171,6 +173,56 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
           {isExpanded && <span>Sign Out</span>}
         </button>
       </div>
+
+      {/* Sign Out Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={() => setShowLogoutConfirm(false)}
+        >
+          <div 
+            className="w-full max-w-sm bg-white dark:bg-[#1A2215] border border-slate-200 dark:border-[#333D29] rounded-2xl p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 text-left"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
+                <LogOut className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
+                  Sign Out Confirmation
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-[#A4AC86] mt-1.5 leading-relaxed">
+                  Are you sure you want to sign out of the hospital portal? You will need to enter your password again to log in.
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-[#2F3E29]">
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] hover:bg-slate-100 dark:hover:bg-[#25331E] border border-slate-200 dark:border-[#38482E] transition-colors cursor-pointer"
+              >
+                No, Stay Logged In
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLogoutConfirm(false);
+                  onLogout();
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 active:scale-[0.98] shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Yes, Sign Out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 };

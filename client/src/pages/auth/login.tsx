@@ -144,14 +144,12 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
   const [maskedContact, setMaskedContact] = useState<string>('');
   const [demoOtp, setDemoOtp] = useState<string>('');
 
-  // Sign Up / Registration States
+  // Patient Registration States
   const [isSignUpMode, setIsSignUpMode] = useState(false);
-  const [signUpRole, setSignUpRole] = useState<'PATIENT' | 'DOCTOR'>('PATIENT');
   const [signUpName, setSignUpName] = useState('');
   const [signUpEmail, setSignUpEmail] = useState('');
   const [signUpPhone, setSignUpPhone] = useState('');
   const [signUpPassword, setSignUpPassword] = useState('');
-  const [signUpSpecialization, setSignUpSpecialization] = useState('General Practice & Aesthetics');
   const [signUpGender, setSignUpGender] = useState<'Male' | 'Female' | 'Other'>('Male');
   const [signUpCnic, setSignUpCnic] = useState('');
   const [signUpLoading, setSignUpLoading] = useState(false);
@@ -194,16 +192,10 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
         phone: signUpPhone.trim(),
         email: signUpEmail.trim() || undefined,
         password: signUpPassword,
-        role: signUpRole
+        role: 'PATIENT',
+        gender: signUpGender,
+        cnic: signUpCnic.trim() || undefined
       };
-      if (signUpRole === 'DOCTOR') {
-        payload.specialization = signUpSpecialization.trim() || 'General Practice & Aesthetics';
-      } else {
-        payload.gender = signUpGender;
-        if (signUpCnic.trim()) {
-          payload.cnic = signUpCnic.trim();
-        }
-      }
 
       const res = await api.post('/auth/register', payload);
       const { token, user } = res.data.data;
@@ -555,7 +547,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
             </div>
           ) : isSignUpMode ? (
 
-            /* ================= SIGN UP / REGISTRATION VIEW ================= */
+            /* ================= PATIENT REGISTRATION VIEW ================= */
             <div className="space-y-4">
               <div className="text-center space-y-2">
                 <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-[#2D6A4F] to-[#1B4332] text-white shadow-lg shadow-emerald-900/20 ring-4 ring-emerald-50">
@@ -563,40 +555,12 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
                 </div>
                 <div>
                   <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-                    Create New Account
+                    New Patient Registration
                   </h1>
                   <p className="text-xs text-slate-500 font-medium mt-0.5">
-                    Start your journey with Aesthetic Hospital Clinical Deck
+                    Create your patient account to book consultations and view records
                   </p>
                 </div>
-              </div>
-
-              {/* Role Selection Tabs */}
-              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl border border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => setSignUpRole('PATIENT')}
-                  className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                    signUpRole === 'PATIENT'
-                      ? 'bg-white text-[#1B4332] shadow-xs border border-slate-200'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <User className="w-3.5 h-3.5 text-sky-600" />
-                  <span>I am a Patient</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSignUpRole('DOCTOR')}
-                  className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                    signUpRole === 'DOCTOR'
-                      ? 'bg-white text-[#1B4332] shadow-xs border border-slate-200'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Stethoscope className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>I am a Doctor</span>
-                </button>
               </div>
 
               {signUpError && (
@@ -610,14 +574,14 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
                 {/* Full Name */}
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-                    {signUpRole === 'DOCTOR' ? 'Doctor Full Name' : 'Patient Full Name'}
+                    Patient Full Name
                   </label>
                   <input
                     type="text"
                     required
                     value={signUpName}
                     onChange={e => setSignUpName(e.target.value)}
-                    placeholder={signUpRole === 'DOCTOR' ? 'e.g. Dr. Tariq Mahmood' : 'e.g. Hamza Ali'}
+                    placeholder="e.g. Hamza Ali"
                     className="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
                   />
                 </div>
@@ -633,7 +597,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
                       required
                       value={signUpEmail}
                       onChange={e => setSignUpEmail(e.target.value)}
-                      placeholder="e.g. name@hospital.com"
+                      placeholder="e.g. patient@example.com"
                       className="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
                     />
                   </div>
@@ -670,52 +634,35 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
                   />
                 </div>
 
-                {/* Role Specific Extra Fields */}
-                {signUpRole === 'DOCTOR' ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div className="space-y-1">
                     <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-                      Medical Specialization
+                      Gender
+                    </label>
+                    <select
+                      value={signUpGender}
+                      onChange={e => setSignUpGender(e.target.value as any)}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                      CNIC / ID (Optional)
                     </label>
                     <input
                       type="text"
-                      required
-                      value={signUpSpecialization}
-                      onChange={e => setSignUpSpecialization(e.target.value)}
-                      placeholder="e.g. Dermatology & Laser Aesthetics"
+                      value={signUpCnic}
+                      onChange={e => setSignUpCnic(e.target.value)}
+                      placeholder="35201-XXXXXXX-X"
                       className="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
                     />
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-                        Gender
-                      </label>
-                      <select
-                        value={signUpGender}
-                        onChange={e => setSignUpGender(e.target.value as any)}
-                        className="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                      >
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-                        CNIC / ID (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        value={signUpCnic}
-                        onChange={e => setSignUpCnic(e.target.value)}
-                        placeholder="35201-XXXXXXX-X"
-                        className="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                      />
-                    </div>
-                  </div>
-                )}
+                </div>
 
                 {/* Submit Register Button */}
                 <button
@@ -727,16 +674,21 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
                   {signUpLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin text-white" />
-                      <span>Creating Account...</span>
+                      <span>Registering Patient...</span>
                     </>
                   ) : (
                     <>
-                      <span>Register & Open {signUpRole === 'DOCTOR' ? 'Doctor' : 'Patient'} Portal</span>
+                      <span>Register & Open Patient Portal</span>
                       <ArrowRight className="w-4 h-4 text-white group-hover:translate-x-1 transition-transform" />
                     </>
                   )}
                 </button>
               </form>
+
+              {/* Administrative note */}
+              <p className="text-[11px] text-slate-400 text-center font-medium">
+                Hospital staff & doctor accounts are provisioned by Administration.
+              </p>
 
               {/* Back to sign in */}
               <div className="pt-2 text-center border-t border-slate-100">
@@ -746,7 +698,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Already have an account? Sign In</span>
+                  <span>Already registered? Sign In</span>
                 </button>
               </div>
             </div>
@@ -869,7 +821,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
               {/* Sign Up Navigation Link */}
               <div className="pt-3 text-center border-t border-slate-200/80">
                 <p className="text-xs text-slate-600 font-medium">
-                  Don't have an account yet?{' '}
+                  New Patient?{' '}
                   <button
                     type="button"
                     onClick={() => {
@@ -880,7 +832,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
                     className="font-bold text-[#2D6A4F] hover:underline cursor-pointer inline-flex items-center gap-1 ml-1"
                   >
                     <UserPlus className="w-3.5 h-3.5" />
-                    <span>Create Account / Sign Up</span>
+                    <span>Register as Patient</span>
                   </button>
                 </p>
               </div>

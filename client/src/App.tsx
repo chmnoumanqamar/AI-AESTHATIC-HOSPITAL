@@ -74,6 +74,11 @@ export const App: React.FC = () => {
 
   // Initialize session on mount
   useEffect(() => {
+    let isMounted = true;
+    const safetyTimer = setTimeout(() => {
+      if (isMounted) setIsInitializing(false);
+    }, 3500);
+
     const initSession = async () => {
       try {
         if (isPortLocked && isolatedConfig) {
@@ -82,47 +87,55 @@ export const App: React.FC = () => {
             try {
               const res = await api.get('/auth/me');
               const user = res.data.data;
-              if (user.role === isolatedConfig.role) {
-                setCurrentUser(user);
-                setCurrentRole(isolatedConfig.role);
-                setDefaultTabForRole(isolatedConfig.role);
-              } else {
-                // Token belongs to another role; auto-switch to this port's designated role
-                await performRoleLogin(isolatedConfig.role);
+              if (isMounted) {
+                if (user.role === isolatedConfig.role) {
+                  setCurrentUser(user);
+                  setCurrentRole(isolatedConfig.role);
+                  setDefaultTabForRole(isolatedConfig.role);
+                } else {
+                  await performRoleLogin(isolatedConfig.role);
+                }
               }
             } catch {
-              // Token invalid; auto-login to designated role
-              await performRoleLogin(isolatedConfig.role);
+              if (isMounted) await performRoleLogin(isolatedConfig.role);
             }
           } else {
-            // No token on this port origin yet: auto-login immediately
-            await performRoleLogin(isolatedConfig.role);
+            if (isMounted) await performRoleLogin(isolatedConfig.role);
           }
         } else {
-          // Hub Mode (:3000)
+          // Hub Mode (Production / Vercel / Port 3000)
           if (authToken) {
             try {
               const res = await api.get('/auth/me');
               const user = res.data.data;
-              setCurrentUser(user);
-              if (user.role) {
-                setCurrentRole(user.role);
-                setDefaultTabForRole(user.role);
+              if (isMounted) {
+                setCurrentUser(user);
+                if (user.role) {
+                  setCurrentRole(user.role);
+                  setDefaultTabForRole(user.role);
+                }
               }
             } catch {
-              await performRoleLogin(currentRole);
+              if (isMounted) await performRoleLogin(currentRole);
             }
           } else {
             // Default demo login on hub
-            await performRoleLogin('DOCTOR');
+            if (isMounted) await performRoleLogin('DOCTOR');
           }
         }
+      } catch (err) {
+        console.warn('Session init completed with fallback:', err);
       } finally {
-        setIsInitializing(false);
+        clearTimeout(safetyTimer);
+        if (isMounted) setIsInitializing(false);
       }
     };
 
     initSession();
+    return () => {
+      isMounted = false;
+      clearTimeout(safetyTimer);
+    };
   }, [currentPort]);
 
   const handleSwitchRole = async (role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT') => {
@@ -153,12 +166,15 @@ export const App: React.FC = () => {
 
   if (isInitializing) {
     return (
-      <div className="min-h-screen bg-brand-50 flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <div className="w-8 h-8 border-3 border-brand-300 border-t-brand-900 rounded-full animate-spin mx-auto" />
-          <p className="text-xs font-mono font-bold text-brand-900">
-            {isPortLocked ? `Connecting Isolated Terminal (${isolatedConfig?.role} on Port ${currentPort})...` : 'Booting Clinical Command Deck...'}
-          </p>
+      <div className="min-h-screen bg-[#181F12] flex items-center justify-center p-4">
+        <div className="text-center space-y-4 max-w-sm w-full bg-white dark:bg-[#1E2718] p-8 rounded-3xl shadow-2xl border border-slate-200 dark:border-[#333D29] animate-in fade-in duration-300">
+          <div className="w-12 h-12 border-4 border-slate-200 dark:border-emerald-950 border-t-emerald-600 rounded-full animate-spin mx-auto" />
+          <div>
+            <h2 className="text-base font-extrabold text-slate-900 dark:text-white">
+              {isPortLocked ? `Connecting Isolated Terminal (${isolatedConfig?.role} on Port ${currentPort})...` : 'Booting Clinical Command Deck...'}
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-emerald-400 mt-1">Connecting to clinical backend & AI engine...</p>
+          </div>
         </div>
       </div>
     );

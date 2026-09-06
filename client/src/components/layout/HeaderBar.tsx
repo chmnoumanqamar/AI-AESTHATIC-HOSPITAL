@@ -110,32 +110,20 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 
       {/* Right: Clean Profile & Dark/Light Mode Toggle */}
       <div className="flex items-center gap-3">
-        {/* Hub Mode Port Switcher */}
-        {isHubMode && (
-          <div 
-            className="hidden lg:flex items-center gap-1 p-1 rounded-lg border text-xs"
-            style={{ 
-              backgroundColor: isDark ? '#242E1C' : '#F4F6F0', 
-              borderColor: isDark ? '#414833' : '#E2E6D8' 
-            }}
-          >
-            <span className="text-[10px] uppercase font-bold px-2" style={{ color: isDark ? '#A68A64' : '#656D4A' }}>Role:</span>
-            {(['DOCTOR', 'RECEPTIONIST', 'PATIENT', 'ADMIN'] as const).map(role => (
-              <button
-                key={role}
-                onClick={() => onSwitchRole(role)}
-                className="px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer"
-                style={
-                  currentRole === role
-                    ? { backgroundColor: isDark ? '#406343' : '#2D6A4F', color: '#FFFFFF', fontWeight: 700 }
-                    : { color: isDark ? '#C2C5AA' : '#4B5563' }
-                }
-              >
-                {role.charAt(0) + role.slice(1).toLowerCase()}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Strict Isolated Session Security Badge */}
+        <div 
+          className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold select-none shadow-xs"
+          style={{ 
+            backgroundColor: isDark ? '#242E1C' : '#F4F6F0', 
+            borderColor: isDark ? '#414833' : '#E2E6D8',
+            color: isDark ? '#F6F7F2' : '#2D6A4F' 
+          }}
+        >
+          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+          <span className="font-bold tracking-wide uppercase text-[11px]">{currentRole} Terminal</span>
+          <span className="text-slate-300 dark:text-slate-600">•</span>
+          <span className="text-[11px] font-mono text-emerald-700 dark:text-emerald-400">Isolated Session</span>
+        </div>
 
         {/* Professional User Profile */}
         <div className="flex items-center gap-2.5 pl-1">

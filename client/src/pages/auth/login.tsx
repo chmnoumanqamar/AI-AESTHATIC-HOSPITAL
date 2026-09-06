@@ -16,7 +16,10 @@ import {
   ShieldCheck,
   RotateCcw,
   Stethoscope,
-  ClipboardList
+  ClipboardList,
+  UserPlus,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { api } from '../../services/api';
 
@@ -140,6 +143,61 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
   const [forgotSuccess, setForgotSuccess] = useState<string | null>(null);
   const [maskedContact, setMaskedContact] = useState<string>('');
   const [demoOtp, setDemoOtp] = useState<string>('');
+
+  // Sign Up / Registration States
+  const [isSignUpMode, setIsSignUpMode] = useState(false);
+  const [signUpRole, setSignUpRole] = useState<'PATIENT' | 'DOCTOR'>('PATIENT');
+  const [signUpName, setSignUpName] = useState('');
+  const [signUpEmail, setSignUpEmail] = useState('');
+  const [signUpPhone, setSignUpPhone] = useState('');
+  const [signUpPassword, setSignUpPassword] = useState('');
+  const [signUpSpecialization, setSignUpSpecialization] = useState('General Practice & Aesthetics');
+  const [signUpGender, setSignUpGender] = useState<'Male' | 'Female' | 'Other'>('Male');
+  const [signUpCnic, setSignUpCnic] = useState('');
+  const [signUpLoading, setSignUpLoading] = useState(false);
+  const [signUpError, setSignUpError] = useState<string | null>(null);
+
+  // Quick Demo Credentials Accordion
+  const [showDemoAccounts, setShowDemoAccounts] = useState(false);
+
+  const handleQuickFill = (accIdentifier: string, accPass: string = 'Password123!') => {
+    setIdentifier(accIdentifier);
+    setPassword(accPass);
+    setError(null);
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSignUpLoading(true);
+    setSignUpError(null);
+    try {
+      const payload: any = {
+        fullName: signUpName.trim(),
+        phone: signUpPhone.trim(),
+        email: signUpEmail.trim() || undefined,
+        password: signUpPassword,
+        role: signUpRole
+      };
+      if (signUpRole === 'DOCTOR') {
+        payload.specialization = signUpSpecialization.trim() || 'General Practice & Aesthetics';
+      } else {
+        payload.gender = signUpGender;
+        if (signUpCnic.trim()) {
+          payload.cnic = signUpCnic.trim();
+        }
+      }
+
+      const res = await api.post('/auth/register', payload);
+      const { token, user } = res.data.data;
+      localStorage.setItem('hospital_token', token);
+      onLoginSuccess(token, user);
+    } catch (err: any) {
+      const msg = err.response?.data?.error?.message || err.response?.data?.message || 'Registration failed. Please check your inputs.';
+      setSignUpError(msg);
+    } finally {
+      setSignUpLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (currentRoleConfig) {
@@ -483,6 +541,203 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
                 </button>
               </div>
             </div>
+          ) : isSignUpMode ? (
+
+            /* ================= SIGN UP / REGISTRATION VIEW ================= */
+            <div className="space-y-4">
+              <div className="text-center space-y-2">
+                <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-[#2D6A4F] to-[#1B4332] text-white shadow-lg shadow-emerald-900/20 ring-4 ring-emerald-50">
+                  <UserPlus className="w-7 h-7 text-emerald-200" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+                    Create New Account
+                  </h1>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    Start your journey with Aesthetic Hospital Clinical Deck
+                  </p>
+                </div>
+              </div>
+
+              {/* Role Selection Tabs */}
+              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setSignUpRole('PATIENT')}
+                  className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    signUpRole === 'PATIENT'
+                      ? 'bg-white text-[#1B4332] shadow-xs border border-slate-200'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <User className="w-3.5 h-3.5 text-sky-600" />
+                  <span>I am a Patient</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSignUpRole('DOCTOR')}
+                  className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    signUpRole === 'DOCTOR'
+                      ? 'bg-white text-[#1B4332] shadow-xs border border-slate-200'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Stethoscope className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>I am a Doctor</span>
+                </button>
+              </div>
+
+              {signUpError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 font-medium flex items-start gap-2 animate-in fade-in duration-200">
+                  <ShieldAlert className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                  <div className="flex-1">{signUpError}</div>
+                </div>
+              )}
+
+              <form onSubmit={handleSignUp} className="space-y-3">
+                {/* Full Name */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                    {signUpRole === 'DOCTOR' ? 'Doctor Full Name' : 'Patient Full Name'}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={signUpName}
+                    onChange={e => setSignUpName(e.target.value)}
+                    placeholder={signUpRole === 'DOCTOR' ? 'e.g. Dr. Tariq Mahmood' : 'e.g. Hamza Ali'}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {/* Email */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={signUpEmail}
+                      onChange={e => setSignUpEmail(e.target.value)}
+                      placeholder="e.g. name@hospital.com"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                    />
+                  </div>
+
+                  {/* Phone */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={signUpPhone}
+                      onChange={e => setSignUpPhone(e.target.value)}
+                      placeholder="e.g. +923001234567"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Password */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                    Create Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    value={signUpPassword}
+                    onChange={e => setSignUpPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all tracking-wider"
+                  />
+                </div>
+
+                {/* Role Specific Extra Fields */}
+                {signUpRole === 'DOCTOR' ? (
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                      Medical Specialization
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={signUpSpecialization}
+                      onChange={e => setSignUpSpecialization(e.target.value)}
+                      placeholder="e.g. Dermatology & Laser Aesthetics"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                    />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                        Gender
+                      </label>
+                      <select
+                        value={signUpGender}
+                        onChange={e => setSignUpGender(e.target.value as any)}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                      >
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                        CNIC / ID (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={signUpCnic}
+                        onChange={e => setSignUpCnic(e.target.value)}
+                        placeholder="35201-XXXXXXX-X"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Submit Register Button */}
+                <button
+                  type="submit"
+                  disabled={signUpLoading}
+                  className="w-full mt-3 py-3.5 px-5 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 group cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed active:scale-[0.99]"
+                  style={{ background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)', boxShadow: '0 4px 14px rgba(45, 106, 79, 0.25)' }}
+                >
+                  {signUpLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      <span>Creating Account...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Register & Open {signUpRole === 'DOCTOR' ? 'Doctor' : 'Patient'} Portal</span>
+                      <ArrowRight className="w-4 h-4 text-white group-hover:translate-x-1 transition-transform" />
+                    </>
+                  )}
+                </button>
+              </form>
+
+              {/* Back to sign in */}
+              <div className="pt-2 text-center border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsSignUpMode(false)}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Already have an account? Sign In</span>
+                </button>
+              </div>
+            </div>
           ) : (
 
             /* ================= REGULAR SIGN IN VIEW ================= */
@@ -598,6 +853,120 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
                   )}
                 </button>
               </form>
+
+              {/* Sign Up Navigation Link */}
+              <div className="pt-3 text-center border-t border-slate-200/80">
+                <p className="text-xs text-slate-600 font-medium">
+                  Don't have an account yet?{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSignUpMode(true);
+                      setSignUpError(null);
+                      setError(null);
+                    }}
+                    className="font-bold text-[#2D6A4F] hover:underline cursor-pointer inline-flex items-center gap-1 ml-1"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>Create Account / Sign Up</span>
+                  </button>
+                </p>
+              </div>
+
+              {/* Collapsible Test / Demo Accounts Reference */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowDemoAccounts(!showDemoAccounts)}
+                  className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <KeyRound className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Quick Demo Credentials</span>
+                  </div>
+                  {showDemoAccounts ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+
+                {showDemoAccounts && (
+                  <div className="mt-2 p-3 bg-slate-50/90 border border-slate-200/80 rounded-xl space-y-2 text-xs animate-in fade-in duration-200">
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      Click <strong>Fill</strong> to auto-enter credentials for testing:
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="p-2 bg-white rounded-lg border border-slate-200 flex items-center justify-between gap-2 shadow-2xs">
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-800 text-[11px] flex items-center gap-1">
+                            <Stethoscope className="w-3 h-3 text-emerald-600" />
+                            <span>Doctor (Dr. Aisha)</span>
+                          </div>
+                          <div className="text-[10px] text-slate-500 truncate">dr.aisha@hospital.com</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleQuickFill('dr.aisha@hospital.com')}
+                          className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-[10px] rounded border border-emerald-200 cursor-pointer shrink-0"
+                        >
+                          Fill
+                        </button>
+                      </div>
+
+                      <div className="p-2 bg-white rounded-lg border border-slate-200 flex items-center justify-between gap-2 shadow-2xs">
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-800 text-[11px] flex items-center gap-1">
+                            <ClipboardList className="w-3 h-3 text-amber-600" />
+                            <span>Receptionist</span>
+                          </div>
+                          <div className="text-[10px] text-slate-500 truncate">receptionist@hospital.com</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleQuickFill('receptionist@hospital.com')}
+                          className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-[10px] rounded border border-amber-200 cursor-pointer shrink-0"
+                        >
+                          Fill
+                        </button>
+                      </div>
+
+                      <div className="p-2 bg-white rounded-lg border border-slate-200 flex items-center justify-between gap-2 shadow-2xs">
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-800 text-[11px] flex items-center gap-1">
+                            <User className="w-3 h-3 text-sky-600" />
+                            <span>Patient (John Doe)</span>
+                          </div>
+                          <div className="text-[10px] text-slate-500 truncate">john.doe@example.com</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleQuickFill('john.doe@example.com')}
+                          className="px-2 py-1 bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-[10px] rounded border border-sky-200 cursor-pointer shrink-0"
+                        >
+                          Fill
+                        </button>
+                      </div>
+
+                      <div className="p-2 bg-white rounded-lg border border-slate-200 flex items-center justify-between gap-2 shadow-2xs">
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-800 text-[11px] flex items-center gap-1">
+                            <ShieldCheck className="w-3 h-3 text-purple-600" />
+                            <span>Administrator</span>
+                          </div>
+                          <div className="text-[10px] text-slate-500 truncate">admin@hospital.com</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleQuickFill('admin@hospital.com')}
+                          className="px-2 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 font-bold text-[10px] rounded border border-purple-200 cursor-pointer shrink-0"
+                        >
+                          Fill
+                        </button>
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-slate-500 text-center pt-1 font-mono">
+                      Default Password: <span className="font-bold text-slate-700">Password123!</span>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Footer security badge */}
               <div className="text-center pt-2">

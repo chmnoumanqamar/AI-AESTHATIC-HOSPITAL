@@ -8,15 +8,17 @@ export const loginDto = z.object({
 export const registerPatientDto = z.object({
   fullName: z.string().min(2, 'Full name is required'),
   phone: z.string().min(10, 'Valid phone number is required'),
-  email: z.string().email().optional(),
+  email: z.string().email().optional().or(z.literal('')),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  cnic: z.string().min(10, 'Valid CNIC / National ID is required'),
-  gender: z.enum(['Male', 'Female', 'Other']),
-  dateOfBirth: z.string().refine(val => !isNaN(Date.parse(val)), 'Valid birth date required'),
-  address: z.string().min(5, 'Address is required'),
-  emergencyContact: z.string().min(7, 'Emergency contact is required'),
-  hasWhatsApp: z.boolean().default(false),
-  primaryNotificationChannel: z.enum(['WhatsApp', 'SMS', 'Email']).default('SMS'),
+  role: z.enum(['PATIENT', 'DOCTOR', 'RECEPTIONIST']).default('PATIENT').optional(),
+  specialization: z.string().optional(),
+  cnic: z.string().optional(),
+  gender: z.enum(['Male', 'Female', 'Other']).default('Male').optional(),
+  dateOfBirth: z.string().optional(),
+  address: z.string().optional(),
+  emergencyContact: z.string().optional(),
+  hasWhatsApp: z.boolean().default(false).optional(),
+  primaryNotificationChannel: z.enum(['WhatsApp', 'SMS', 'Email']).default('SMS').optional(),
   backupNotificationChannel: z.enum(['WhatsApp', 'SMS', 'Email']).optional()
 });
 

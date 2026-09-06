@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
-import { db, DbUser, DbPatient } from '../../common/data/mock-db';
+import { db, DbUser, DbPatient, DbDoctor } from '../../common/data/mock-db';
 import { ENV } from '../../config/env.config';
 import { AppError } from '../../common/errors/AppError';
 import { LoginInput, RegisterPatientInput } from './auth.dto';
@@ -74,18 +74,16 @@ export class AuthService {
   }
 
   async registerPatient(input: RegisterPatientInput) {
+    const role = (input as any).role || 'PATIENT';
+    const email = input.email && input.email.trim() ? input.email.trim() : undefined;
+    const phone = input.phone.trim();
+
     // Check duplicate user phone or email
     const existingUser = db.users.find(
-      u => u.phone === input.phone || (input.email && u.email?.toLowerCase() === input.email.toLowerCase())
+      u => u.phone === phone || (email && u.email?.toLowerCase() === email.toLowerCase())
     );
     if (existingUser) {
       throw AppError.conflict('An account with this phone number or email already exists.');
-    }
-
-    // Check duplicate patient CNIC
-    const existingPatientCnic = db.patients.find(p => p.cnic === input.cnic);
-    if (existingPatientCnic) {
-      throw AppError.conflict(`Duplicate Patient Record detected for CNIC: ${input.cnic}`);
     }
 
     const salt = bcrypt.genSaltSync(8);
@@ -93,38 +91,71 @@ export class AuthService {
 
     const newUser: DbUser = {
       id: uuidv4(),
-      phone: input.phone,
-      email: input.email,
+      phone,
+      email,
       passwordHash,
-      role: 'PATIENT',
+      role: role as any,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-
-    const newPatient: DbPatient = {
-      id: uuidv4(),
-      userId: newUser.id,
-      fullName: input.fullName,
-      cnic: input.cnic,
-      gender: input.gender,
-      dateOfBirth: input.dateOfBirth,
-      address: input.address,
-      emergencyContact: input.emergencyContact,
-      hasWhatsApp: input.hasWhatsApp,
-      primaryNotificationChannel: input.primaryNotificationChannel,
-      backupNotificationChannel: input.backupNotificationChannel,
-      createdAt: new Date().toISOString()
-    };
-
     db.users.push(newUser);
-    db.patients.push(newPatient);
+
+    let profileId: string;
+    let profileData: any;
+
+    if (role === 'DOCTOR') {
+      const newDoctor: DbDoctor = {
+        id: uuidv4(),
+        userId: newUser.id,
+        name: input.fullName,
+        specialization: (input as any).specialization || 'Cardiology & General Medicine',
+        biography: 'Certified medical practitioner registered via clinical portal.',
+        qualifications: ['MBBS', 'MD'],
+        experienceYears: 5,
+        languages: ['English', 'Urdu'],
+        consultationFee: 2500,
+        followUpFee: 1500,
+        dailyPatientLimit: 80,
+        createdAt: new Date().toISOString()
+      };
+      db.doctors.push(newDoctor);
+      profileId = newDoctor.id;
+      profileData = newDoctor;
+    } else {
+      // Check duplicate patient CNIC if provided
+      const cnic = input.cnic || `${Date.now()}`.slice(-13);
+      if (input.cnic) {
+        const existingPatientCnic = db.patients.find(p => p.cnic === input.cnic);
+        if (existingPatientCnic) {
+          throw AppError.conflict(`Duplicate Patient Record detected for CNIC: ${input.cnic}`);
+        }
+      }
+
+      const newPatient: DbPatient = {
+        id: uuidv4(),
+        userId: newUser.id,
+        fullName: input.fullName,
+        cnic,
+        gender: input.gender || 'Male',
+        dateOfBirth: input.dateOfBirth || '1995-01-01',
+        address: input.address || 'Online Portal Registration',
+        emergencyContact: input.emergencyContact || phone,
+        hasWhatsApp: input.hasWhatsApp || false,
+        primaryNotificationChannel: input.primaryNotificationChannel || 'SMS',
+        backupNotificationChannel: input.backupNotificationChannel,
+        createdAt: new Date().toISOString()
+      };
+      db.patients.push(newPatient);
+      profileId = newPatient.id;
+      profileData = newPatient;
+    }
 
     const tokenPayload: JwtAuthPayload = {
       userId: newUser.id,
-      role: 'PATIENT',
+      role: newUser.role,
       phone: newUser.phone,
       email: newUser.email,
-      profileId: newPatient.id
+      profileId
     };
 
     const token = jwt.sign(tokenPayload, ENV.JWT_SECRET, { expiresIn: '7d' });
@@ -136,8 +167,8 @@ export class AuthService {
         phone: newUser.phone,
         email: newUser.email,
         role: newUser.role,
-        profileId: newPatient.id,
-        profile: newPatient
+        profileId,
+        profile: profileData
       }
     };
   }

@@ -5,6 +5,7 @@ export interface DbUser {
   id: string;
   phone: string;
   email?: string;
+  name?: string;
   passwordHash: string;
   role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT';
   isBlocked?: boolean;
@@ -210,6 +211,7 @@ class InMemoryHospitalDatabase {
     // 1. Admin User
     const adminUser: DbUser = {
       id: 'u-admin-01',
+      name: 'Root Administrator',
       phone: '+15550000001',
       email: 'admin@hospital.com',
       passwordHash: defaultPasswordHash,

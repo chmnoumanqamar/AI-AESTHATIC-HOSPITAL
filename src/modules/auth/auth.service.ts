@@ -66,6 +66,7 @@ export class AuthService {
         id: user.id,
         phone: user.phone,
         email: user.email,
+        name: user.name || profileData?.name || profileData?.fullName || (user.role === 'ADMIN' ? 'Root Administrator' : 'Staff Member'),
         role: user.role,
         profileId,
         profile: profileData
@@ -200,6 +201,7 @@ export class AuthService {
       id: user.id,
       phone: user.phone,
       email: user.email,
+      name: user.name || profileData?.name || profileData?.fullName || (user.role === 'ADMIN' ? 'Root Administrator' : 'Staff Member'),
       role: user.role,
       profileId,
       profile: profileData

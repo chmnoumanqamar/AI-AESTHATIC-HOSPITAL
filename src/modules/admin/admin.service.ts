@@ -17,7 +17,7 @@ export class AdminService {
         profile = db.patients.find(p => p.userId === u.id);
       }
 
-      const displayName = profile?.name || profile?.fullName || (u.role === 'ADMIN' ? 'Root Administrator' : 'Staff Member');
+      const displayName = profile?.name || profile?.fullName || u.name || (u.role === 'ADMIN' ? 'Root Administrator' : 'Staff Member');
 
       return {
         id: u.id,
@@ -143,6 +143,7 @@ export class AdminService {
 
     const newUser: DbUser = {
       id: `u-${uuidv4().substring(0, 8)}`,
+      name: input.name,
       phone: input.phone,
       email: input.email,
       passwordHash,

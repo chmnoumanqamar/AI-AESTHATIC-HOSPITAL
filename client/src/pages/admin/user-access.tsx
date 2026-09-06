@@ -54,14 +54,30 @@ export const AdminUserAccessView: React.FC = () => {
     name: '',
     phone: '',
     email: '',
-    password: 'Password123!',
+    password: '',
     role: 'DOCTOR' as 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT',
     specialization: 'Internal Medicine'
   });
-  const [confirmPassword, setConfirmPassword] = useState('Password123!');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  const handleOpenCreateModal = () => {
+    setNewUser({
+      name: '',
+      phone: '',
+      email: '',
+      password: '',
+      role: 'DOCTOR',
+      specialization: 'Internal Medicine'
+    });
+    setConfirmPassword('');
+    setPasswordError(null);
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+    setIsCreateModalOpen(true);
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -136,11 +152,11 @@ export const AdminUserAccessView: React.FC = () => {
         name: '',
         phone: '',
         email: '',
-        password: 'Password123!',
+        password: '',
         role: 'DOCTOR',
         specialization: 'Internal Medicine'
       });
-      setConfirmPassword('Password123!');
+      setConfirmPassword('');
       setPasswordError(null);
       await fetchUsers();
     } catch (err: any) {
@@ -179,7 +195,7 @@ export const AdminUserAccessView: React.FC = () => {
           </button>
 
           <button
-            onClick={() => setIsCreateModalOpen(true)}
+            onClick={handleOpenCreateModal}
             className="clinical-button-primary flex items-center gap-2 text-xs font-semibold py-2 px-3.5"
           >
             <UserPlus className="w-4 h-4 text-emerald-300" />
@@ -488,7 +504,10 @@ export const AdminUserAccessView: React.FC = () => {
                 <h3 className="font-bold text-base">Grant Access to New Hospital User</h3>
               </div>
               <button
-                onClick={() => setIsCreateModalOpen(false)}
+                onClick={() => {
+                  setIsCreateModalOpen(false);
+                  setPasswordError(null);
+                }}
                 className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -583,7 +602,8 @@ export const AdminUserAccessView: React.FC = () => {
                       type={showPassword ? 'text' : 'password'}
                       required
                       minLength={6}
-                      placeholder="Enter password"
+                      autoComplete="new-password"
+                      placeholder="Enter new password"
                       value={newUser.password}
                       onChange={e => {
                         setNewUser({ ...newUser, password: e.target.value });
@@ -616,7 +636,8 @@ export const AdminUserAccessView: React.FC = () => {
                       type={showConfirmPassword ? 'text' : 'password'}
                       required
                       minLength={6}
-                      placeholder="Re-enter password"
+                      autoComplete="new-password"
+                      placeholder="Re-enter password to confirm"
                       value={confirmPassword}
                       onChange={e => {
                         setConfirmPassword(e.target.value);
@@ -663,7 +684,10 @@ export const AdminUserAccessView: React.FC = () => {
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-[#2F3E29]">
                 <button
                   type="button"
-                  onClick={() => setIsCreateModalOpen(false)}
+                  onClick={() => {
+                    setIsCreateModalOpen(false);
+                    setPasswordError(null);
+                  }}
                   className="clinical-button-secondary text-xs"
                 >
                   Cancel

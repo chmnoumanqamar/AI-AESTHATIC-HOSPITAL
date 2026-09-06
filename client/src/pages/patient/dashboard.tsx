@@ -81,6 +81,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
   const [newPatientGender, setNewPatientGender] = useState('Male');
   const [newPatientDob, setNewPatientDob] = useState('1995-01-01');
   const [duplicateWarning, setDuplicateWarning] = useState<any>(null);
+  const [isCrossCheckModalOpen, setIsCrossCheckModalOpen] = useState(false);
 
   // Reschedule & Cancel Modals
   const [targetActionApp, setTargetActionApp] = useState<any>(null);
@@ -141,27 +142,31 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
     }
   };
 
-  const handleCreateBooking = async (e: React.FormEvent) => {
+  const handlePromptCrossCheck = (e: React.FormEvent) => {
     e.preventDefault();
+    if (bookingFor === 'NEW') {
+      if (!newPatientName.trim() || !newPatientPhone.trim()) {
+        alert('Baraye meharbani Mareez ka Naam aur Mobile Number darj karein.');
+        return;
+      }
+    }
+    setIsCrossCheckModalOpen(true);
+  };
+
+  const handleExecuteBooking = async () => {
     setIsSubmittingBooking(true);
     setBookingSuccessData(null);
 
     try {
       let targetPatientId = patientId;
 
-      // If booking for a new person, register the patient profile first
+      // If booking for a new person, register the patient profile first (frictionless: CNIC optional)
       if (bookingFor === 'NEW') {
-        if (!newPatientName.trim() || !newPatientPhone.trim() || !newPatientCnic.trim()) {
-          alert('Please fill in Full Name, Phone Number, and CNIC for the new patient.');
-          setIsSubmittingBooking(false);
-          return;
-        }
-
         try {
           const regRes = await api.post('/auth/register', {
             fullName: newPatientName.trim(),
             phone: newPatientPhone.trim(),
-            cnic: newPatientCnic.trim(),
+            cnic: newPatientCnic.trim() || undefined,
             password: 'Password123!',
             gender: newPatientGender,
             dateOfBirth: newPatientDob,
@@ -172,10 +177,10 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
           targetPatientId = regRes.data.data.user.profile.id;
         } catch (regErr: any) {
           // If already registered, proceed with existing record
-          if (regErr.response?.data?.error?.message?.includes('already exists')) {
-            targetPatientId = patientId;
+          if (regErr.response?.data?.error?.message?.includes('already exists') || duplicateWarning?.existingPatientId) {
+            targetPatientId = duplicateWarning?.existingPatientId || patientId;
           } else {
-            throw regErr;
+            targetPatientId = patientId;
           }
         }
       }
@@ -189,6 +194,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
         chiefComplaint: chiefComplaint.trim() || undefined
       });
 
+      setIsCrossCheckModalOpen(false);
       setBookingSuccessData({
         appointment: res.data.data,
         doctor: doctors.find(d => d.id === selectedDoctorId),
@@ -505,7 +511,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
               </p>
             </div>
 
-            <form onSubmit={handleCreateBooking} className="space-y-6">
+            <form onSubmit={handlePromptCrossCheck} className="space-y-6">
               {/* STEP 1: PATIENT IDENTITY SELECTION */}
               <div className="space-y-4 pb-6 border-b" style={{ borderColor: '#E2E6D8' }}>
                 <div className="flex items-center gap-3">
@@ -673,14 +679,13 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>
-                        <label className="text-xs font-bold block mb-1.5" style={{ color: '#656D4A' }}>CNIC / Form-B *</label>
+                        <label className="text-xs font-bold block mb-1.5" style={{ color: '#656D4A' }}>CNIC / Form-B (Optional)</label>
                         <input
                           type="text"
-                          required
                           value={newPatientCnic}
                           onChange={e => setNewPatientCnic(e.target.value)}
                           onBlur={handleCheckDuplicate}
-                          placeholder="35201-XXXXXXX-X"
+                          placeholder="35201-XXXXXXX-X (Optional)"
                           className="w-full clinical-input text-xs font-mono"
                         />
                       </div>
@@ -1310,6 +1315,138 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
           onConfirm={handleCancelAppointment}
           onCancel={() => setIsCancelConfirmOpen(false)}
         />
+      )}
+
+      {/* Patient Booking Details Cross-Check Modal */}
+      {isCrossCheckModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in" style={{ backgroundColor: 'rgba(27, 67, 50, 0.75)' }}>
+          <div className="w-full max-w-lg bg-white dark:bg-[#1E2717] border border-[#A7D7C5] dark:border-[#333D29] rounded-2xl p-6 sm:p-7 space-y-5 shadow-2xl">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3 border-b border-[#E2E6D8] dark:border-[#333D29] pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#E8F3EB] dark:bg-[#2D3923] text-[#2D6A4F] shrink-0 border border-[#A7D7C5]">
+                  <ShieldCheck className="w-6 h-6 text-[#2D6A4F]" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-[#1F291E] dark:text-white">
+                    Cross-Check Booking Details
+                  </h3>
+                  <p className="text-xs text-[#656D4A] dark:text-[#A4AC86]">
+                    Baraye meharbani apni maloomat cross-check ker lein taakeh koi ghalati na ho.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Summary Details Card */}
+            <div className="bg-[#F8FAF6] dark:bg-[#161D12] border border-[#E2E6D8] dark:border-[#2D3923] rounded-xl p-4 space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-3 pb-3 border-b border-[#E2E6D8] dark:border-[#2D3923]">
+                <div>
+                  <span className="text-[#656D4A] dark:text-[#A4AC86] font-medium block">Patient Name:</span>
+                  <span className="font-bold text-[#1F291E] dark:text-white text-sm">
+                    {bookingFor === 'SELF' ? (currentUser?.profile?.fullName || 'Self') : newPatientName}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[#656D4A] dark:text-[#A4AC86] font-medium block">Mobile Number:</span>
+                  <span className="font-bold font-mono text-[#1F291E] dark:text-white text-sm">
+                    {bookingFor === 'SELF' ? (currentUser?.profile?.phone || 'N/A') : newPatientPhone}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pb-3 border-b border-[#E2E6D8] dark:border-[#2D3923]">
+                <div>
+                  <span className="text-[#656D4A] dark:text-[#A4AC86] font-medium block">Specialist Physician:</span>
+                  <span className="font-bold text-[#2D6A4F] dark:text-[#52B788]">
+                    {doctors.find(d => d.id === selectedDoctorId)?.fullName || 'Consultant Specialist'}
+                  </span>
+                  <span className="text-[11px] text-[#656D4A] block">
+                    {doctors.find(d => d.id === selectedDoctorId)?.specialization}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[#656D4A] dark:text-[#A4AC86] font-medium block">Appointment Date:</span>
+                  <span className="font-bold font-mono text-[#1F291E] dark:text-white">
+                    {bookingDate}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <span className="text-[#656D4A] dark:text-[#A4AC86] font-medium block">CNIC / Identity:</span>
+                  <span className="font-mono text-[#1F291E] dark:text-white">
+                    {bookingFor === 'SELF' 
+                      ? (currentUser?.profile?.cnic || 'On File') 
+                      : (newPatientCnic ? newPatientCnic : 'Not provided (Optional)')}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[#656D4A] dark:text-[#A4AC86] font-medium block">Alert Channel:</span>
+                  <span className="font-semibold text-[#1F291E] dark:text-white flex items-center gap-1">
+                    {bookingChannel === 'WhatsApp' ? '🟢 WhatsApp Instant Alerts' : '📱 SMS Messages'}
+                  </span>
+                </div>
+              </div>
+
+              {chiefComplaint && (
+                <div className="pt-2 border-t border-[#E2E6D8] dark:border-[#2D3923]">
+                  <span className="text-[#656D4A] dark:text-[#A4AC86] font-medium block">Reason for Visit:</span>
+                  <span className="text-[#1F291E] dark:text-white italic">
+                    "{chiefComplaint}"
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Total Fee & Notice */}
+            <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#E8F3EB] dark:bg-[#1C2C1D] border border-[#A7D7C5] dark:border-[#2D5A3D]">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#2D6A4F] dark:text-[#52B788] block">
+                  Payable at Reception:
+                </span>
+                <span className="text-lg font-black font-mono text-[#1B4332] dark:text-white">
+                  PKR {totalEstimatedFee.toFixed(2)}
+                </span>
+              </div>
+              <div className="text-right text-[11px] text-[#2D6A4F] dark:text-[#A4AC86]">
+                Receptionist approval is required<br />to confirm this booking.
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsCrossCheckModalOpen(false)}
+                disabled={isSubmittingBooking}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold border border-[#DDE2D5] text-[#656D4A] hover:bg-[#F4F6F0] transition-colors"
+              >
+                Ghalti Durust Karein (Edit)
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteBooking}
+                disabled={isSubmittingBooking}
+                className="px-6 py-2.5 rounded-xl text-xs font-extrabold text-white shadow-md active:scale-95 transition-all flex items-center gap-2"
+                style={{ background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)' }}
+              >
+                {isSubmittingBooking ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Reserving Token...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Haan, Bilkul Theek Hai (Confirm & Book)</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

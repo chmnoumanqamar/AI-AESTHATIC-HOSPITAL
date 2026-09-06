@@ -43,9 +43,11 @@ export class AiAgentOrchestrator {
     // Common Roman Urdu keywords
     const romanUrduKeywords = [
       'mera', 'meri', 'meray', 'mujhe', 'ap', 'aap', 'kya', 'kia', 'kab', 'kese', 'kaise',
-      'hai', 'hain', 'ho', 'hoga', 'hogi', 'karo', 'karna', 'karni', 'batao', 'chahiye',
-      'kitna', 'kitni', 'pehlay', 'baad', 'shukriya', 'theek', 'doctor', 'bhi', 'hum',
-      'session', 'le', 'liay', 'wala', 'wali', 'kuch', 'bhejo', 'milna'
+      'hai', 'hain', 'ho', 'hoga', 'hogi', 'karo', 'karna', 'karni', 'batao', 'batayein', 'btao', 'chahiye',
+      'chahie', 'chahye', 'kitna', 'kitni', 'kitne', 'pehlay', 'baad', 'shukriya', 'theek', 'doctor', 'bhi', 'hum',
+      'session', 'le', 'liay', 'liye', 'wala', 'wali', 'kuch', 'bhejo', 'milna', 'milay', 'milenge',
+      'aaj', 'kal', 'parson', 'waqt', 'dikhao', 'dikhayein', 'baithte', 'baithti', 'khali', 'bache',
+      'konsa', 'kon', 'koun', 'kounsa', 'kahan', 'kis'
     ];
 
     const words = text.toLowerCase().split(/\s+/);

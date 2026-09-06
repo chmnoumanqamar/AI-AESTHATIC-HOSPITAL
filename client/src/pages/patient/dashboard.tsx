@@ -282,9 +282,9 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
       {/* Top Patient Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="screen-main-header">Patient Health Portal</h1>
-          <p className="text-xs text-brand-600">
-            Welcome, <strong className="text-brand-900">{currentUser?.profile?.fullName || 'John Doe'}</strong> • CNIC: {currentUser?.profile?.cnic || '35201-1234567-1'} • Phone: {currentUser?.phone || '+1 555-000-0010'}
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Patient Portal</h1>
+          <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mt-0.5">
+            Khush Aamdeed, <strong>{currentUser?.profile?.fullName || currentUser?.fullName || currentUser?.phone || 'Patient'}</strong>
           </p>
         </div>
 
@@ -502,309 +502,168 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
             </div>
           )}
 
-          {/* Dedicated Booking Suite */}
-          <div className="bg-white dark:bg-[#1E2717] rounded-2xl p-6 sm:p-8 shadow-sm border border-[#E2E6D8] dark:border-[#333D29] space-y-6">
-            <div>
-              <h2 className="text-xl font-extrabold text-[#1F291E] dark:text-white tracking-tight">Book Clinical Consultation & Secure Token</h2>
-              <p className="text-xs font-medium mt-1 text-[#656D4A] dark:text-[#A4AC86]">
-                Concurrently safe sequential token allocation. Complete the details below to request your slot.
+          {/* Streamlined Modern Booking Suite */}
+          <div className="bg-white dark:bg-[#1E2717] rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800 space-y-6">
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                Doctor Ki Appointment Book Karein
+              </h2>
+              <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
+                Doctor chunein aur apna token foran WhatsApp par hasil karein.
               </p>
             </div>
 
             <form onSubmit={handlePromptCrossCheck} className="space-y-6">
               {/* STEP 1: PATIENT IDENTITY SELECTION */}
-              <div className="space-y-4 pb-6 border-b" style={{ borderColor: '#E2E6D8' }}>
-                <div className="flex items-center gap-3">
-                  <span 
-                    className="w-8 h-8 rounded-xl font-black text-sm flex items-center justify-center shadow-xs text-white"
-                    style={{ background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)' }}
-                  >
-                    1
-                  </span>
-                  <div>
-                    <h3 className="text-sm sm:text-base font-bold tracking-tight text-[#1F291E] dark:text-white">
-                      Who is this appointment for?
-                    </h3>
-                    <p className="text-xs font-medium text-[#656D4A] dark:text-[#A4AC86]">
-                      Choose whether you are booking for yourself or registering a new person / family member.
-                    </p>
-                  </div>
-                </div>
+              <div className="space-y-3">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                  1. Appointment Kiske Liye Hai? (Select Patient)
+                </label>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Option 1: Book for Myself */}
                   <div
                     onClick={() => setBookingFor('SELF')}
-                    className={`interactive-choice-btn p-4 flex items-center justify-between gap-3 select-none ${
-                      bookingFor === 'SELF' ? 'selected' : ''
+                    className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between gap-3 select-none ${
+                      bookingFor === 'SELF'
+                        ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 ring-2 ring-emerald-600/20'
+                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'
                     }`}
                   >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div 
-                        className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-xs border transition-colors"
-                        style={{ 
-                          backgroundColor: bookingFor === 'SELF' ? '#E8F3EB' : '#F4F6F0', 
-                          borderColor: bookingFor === 'SELF' ? '#A7D7C5' : '#DDE2D5',
-                          color: bookingFor === 'SELF' ? '#1B4332' : '#4B6B50' 
-                        }}
-                      >
-                        <User className="w-6 h-6 text-[#2D6A4F]" />
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        bookingFor === 'SELF' ? 'bg-emerald-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                      }`}>
+                        <User className="w-5 h-5" />
                       </div>
                       <div className="min-w-0">
-                        <div className="font-bold text-sm leading-tight text-[#1F291E] dark:text-white">
-                          Book for Myself
+                        <div className="font-bold text-sm text-slate-900 dark:text-white">
+                          Mere Liye (For Myself)
                         </div>
-                        <div className="text-xs font-semibold mt-0.5 text-[#2D6A4F] dark:text-[#52B788]">
-                          {currentUser?.profile?.fullName || 'John Doe'}
-                        </div>
-                        <div className="text-[11px] font-mono mt-0.5 text-[#7F4F24] dark:text-[#D7DBC7]">
-                          CNIC: {currentUser?.profile?.cnic || '35201-1234567-1'}
+                        <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 truncate mt-0.5">
+                          {currentUser?.profile?.fullName || currentUser?.fullName || 'Apna Account'}
                         </div>
                       </div>
                     </div>
-
-                    {/* Radio / Selection Indicator */}
-                    <div className="shrink-0">
-                      {bookingFor === 'SELF' ? (
-                        <div 
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border shadow-xs"
-                          style={{ backgroundColor: '#E8F3EB', color: '#1B4332', borderColor: '#A7D7C5' }}
-                        >
-                          <CheckCircle2 className="w-4 h-4 text-[#2D6A4F]" />
-                          <span>Selected</span>
-                        </div>
-                      ) : (
-                        <div 
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border"
-                          style={{ borderColor: '#DDE2D5', color: '#656D4A', backgroundColor: '#F8FAF6' }}
-                        >
-                          <div className="w-3.5 h-3.5 rounded-full border-2" style={{ borderColor: '#A4AC86' }} />
-                          <span>Select</span>
-                        </div>
-                      )}
-                    </div>
+                    {bookingFor === 'SELF' ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 shrink-0" />
+                    )}
                   </div>
 
-                  {/* Option 2: Book for New Person / Family Member */}
+                  {/* Option 2: Book for Someone Else */}
                   <div
                     onClick={() => setBookingFor('NEW')}
-                    className={`interactive-choice-btn p-4 flex items-center justify-between gap-3 select-none ${
-                      bookingFor === 'NEW' ? 'selected' : ''
+                    className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between gap-3 select-none ${
+                      bookingFor === 'NEW'
+                        ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 ring-2 ring-emerald-600/20'
+                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'
                     }`}
                   >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div 
-                        className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-xs border transition-colors"
-                        style={{ 
-                          backgroundColor: bookingFor === 'NEW' ? '#E8F3EB' : '#F4F6F0', 
-                          borderColor: bookingFor === 'NEW' ? '#A7D7C5' : '#DDE2D5',
-                          color: bookingFor === 'NEW' ? '#1B4332' : '#4B6B50' 
-                        }}
-                      >
-                        <UserPlus className="w-6 h-6 text-[#2D6A4F]" />
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        bookingFor === 'NEW' ? 'bg-emerald-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                      }`}>
+                        <UserPlus className="w-5 h-5" />
                       </div>
                       <div className="min-w-0">
-                        <div className="font-bold text-sm leading-tight text-[#1F291E] dark:text-white">
-                          New Person / Family Member
+                        <div className="font-bold text-sm text-slate-900 dark:text-white">
+                          Kisi Aur Ke Liye (Other Person)
                         </div>
-                        <div className="text-xs font-semibold mt-0.5 text-[#2D6A4F] dark:text-[#52B788]">
-                          Add New Patient Details
-                        </div>
-                        <div className="text-[11px] font-mono mt-0.5 text-[#7F4F24] dark:text-[#D7DBC7]">
-                          Registers new file & token
+                        <div className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                          Ghar walon ya dost ke liye
                         </div>
                       </div>
                     </div>
-
-                    {/* Radio / Selection Indicator */}
-                    <div className="shrink-0">
-                      {bookingFor === 'NEW' ? (
-                        <div 
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border shadow-xs"
-                          style={{ backgroundColor: '#E8F3EB', color: '#1B4332', borderColor: '#A7D7C5' }}
-                        >
-                          <CheckCircle2 className="w-4 h-4 text-[#2D6A4F]" />
-                          <span>Selected</span>
-                        </div>
-                      ) : (
-                        <div 
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border"
-                          style={{ borderColor: '#DDE2D5', color: '#656D4A', backgroundColor: '#F8FAF6' }}
-                        >
-                          <div className="w-3.5 h-3.5 rounded-full border-2" style={{ borderColor: '#A4AC86' }} />
-                          <span>Select</span>
-                        </div>
-                      )}
-                    </div>
+                    {bookingFor === 'NEW' ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 shrink-0" />
+                    )}
                   </div>
                 </div>
 
-                {/* New Patient Registration Fields */}
+                {/* Only 2 Simple Fields for Other Person */}
                 {bookingFor === 'NEW' && (
-                  <div 
-                    className="p-5 rounded-2xl border space-y-4 mt-3 animate-fade-in shadow-2xs"
-                    style={{ backgroundColor: '#FAFBF7', borderColor: '#C2C5AA' }}
-                  >
-                    <div className="text-xs font-bold flex items-center gap-2" style={{ color: '#333D29' }}>
-                      <UserPlus className="w-4 h-4 text-[#7F4F24]" />
-                      <span className="uppercase tracking-wider">New Patient Information Form</span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-4 sm:p-5 bg-emerald-50/40 dark:bg-slate-900/60 border border-emerald-200 dark:border-slate-800 rounded-2xl space-y-3 animate-fade-in mt-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs font-bold block mb-1.5" style={{ color: '#656D4A' }}>Full Legal Name *</label>
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                          Mareez Ka Naam (Patient Name) *
+                        </label>
                         <input
                           type="text"
                           required
                           value={newPatientName}
                           onChange={e => setNewPatientName(e.target.value)}
-                          placeholder="e.g. Ayesha Malik"
-                          className="w-full clinical-input text-xs"
+                          placeholder="e.g. Ayesha Khan"
+                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         />
                       </div>
 
                       <div>
-                        <label className="text-xs font-bold block mb-1.5" style={{ color: '#656D4A' }}>Phone Number (for WhatsApp/SMS Alerts) *</label>
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                          WhatsApp / Mobile Number *
+                        </label>
                         <input
-                          type="text"
+                          type="tel"
                           required
                           value={newPatientPhone}
                           onChange={e => setNewPatientPhone(e.target.value)}
                           onBlur={handleCheckDuplicate}
-                          placeholder="e.g. +92 300 1234567"
-                          className="w-full clinical-input text-xs font-mono"
+                          placeholder="e.g. 0300 1234567"
+                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
                         />
                       </div>
                     </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div>
-                        <label className="text-xs font-bold block mb-1.5" style={{ color: '#656D4A' }}>CNIC / Form-B (Optional)</label>
-                        <input
-                          type="text"
-                          value={newPatientCnic}
-                          onChange={e => setNewPatientCnic(e.target.value)}
-                          onBlur={handleCheckDuplicate}
-                          placeholder="35201-XXXXXXX-X (Optional)"
-                          className="w-full clinical-input text-xs font-mono"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-bold block mb-1.5" style={{ color: '#656D4A' }}>Gender</label>
-                        <select
-                          value={newPatientGender}
-                          onChange={e => setNewPatientGender(e.target.value)}
-                          className="w-full clinical-input text-xs"
-                        >
-                          <option value="Male">Male</option>
-                          <option value="Female">Female</option>
-                          <option value="Other">Other</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-bold block mb-1.5" style={{ color: '#656D4A' }}>Date of Birth</label>
-                        <input
-                          type="date"
-                          value={newPatientDob}
-                          onChange={e => setNewPatientDob(e.target.value)}
-                          className="w-full clinical-input text-xs"
-                        />
-                      </div>
-                    </div>
-
-                    {duplicateWarning?.isDuplicate && (
-                      <div className="p-3.5 rounded-xl border text-xs flex items-center gap-2.5" style={{ backgroundColor: '#F4ECE0', borderColor: '#A68A64', color: '#582F0E' }}>
-                        <AlertTriangle className="w-5 h-5 shrink-0 text-[#7F4F24]" />
-                        <span>
-                          <strong>Duplicate Check Notice:</strong> A patient with this CNIC or Phone is already on file. This booking will safely link to their existing history.
-                        </span>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
 
-              {/* STEP 2: DOCTOR & CLINICAL SERVICE SELECTION */}
-              <div className="space-y-4 pb-6 border-b" style={{ borderColor: '#E2E6D8' }}>
-                <div className="flex items-center gap-3">
-                  <span 
-                    className="w-8 h-8 rounded-xl font-black text-sm flex items-center justify-center shadow-xs text-white"
-                    style={{ background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)' }}
-                  >
-                    2
-                  </span>
-                  <div>
-                    <h3 className="text-sm sm:text-base font-bold tracking-tight text-[#1F291E] dark:text-white">
-                      Choose Specialist Physician & Appointment Date
-                    </h3>
-                    <p className="text-xs font-medium text-[#656D4A] dark:text-[#A4AC86]">
-                      Click to select your preferred doctor. Consultation fee is transparently displayed.
-                    </p>
-                  </div>
-                </div>
+              {/* STEP 2: DOCTOR SELECTION & DATE */}
+              <div className="space-y-3 pt-5 border-t border-slate-100 dark:border-slate-800">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                  2. Doctor Chunein (Select Specialist)
+                </label>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {doctors.map(doc => {
                     const isSelected = selectedDoctorId === doc.id;
                     return (
                       <div
                         key={doc.id}
                         onClick={() => setSelectedDoctorId(doc.id)}
-                        className={`interactive-choice-btn p-4 flex items-center justify-between gap-3 select-none ${
-                          isSelected ? 'selected' : ''
+                        className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between gap-3 select-none ${
+                          isSelected
+                            ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 ring-2 ring-emerald-600/20'
+                            : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'
                         }`}
                       >
                         <div className="flex items-center gap-3.5 min-w-0">
-                          <div 
-                            className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-xs border transition-colors"
-                            style={{ 
-                              backgroundColor: isSelected ? '#E8F3EB' : '#F4F6F0', 
-                              borderColor: isSelected ? '#A7D7C5' : '#DDE2D5',
-                              color: isSelected ? '#1B4332' : '#4B6B50' 
-                            }}
-                          >
-                            <Stethoscope className="w-6 h-6 text-[#2D6A4F]" />
+                          <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                            isSelected ? 'bg-emerald-600 text-white' : 'bg-emerald-100 dark:bg-slate-800 text-emerald-800 dark:text-emerald-400'
+                          }`}>
+                            <Stethoscope className="w-6 h-6" />
                           </div>
                           <div className="min-w-0">
-                            <div className="font-bold text-sm leading-tight text-[#1F291E] dark:text-white">
+                            <div className="font-bold text-sm text-slate-900 dark:text-white truncate">
                               {doc.name}
                             </div>
-                            <div className="text-xs font-medium truncate mt-0.5 text-[#2D6A4F] dark:text-[#52B788]">
+                            <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium truncate mt-0.5">
                               {doc.specialization}
                             </div>
-                            <div 
-                              className="inline-block text-xs font-bold font-mono px-2.5 py-0.5 rounded-md mt-1.5 border transition-colors"
-                              style={{ 
-                                backgroundColor: isSelected ? '#E8F3EB' : '#FAF8F5',
-                                borderColor: isSelected ? '#A7D7C5' : '#E8DFD8',
-                                color: isSelected ? '#1B4332' : '#7F4F24'
-                              }}
-                            >
-                              Consultation Fee: PKR {doc.consultationFee}
+                            <div className="text-xs font-bold font-mono text-slate-600 dark:text-slate-300 mt-1">
+                              Fees: PKR {doc.consultationFee}
                             </div>
                           </div>
                         </div>
 
-                        {/* Radio / Selection Indicator */}
                         <div className="shrink-0">
                           {isSelected ? (
-                            <div 
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border shadow-xs"
-                              style={{ backgroundColor: '#E8F3EB', color: '#1B4332', borderColor: '#A7D7C5' }}
-                            >
-                              <CheckCircle2 className="w-4 h-4 text-[#2D6A4F]" />
-                              <span>Selected</span>
-                            </div>
+                            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                           ) : (
-                            <div 
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border"
-                              style={{ borderColor: '#DDE2D5', color: '#656D4A', backgroundColor: '#F8FAF6' }}
-                            >
-                              <div className="w-3.5 h-3.5 rounded-full border-2" style={{ borderColor: '#A4AC86' }} />
-                              <span>Select</span>
-                            </div>
+                            <div className="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600" />
                           )}
                         </div>
                       </div>
@@ -812,144 +671,60 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                   })}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                  <div>
-                    <label className="text-xs font-bold block mb-1.5" style={{ color: '#656D4A' }}>Clinical Service / Lab Test (Optional)</label>
-                    <select
-                      value={selectedServiceId}
-                      onChange={e => setSelectedServiceId(e.target.value)}
-                      className="w-full clinical-input text-xs"
-                    >
-                      <option value="">None (Standard Doctor Consultation Only)</option>
-                      {services.map(s => (
-                        <option key={s.id} value={s.id}>
-                          {s.name} (+ PKR {s.baseFee})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold block mb-1.5" style={{ color: '#656D4A' }}>Target Consultation Date *</label>
-                    <input
-                      type="date"
-                      required
-                      min={new Date().toISOString().split('T')[0]}
-                      value={bookingDate}
-                      onChange={e => setBookingDate(e.target.value)}
-                      className="w-full clinical-input text-xs font-mono font-medium"
-                    />
-                  </div>
+                {/* Appointment Date */}
+                <div className="pt-2">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Konsay Din Ana Hai? (Appointment Date) *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    min={new Date().toISOString().split('T')[0]}
+                    value={bookingDate}
+                    onChange={e => setBookingDate(e.target.value)}
+                    className="w-full sm:w-72 px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                  />
                 </div>
               </div>
 
               {/* STEP 3: SYMPTOMS & CHIEF COMPLAINT */}
-              <div className="space-y-4 pb-6 border-b" style={{ borderColor: '#E2E6D8' }}>
-                <div className="flex items-center gap-3">
-                  <span 
-                    className="w-8 h-8 rounded-xl font-black text-sm flex items-center justify-center shadow-xs text-white"
-                    style={{ background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)' }}
-                  >
-                    3
-                  </span>
-                  <div>
-                    <h3 className="text-sm sm:text-base font-bold tracking-tight text-[#1F291E] dark:text-white">
-                      Symptoms & Notification Alerts
-                    </h3>
-                    <p className="text-xs font-medium text-[#656D4A] dark:text-[#A4AC86]">
-                      Describe reason for visit and select where your sequential token alert should be sent.
-                    </p>
-                  </div>
-                </div>
+              <div className="space-y-3 pt-5 border-t border-slate-100 dark:border-slate-800">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                  3. Wajah / Takleef (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={chiefComplaint}
+                  onChange={e => setChiefComplaint(e.target.value)}
+                  placeholder="e.g. Skin checkup, Laser, Hair problem, Routine visit..."
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
 
-                <div>
-                  <label className="text-xs font-bold block mb-1.5 text-[#2D6A4F] dark:text-[#52B788]">
-                    Reason for Visit / Symptoms Description (Optional)
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={chiefComplaint}
-                    onChange={e => setChiefComplaint(e.target.value)}
-                    placeholder="Describe symptoms, fever, blood pressure, duration, or any specific health concerns..."
-                    className="w-full clinical-input text-xs"
-                  />
-                </div>
-
-                <div className="pt-1">
-                  <label className="text-xs font-bold block mb-2 text-[#2D6A4F] dark:text-[#52B788]">
-                    Send Live Token & Status Alerts via:
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div
-                      onClick={() => setBookingChannel('WhatsApp')}
-                      className={`interactive-choice-btn p-3.5 flex items-center justify-between gap-3 text-left ${
-                        bookingChannel === 'WhatsApp' ? 'selected' : ''
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#E8F3EB] dark:bg-[#2D3923] text-[#2D6A4F] shrink-0 border border-[#A7D7C5]">
-                          <MessageSquare className="w-5 h-5 text-[#2D6A4F]" />
-                        </div>
-                        <div>
-                          <div className="font-bold text-xs text-[#1F291E] dark:text-white">WhatsApp Alerts</div>
-                          <div className="text-[11px] text-[#2D6A4F] dark:text-[#52B788]">Instant digital token dispatch</div>
-                        </div>
-                      </div>
-                      {bookingChannel === 'WhatsApp' ? (
-                        <CheckCircle2 className="w-5 h-5 text-[#2D6A4F]" />
-                      ) : (
-                        <div className="w-4 h-4 rounded-full border-2 border-[#DDE2D5] dark:border-slate-600" />
-                      )}
-                    </div>
-
-                    <div
-                      onClick={() => setBookingChannel('SMS')}
-                      className={`interactive-choice-btn p-3.5 flex items-center justify-between gap-3 text-left ${
-                        bookingChannel === 'SMS' ? 'selected' : ''
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#FEF3C7] dark:bg-[#352B1E] text-[#B45309] shrink-0 border border-[#FDE68A]">
-                          <Phone className="w-5 h-5 text-[#B45309]" />
-                        </div>
-                        <div>
-                          <div className="font-bold text-xs text-[#1F291E] dark:text-white">SMS Messages</div>
-                          <div className="text-[11px] text-[#B45309] dark:text-[#FBBF24]">Standard cellular gateway delivery</div>
-                        </div>
-                      </div>
-                      {bookingChannel === 'SMS' ? (
-                        <CheckCircle2 className="w-5 h-5 text-[#2D6A4F]" />
-                      ) : (
-                        <div className="w-4 h-4 rounded-full border-2 border-[#DDE2D5] dark:border-slate-600" />
-                      )}
-                    </div>
-                  </div>
+                <div className="flex items-center gap-2.5 text-xs font-medium text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 p-3 rounded-xl border border-emerald-200 dark:border-emerald-900/50">
+                  <MessageSquare className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Aap ka token aur confirmation alert seedha aap ke WhatsApp par dispatch ho ga.</span>
                 </div>
               </div>
 
-              {/* STEP 4: FEE SUMMARY & SUBMISSION */}
-              <div 
-                className="p-5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs bg-[#F8FAF6] dark:bg-[#1E2717] border-[#E2E6D8] dark:border-[#333D29]"
-              >
+              {/* STEP 4: FEE SUMMARY & ACTION BUTTON */}
+              <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-5">
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-wider block text-[#2D6A4F] dark:text-[#52B788]">
-                    Total Estimated Fee
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                    Kul Fees (Pay at Clinic Reception):
                   </span>
-                  <div className="text-2xl font-black font-mono mt-0.5 text-[#1F291E] dark:text-white">
+                  <div className="text-2xl font-black font-mono text-emerald-700 dark:text-emerald-400">
                     PKR {totalEstimatedFee.toFixed(2)}
                   </div>
-                  <span className="text-xs font-medium text-[#7F4F24] dark:text-[#D7DBC7]">
-                    Token will be placed in PENDING queue. Pay at front-desk during check-in.
-                  </span>
                 </div>
 
                 <button
                   type="submit"
                   disabled={isSubmittingBooking}
-                  className="clinical-button-primary text-sm flex items-center justify-center gap-2.5 py-3 px-7 rounded-xl font-bold cursor-pointer active:scale-95 shadow-md"
+                  className="w-full sm:w-auto px-8 py-3.5 rounded-xl font-bold text-sm text-white shadow-lg shadow-emerald-800/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70"
+                  style={{ background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)' }}
                 >
                   <CalendarCheck className="w-5 h-5" />
-                  <span>{isSubmittingBooking ? 'Reserving Token...' : 'Confirm & Book Appointment'}</span>
+                  <span>{isSubmittingBooking ? 'Token Ban Raha Hai...' : 'Book Appointment Karein'}</span>
                 </button>
               </div>
             </form>
@@ -1339,61 +1114,44 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
             </div>
 
             {/* Summary Details Card */}
-            <div className="bg-[#F8FAF6] dark:bg-[#161D12] border border-[#E2E6D8] dark:border-[#2D3923] rounded-xl p-4 space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-3 pb-3 border-b border-[#E2E6D8] dark:border-[#2D3923]">
+            <div className="bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
                 <div>
-                  <span className="text-[#656D4A] dark:text-[#A4AC86] font-medium block">Patient Name:</span>
-                  <span className="font-bold text-[#1F291E] dark:text-white text-sm">
-                    {bookingFor === 'SELF' ? (currentUser?.profile?.fullName || 'Self') : newPatientName}
+                  <span className="text-slate-500 dark:text-slate-400 font-medium block">Mareez Ka Naam (Patient):</span>
+                  <span className="font-bold text-slate-900 dark:text-white text-sm">
+                    {bookingFor === 'SELF' ? (currentUser?.profile?.fullName || currentUser?.fullName || 'Self') : newPatientName}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[#656D4A] dark:text-[#A4AC86] font-medium block">Mobile Number:</span>
-                  <span className="font-bold font-mono text-[#1F291E] dark:text-white text-sm">
-                    {bookingFor === 'SELF' ? (currentUser?.profile?.phone || 'N/A') : newPatientPhone}
+                  <span className="text-slate-500 dark:text-slate-400 font-medium block">Mobile Number:</span>
+                  <span className="font-bold font-mono text-slate-900 dark:text-white text-sm">
+                    {bookingFor === 'SELF' ? (currentUser?.profile?.phone || currentUser?.phone || 'On File') : newPatientPhone}
                   </span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 pb-3 border-b border-[#E2E6D8] dark:border-[#2D3923]">
+              <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
                 <div>
-                  <span className="text-[#656D4A] dark:text-[#A4AC86] font-medium block">Specialist Physician:</span>
-                  <span className="font-bold text-[#2D6A4F] dark:text-[#52B788]">
-                    {doctors.find(d => d.id === selectedDoctorId)?.fullName || 'Consultant Specialist'}
+                  <span className="text-slate-500 dark:text-slate-400 font-medium block">Doctor:</span>
+                  <span className="font-bold text-emerald-700 dark:text-emerald-400 text-sm">
+                    {doctors.find(d => d.id === selectedDoctorId)?.fullName || 'Selected Specialist'}
                   </span>
-                  <span className="text-[11px] text-[#656D4A] block">
+                  <span className="text-[11px] text-slate-500 block">
                     {doctors.find(d => d.id === selectedDoctorId)?.specialization}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[#656D4A] dark:text-[#A4AC86] font-medium block">Appointment Date:</span>
-                  <span className="font-bold font-mono text-[#1F291E] dark:text-white">
+                  <span className="text-slate-500 dark:text-slate-400 font-medium block">Tareekh (Date):</span>
+                  <span className="font-bold font-mono text-slate-900 dark:text-white text-sm">
                     {bookingDate}
                   </span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <span className="text-[#656D4A] dark:text-[#A4AC86] font-medium block">CNIC / Identity:</span>
-                  <span className="font-mono text-[#1F291E] dark:text-white">
-                    {bookingFor === 'SELF' 
-                      ? (currentUser?.profile?.cnic || 'On File') 
-                      : (newPatientCnic ? newPatientCnic : 'Not provided (Optional)')}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[#656D4A] dark:text-[#A4AC86] font-medium block">Alert Channel:</span>
-                  <span className="font-semibold text-[#1F291E] dark:text-white flex items-center gap-1">
-                    {bookingChannel === 'WhatsApp' ? '🟢 WhatsApp Instant Alerts' : '📱 SMS Messages'}
-                  </span>
-                </div>
-              </div>
-
               {chiefComplaint && (
-                <div className="pt-2 border-t border-[#E2E6D8] dark:border-[#2D3923]">
-                  <span className="text-[#656D4A] dark:text-[#A4AC86] font-medium block">Reason for Visit:</span>
-                  <span className="text-[#1F291E] dark:text-white italic">
+                <div className="pt-1">
+                  <span className="text-slate-500 dark:text-slate-400 font-medium block">Wajah / Masla:</span>
+                  <span className="text-slate-900 dark:text-white italic">
                     "{chiefComplaint}"
                   </span>
                 </div>

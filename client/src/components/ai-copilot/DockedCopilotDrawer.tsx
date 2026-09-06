@@ -149,9 +149,11 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
     }
     if (userRole === 'PATIENT') {
       return [
+        { label: 'Doctor Timings & Schedule', prompt: 'Which doctors are available and what are their clinic timings?' },
+        { label: 'Check Open Slots', prompt: 'Show available appointment slots and open tokens for today and tomorrow' },
+        { label: 'Book Appointment', prompt: 'I want to book an appointment with a specialist doctor' },
         { label: 'My Appointments', prompt: 'When is my next appointment and reminder?' },
-        { label: 'Book Specialist', prompt: 'I want to book an appointment with a specialist doctor' },
-        { label: 'Billing & Invoices', prompt: 'Show my balance and billing details' }
+        { label: 'Fees & Billing', prompt: 'What are the consultation fees and billing details?' }
       ];
     }
     return [

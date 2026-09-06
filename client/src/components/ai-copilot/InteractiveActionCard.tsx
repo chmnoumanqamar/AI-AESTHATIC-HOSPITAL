@@ -10,7 +10,8 @@ import {
   Shield, 
   ExternalLink,
   Sparkles,
-  FileText
+  FileText,
+  Stethoscope
 } from 'lucide-react';
 
 interface InteractiveActionCardProps {
@@ -89,7 +90,227 @@ export const InteractiveActionCard: React.FC<InteractiveActionCardProps> = ({
     );
   }
 
-  // 3. Doctor Discovery Card
+// 2.5. Doctor Availability & Live Slot Capacity Card
+  if (cardData.type === 'DOCTOR_AVAILABILITY_CARD' && cardData.doctors) {
+    const doctors = cardData.doctors;
+    const dates = cardData.dates || [
+      new Date().toISOString().split('T')[0],
+      new Date(Date.now() + 86400000).toISOString().split('T')[0]
+    ];
+
+    return (
+      <div className="mt-2.5 space-y-2.5">
+        <div className="flex items-center justify-between px-0.5">
+          <span className="text-[10.5px] font-extrabold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+            <Stethoscope className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>OPD Roster & Live Capacity</span>
+          </span>
+          <span className="text-[10px] text-slate-500 dark:text-[#A4AC86]">Real-time Tokens</span>
+        </div>
+
+        {doctors.map((doc: any) => {
+          const todayAvail = doc.todaySlots?.available ?? (doc.dailyPatientLimit || 80);
+          const tomorrowAvail = doc.tomorrowSlots?.available ?? (doc.dailyPatientLimit || 80);
+          const hasSlotsToday = todayAvail > 0;
+
+          return (
+            <div 
+              key={doc.id}
+              className="p-3 bg-white dark:bg-[#1E2718] border border-brand-300 dark:border-[#38482E] rounded-2xl text-xs space-y-2 shadow-xs hover:border-emerald-500/80 transition-all"
+            >
+              {/* Doctor Header */}
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h4 className="font-extrabold text-sm text-slate-900 dark:text-white leading-tight">
+                    {doc.name}
+                  </h4>
+                  <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 mt-0.5">
+                    {doc.specialization}
+                  </p>
+                  <p className="text-[10px] text-slate-500 dark:text-[#A4AC86]">
+                    {doc.experienceYears} yrs exp • {doc.qualifications?.join(', ')}
+                  </p>
+                </div>
+
+                <div className="text-right shrink-0">
+                  <span className="px-2 py-0.5 rounded-lg text-xs font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-mono">
+                    PKR {doc.consultationFee?.toLocaleString()}
+                  </span>
+                  <span className="block text-[9px] text-slate-400 dark:text-[#889073] mt-0.5">
+                    Follow-up: PKR {doc.followUpFee?.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Clinic Shifts */}
+              <div className="p-2 bg-[#F6F8F3] dark:bg-[#202C1B] rounded-xl border border-brand-200/80 dark:border-[#2C3B24] space-y-1 text-[10px]">
+                <div className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-[#D5DAC8]">
+                  <Clock className="w-3.5 h-3.5 text-brand-600 dark:text-[#A4AC86] shrink-0" />
+                  <span>
+                    {doc.shifts?.morning && doc.shifts.morning !== 'N/A' && (
+                      <span className="mr-2">🌅 Morning: <strong>{doc.shifts.morning}</strong></span>
+                    )}
+                    {doc.shifts?.evening && (
+                      <span>🌇 Evening: <strong>{doc.shifts.evening}</strong></span>
+                    )}
+                  </span>
+                </div>
+                <div className="text-slate-500 dark:text-[#A4AC86] flex items-center justify-between">
+                  <span>🗓️ {doc.shifts?.days || 'Monday - Saturday'}</span>
+                  <span>⏱️ {doc.shifts?.consultationDuration || '15 mins/patient'}</span>
+                </div>
+              </div>
+
+              {/* Slot Availability Strip */}
+              <div className="grid grid-cols-2 gap-1.5 text-center text-[10px]">
+                <div className={`p-1.5 rounded-lg border ${hasSlotsToday ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/40 text-emerald-900 dark:text-emerald-300' : 'bg-slate-50 dark:bg-[#202919] border-slate-200 text-slate-400'}`}>
+                  <span className="block font-bold">Today ({dates[0]?.slice(5)})</span>
+                  <span className="text-[9px] font-semibold">{hasSlotsToday ? `✅ ${todayAvail} Slots Open` : '❌ Fully Booked'}</span>
+                </div>
+                <div className="p-1.5 rounded-lg border bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/40 text-emerald-900 dark:text-emerald-300">
+                  <span className="block font-bold">Tomorrow ({dates[1]?.slice(5)})</span>
+                  <span className="text-[9px] font-semibold">✅ {tomorrowAvail} Slots Open</span>
+                </div>
+              </div>
+
+              {/* Booking Actions */}
+              <div className="pt-1 flex items-center justify-end gap-2 border-t border-slate-100 dark:border-[#2C3B24]">
+                <button
+                  onClick={() => onBookDoctor && onBookDoctor(doc.id, dates[0])}
+                  disabled={!hasSlotsToday}
+                  className={`py-1.5 px-3 text-[11px] font-bold rounded-xl flex items-center gap-1 transition-all shadow-xs cursor-pointer ${
+                    hasSlotsToday
+                      ? 'text-white bg-gradient-to-r from-[#2D6A4F] to-[#1B4332] hover:opacity-95 active:scale-95'
+                      : 'bg-slate-200 dark:bg-[#242E1C] text-slate-400 cursor-not-allowed'
+                  }`}
+                >
+                  <span>Book Today</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+
+                <button
+                  onClick={() => onBookDoctor && onBookDoctor(doc.id, dates[1])}
+                  className="py-1.5 px-3 text-[11px] font-bold rounded-xl text-emerald-800 dark:text-emerald-200 bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950/80 dark:hover:bg-emerald-900 border border-emerald-300/80 dark:border-emerald-800 flex items-center gap-1 transition-all cursor-pointer"
+                >
+                  <span>Book Tomorrow</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // 2.6. Interactive Booking Picker Card
+  if (cardData.type === 'BOOKING_PICKER' && cardData.doctors) {
+    const doctors = cardData.doctors;
+    const dates = cardData.availableDates || [
+      new Date().toISOString().split('T')[0],
+      new Date(Date.now() + 86400000).toISOString().split('T')[0]
+    ];
+
+    return (
+      <div className="mt-2.5 p-3.5 bg-white dark:bg-[#1A2317] border border-emerald-300 dark:border-emerald-800/70 rounded-2xl shadow-xs space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-800 dark:text-emerald-300">
+            <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div>
+            <h4 className="font-bold text-xs text-slate-900 dark:text-white leading-tight">Fast Appointment Booking</h4>
+            <p className="text-[10px] text-slate-500 dark:text-[#A4AC86]">Select your physician to secure sequential token</p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {doctors.map((doc: any) => (
+            <div 
+              key={doc.id}
+              className="p-2.5 bg-[#FAFBF8] dark:bg-[#1F2B1A] border border-brand-200 dark:border-[#38482E] rounded-xl flex items-center justify-between text-xs"
+            >
+              <div>
+                <div className="font-bold text-slate-900 dark:text-white text-xs">{doc.name}</div>
+                <div className="text-[10px] text-emerald-700 dark:text-emerald-400">{doc.specialization}</div>
+                <div className="text-[9.5px] text-slate-400 dark:text-[#889073] font-mono">Fee: PKR {doc.consultationFee}</div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => onBookDoctor && onBookDoctor(doc.id, dates[0])}
+                  className="py-1 px-2.5 text-[10.5px] font-bold rounded-lg text-white bg-gradient-to-r from-[#2D6A4F] to-[#1B4332] shadow-xs hover:opacity-90 active:scale-95 cursor-pointer"
+                >
+                  Book ({dates[0]?.slice(5)})
+                </button>
+                <button
+                  onClick={() => onBookDoctor && onBookDoctor(doc.id, dates[1])}
+                  className="py-1 px-2.5 text-[10.5px] font-bold rounded-lg text-emerald-800 dark:text-emerald-200 bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-800 cursor-pointer"
+                >
+                  ({dates[1]?.slice(5)})
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // 2.7. Booking Confirmed Token Card
+  if (cardData.type === 'BOOKING_CONFIRMED') {
+    return (
+      <div className="mt-2.5 p-3.5 bg-white dark:bg-[#1A2317] border border-emerald-400 dark:border-emerald-700 rounded-2xl shadow-sm space-y-2.5 animate-in fade-in">
+        <div className="flex items-center justify-between pb-2 border-b border-emerald-100 dark:border-emerald-900/50">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 flex items-center justify-center">
+              <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white">Booking Request Registered!</h4>
+              <p className="text-[9.5px] text-slate-500 dark:text-[#A4AC86]">Sequential token allocated</p>
+            </div>
+          </div>
+          <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 border border-amber-300/60">
+            PENDING TRIAGE
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="p-2 rounded-xl bg-emerald-50/70 dark:bg-[#1E2B1A] border border-emerald-200/80 dark:border-[#33462A]">
+            <span className="text-[9.5px] text-slate-500 dark:text-[#A4AC86] block">Allocated Token</span>
+            <span className="text-sm font-extrabold text-emerald-800 dark:text-emerald-300 font-mono">
+              #{cardData.tokenNumber}
+            </span>
+          </div>
+          <div className="p-2 rounded-xl bg-slate-50 dark:bg-[#1E2B1A] border border-slate-200 dark:border-[#33462A]">
+            <span className="text-[9.5px] text-slate-500 dark:text-[#A4AC86] block">Target Date</span>
+            <span className="text-xs font-bold text-slate-900 dark:text-white">
+              {cardData.appointmentDate}
+            </span>
+          </div>
+        </div>
+
+        <div className="text-xs text-slate-700 dark:text-[#D5DAC8]">
+          <div>Doctor: <strong className="text-slate-900 dark:text-white">{cardData.doctorName}</strong></div>
+          <p className="text-[10px] text-slate-500 dark:text-[#A4AC86] mt-0.5">
+            Your token is queued in OPD. Front-desk receptionist will verify and confirm.
+          </p>
+        </div>
+
+        {onSelectTab && (
+          <button
+            onClick={() => onSelectTab('patient_portal')}
+            className="w-full py-1.5 px-3 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
+            style={{ background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)' }}
+          >
+            <span>View in My Appointments</span>
+            <ArrowRight className="w-3 h-3" />
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // 3. Doctor Discovery Card (Fallback)
   if (cardData.type === 'DOCTOR_LIST' && cardData.doctors) {
     return (
       <div className="mt-2.5 space-y-2">

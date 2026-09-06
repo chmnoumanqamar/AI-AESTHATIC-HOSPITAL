@@ -9,6 +9,8 @@ import { appointmentReminderService, UpcomingReminderItem } from '../appointment
 import { auditVaultService } from '../audit/audit.service';
 import { appointmentService } from '../appointment/appointment.service';
 import { queueService } from '../queue/queue.service';
+import { doctorService } from '../doctor/doctor.service';
+import { tokenService } from '../token/token.service';
 
 export interface AiChatMessage {
   role: 'user' | 'assistant' | 'system' | 'tool';
@@ -67,6 +69,13 @@ export class AiAgentOrchestrator {
     const trimmedInput = message.trim();
     const lang = this.detectLanguage(trimmedInput);
     const lower = trimmedInput.toLowerCase();
+
+    // Resolve patientId fallback if not directly provided in context
+    let resolvedPatientId = context.patientId;
+    if (!resolvedPatientId && context.userId) {
+      const pat = db.patients.find(p => p.userId === context.userId);
+      if (pat) resolvedPatientId = pat.id;
+    }
 
     logger.info(`[AI Orchestrator] User ${context.userId} [Lang: ${lang}]: "${trimmedInput}"`);
 
@@ -161,11 +170,11 @@ export class AiAgentOrchestrator {
 
     // Fetch patient upcoming appointments / reminders for live context
     let upcomingReminders: UpcomingReminderItem[] = [];
-    if (context.patientId) {
+    if (resolvedPatientId) {
       try {
-        upcomingReminders = await appointmentReminderService.getUpcomingRemindersForPatient(context.patientId);
+        upcomingReminders = await appointmentReminderService.getUpcomingRemindersForPatient(resolvedPatientId);
       } catch (err) {
-        logger.warn(`Could not load reminders for patient ${context.patientId}`);
+        logger.warn(`Could not load reminders for patient ${resolvedPatientId}`);
       }
     }
 
@@ -566,7 +575,259 @@ export class AiAgentOrchestrator {
       };
     }
 
-    // D. Doctor Search Intent
+    // D1. Direct Booking Execution Intent (When patient asks to book with a specific doctor and/or date)
+    const isDirectBookingRequest =
+      (lower.includes('book an appointment with doctor') ||
+       (lower.includes('book') && (lower.includes('doc-') || lower.includes('aisha') || lower.includes('marcus'))) ||
+       (lower.includes('appointment book') && (lower.includes('aisha') || lower.includes('marcus') || lower.includes('karo')))) &&
+      !lower.includes('approval') &&
+      !lower.includes('pending') &&
+      !lower.includes('list');
+
+    if (isDirectBookingRequest) {
+      if (!resolvedPatientId) {
+        const loginReqMsg = lang === 'roman_urdu'
+          ? '⚠️ **Patient Login Darkaar Hai:** Appointment request bhejne ke liye baraye meharbani Patient account se login ya register karein.'
+          : '⚠️ **Patient Login Required:** Please log in with your patient account to book an appointment with our specialist physicians.';
+        return {
+          role: 'assistant',
+          content: loginReqMsg
+        };
+      }
+
+      // Determine Doctor ID
+      let selectedDoctorId = 'doc-01'; // Default Dr. Aisha
+      const allDocs = await doctorService.getAllDoctors();
+      if (lower.includes('doc-02') || lower.includes('marcus')) {
+        selectedDoctorId = 'doc-02';
+      } else if (lower.includes('doc-01') || lower.includes('aisha')) {
+        selectedDoctorId = 'doc-01';
+      } else {
+        const matched = allDocs.find(d => lower.includes(d.name.toLowerCase()));
+        if (matched) selectedDoctorId = matched.id;
+      }
+
+      // Determine Target Date
+      let targetDate = new Date().toISOString().split('T')[0];
+      const dateMatch = trimmedInput.match(/\b\d{4}-\d{2}-\d{2}\b/);
+      if (dateMatch) {
+        targetDate = dateMatch[0];
+      } else if (lower.includes('tomorrow') || lower.includes('kal')) {
+        targetDate = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+      } else if (lower.includes('parson')) {
+        targetDate = new Date(Date.now() + 172800000).toISOString().split('T')[0];
+      }
+
+      try {
+        const bookingRes = await toolHandlers.createBookingRequest(
+          { doctorId: selectedDoctorId, date: targetDate },
+          resolvedPatientId,
+          context.userId
+        );
+
+        const successText = lang === 'roman_urdu'
+          ? `✅ **Appointment Request Kamyabi Se Bhej Di Gayi Hai!**\n\n` +
+            `• **Doctor:** **${bookingRes.doctorName}**\n` +
+            `• **Tareekh:** **${bookingRes.appointmentDate}**\n` +
+            `• **Assigned Token:** **#${bookingRes.tokenNumber}**\n` +
+            `• **Status:** \`PENDING\` *(Front-desk review ke baad confirm ho jayegi)*\n\n` +
+            `Reception se verify hotay he aap ki appointment confirm ho jayegi.`
+          : `✅ **Appointment Request Submitted Successfully!**\n\n` +
+            `• **Physician:** **${bookingRes.doctorName}**\n` +
+            `• **Appointment Date:** **${bookingRes.appointmentDate}**\n` +
+            `• **Allocated Sequential Token:** **#${bookingRes.tokenNumber}**\n` +
+            `• **Status:** \`PENDING\` *(Awaiting front-desk triage & confirmation)*\n\n` +
+            `A confirmation notice will be transmitted upon receptionist validation.`;
+
+        return {
+          role: 'assistant',
+          content: successText,
+          cardData: {
+            type: 'BOOKING_CONFIRMED',
+            ...bookingRes
+          }
+        };
+      } catch (err: any) {
+        const errMsg = err.message || 'Failed to allocate token slot.';
+        return {
+          role: 'assistant',
+          content: `❌ **Booking Error:** ${errMsg}`
+        };
+      }
+    }
+
+    // D2. Doctor Availability, OPD Timings & Live Slot Capacity Inquiry Intent
+    const isAvailabilityTimingOrSlotIntent =
+      (lower.includes('timing') || lower.includes('timings') || lower.includes('schedule') ||
+       lower.includes('available') || lower.includes('availability') || lower.includes('dastyab') ||
+       lower.includes('waqt') || lower.includes('time') || lower.includes('slot') ||
+       lower.includes('slots') || lower.includes('kab') || lower.includes('khali') ||
+       lower.includes('shift') || lower.includes('hours') || lower.includes('kitne baje') ||
+       lower.includes('baithte') || lower.includes('baithti') || lower.includes('milenge') ||
+       lower.includes('token') || lower.includes('open slot') || lower.includes('kab hai') ||
+       lower.includes('kab mil') || lower.includes('kis waqt')) &&
+      (lower.includes('doctor') || lower.includes('dr') || lower.includes('aisha') ||
+       lower.includes('marcus') || lower.includes('cardio') || lower.includes('derm') ||
+       lower.includes('appointment') || lower.includes('opd') || lower.includes('clinic') ||
+       lower.includes('specialist') || lower.includes('physician') || lower.includes('checkup'));
+
+    if (isAvailabilityTimingOrSlotIntent && !lower.includes('my schedule') && !lower.includes('audit')) {
+      const today = new Date().toISOString().split('T')[0];
+      const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+      const allDoctors = await doctorService.getAllDoctors();
+
+      let targetDoctors = allDoctors;
+      if (lower.includes('aisha') || lower.includes('ayesha')) {
+        targetDoctors = allDoctors.filter(d => d.name.toLowerCase().includes('aisha'));
+      } else if (lower.includes('marcus') || lower.includes('vance')) {
+        targetDoctors = allDoctors.filter(d => d.name.toLowerCase().includes('marcus'));
+      } else if (lower.includes('cardio') || lower.includes('heart') || lower.includes('dil')) {
+        targetDoctors = allDoctors.filter(d => d.specialization.toLowerCase().includes('cardio'));
+      } else if (lower.includes('derm') || lower.includes('skin') || lower.includes('jild') || lower.includes('aesthetic') || lower.includes('laser')) {
+        targetDoctors = allDoctors.filter(d => d.specialization.toLowerCase().includes('derm'));
+      }
+
+      if (targetDoctors.length === 0) targetDoctors = allDoctors;
+
+      const detailedDoctors = await Promise.all(
+        targetDoctors.map(async doc => {
+          let matrixToday;
+          let matrixTomorrow;
+          try {
+            matrixToday = await tokenService.getDoctorTokensMatrix(doc.id, today);
+          } catch {
+            matrixToday = { availableCapacity: doc.dailyPatientLimit || 100, activePatientsCount: 0, dailyLimit: doc.dailyPatientLimit || 100 };
+          }
+          try {
+            matrixTomorrow = await tokenService.getDoctorTokensMatrix(doc.id, tomorrow);
+          } catch {
+            matrixTomorrow = { availableCapacity: doc.dailyPatientLimit || 100, activePatientsCount: 0, dailyLimit: doc.dailyPatientLimit || 100 };
+          }
+
+          let shifts = {
+            morning: '09:00 AM – 01:00 PM',
+            evening: '04:00 PM – 08:00 PM',
+            days: 'Monday – Saturday',
+            consultationDuration: '15–20 mins per patient'
+          };
+          if (doc.name.toLowerCase().includes('marcus')) {
+            shifts = {
+              morning: 'N/A',
+              evening: '02:00 PM – 08:00 PM',
+              days: 'Monday – Friday',
+              consultationDuration: '20–25 mins per patient'
+            };
+          }
+
+          return {
+            id: doc.id,
+            name: doc.name,
+            specialization: doc.specialization,
+            qualifications: doc.qualifications || ['MBBS', 'Specialist'],
+            experienceYears: doc.experienceYears || 10,
+            consultationFee: doc.consultationFee,
+            followUpFee: doc.followUpFee || Math.round(doc.consultationFee * 0.6),
+            shifts,
+            todaySlots: {
+              date: today,
+              available: matrixToday.availableCapacity,
+              booked: matrixToday.activePatientsCount,
+              limit: matrixToday.dailyLimit,
+              hasSlots: matrixToday.availableCapacity > 0
+            },
+            tomorrowSlots: {
+              date: tomorrow,
+              available: matrixTomorrow.availableCapacity,
+              booked: matrixTomorrow.activePatientsCount,
+              limit: matrixTomorrow.dailyLimit,
+              hasSlots: matrixTomorrow.availableCapacity > 0
+            }
+          };
+        })
+      );
+
+      let responseText = '';
+      if (lang === 'roman_urdu') {
+        const docSummaries = detailedDoctors.map(d => {
+          const shiftStr = d.shifts.morning !== 'N/A'
+            ? `• **OPD Timings:** Subah ${d.shifts.morning} | Shaam ${d.shifts.evening} (${d.shifts.days})`
+            : `• **OPD Timings:** Dopehar/Shaam ${d.shifts.evening} (${d.shifts.days})`;
+
+          const todayStatus = d.todaySlots.hasSlots
+            ? `✅ **Aaj (${d.todaySlots.date}):** **${d.todaySlots.available} Slots Khali Hain** (${d.todaySlots.booked} booked out of ${d.todaySlots.limit})`
+            : `❌ **Aaj (${d.todaySlots.date}):** Tamam slots full hain`;
+
+          const tomorrowStatus = d.tomorrowSlots.hasSlots
+            ? `✅ **Kal (${d.tomorrowSlots.date}):** **${d.tomorrowSlots.available} Slots Khali Hain**`
+            : `❌ **Kal (${d.tomorrowSlots.date}):** Slots full hain`;
+
+          return `🩺 **${d.name}** (*${d.specialization}*)\n` +
+            `  ${shiftStr}\n` +
+            `  • **Slot Availability:**\n    - ${todayStatus}\n    - ${tomorrowStatus}\n` +
+            `  • **Consultation Fee:** PKR ${d.consultationFee.toLocaleString()} *(Follow-up: PKR ${d.followUpFee.toLocaleString()})*\n` +
+            `  • **Tajurba:** ${d.experienceYears} saal (${d.qualifications.join(', ')})`;
+        }).join('\n\n');
+
+        responseText = `🏥 **Aesthetic Hospital — Doctors Ki Timings Aur Live Slot Status:**\n\n` +
+          `${docSummaries}\n\n` +
+          `📌 **Slot Lene Ka Tareeqa:**\n` +
+          `Aap neechay diay gaye card se **'Book Consultation'** click kar ke kisi bhi doctor ki appointment request kar sakte hain, ya mujhay likhein: *"Dr. Aisha ke sath appointment book karo"*.`;
+      } else if (lang === 'urdu') {
+        const docSummaries = detailedDoctors.map(d => {
+          const shiftStr = d.shifts.morning !== 'N/A'
+            ? `• **کلینک کے اوقات:** صبح ${d.shifts.morning} | شام ${d.shifts.evening} (${d.shifts.days})`
+            : `• **کلینک کے اوقات:** بعد دوپہر/شام ${d.shifts.evening} (${d.shifts.days})`;
+
+          const todayStatus = d.todaySlots.hasSlots
+            ? `✅ **آج:** **${d.todaySlots.available} نشستیں خالی ہیں**`
+            : `❌ **آج:** تمام نشستیں پر ہیں`;
+
+          return `🩺 **${d.name}** (${d.specialization})\n` +
+            `  ${shiftStr}\n` +
+            `  • **دستیاب نشستیں:** ${todayStatus}\n` +
+            `  • **معائنہ فیس:** PKR ${d.consultationFee.toLocaleString()}`;
+        }).join('\n\n');
+
+        responseText = `🏥 **ڈاکٹروں کے کلینک اوقات اور دستیاب نشستیں:**\n\n${docSummaries}\n\nآپ نیچے دیے گئے کارڈ سے فوری طور پر اپائنٹمنٹ حاصل کر سکتے ہیں۔`;
+      } else {
+        const docSummaries = detailedDoctors.map(d => {
+          const shiftStr = d.shifts.morning !== 'N/A'
+            ? `• **Clinic Hours:** Morning: ${d.shifts.morning} | Evening: ${d.shifts.evening} (${d.shifts.days})`
+            : `• **Clinic Hours:** Afternoon/Evening: ${d.shifts.evening} (${d.shifts.days})`;
+
+          const todayStatus = d.todaySlots.hasSlots
+            ? `✅ **Today (${d.todaySlots.date}):** **${d.todaySlots.available} open slots** (${d.todaySlots.booked} reserved of ${d.todaySlots.limit} capacity)`
+            : `❌ **Today (${d.todaySlots.date}):** Fully booked for today`;
+
+          const tomorrowStatus = d.tomorrowSlots.hasSlots
+            ? `✅ **Tomorrow (${d.tomorrowSlots.date}):** **${d.tomorrowSlots.available} open slots**`
+            : `❌ **Tomorrow (${d.tomorrowSlots.date}):** Fully booked`;
+
+          return `🩺 **${d.name}** — *${d.specialization}*\n` +
+            `  ${shiftStr}\n` +
+            `  • **Live Availability:**\n    - ${todayStatus}\n    - ${tomorrowStatus}\n` +
+            `  • **Fee:** PKR ${d.consultationFee.toLocaleString()} *(Follow-up: PKR ${d.followUpFee.toLocaleString()})*\n` +
+            `  • **Credentials:** ${d.qualifications.join(', ')} (${d.experienceYears} yrs experience)`;
+        }).join('\n\n');
+
+        responseText = `🏥 **Aesthetic Hospital — Specialist Roster, Timings & Live Slot Capacity:**\n\n` +
+          `${docSummaries}\n\n` +
+          `💡 **To Secure a Slot:**\n` +
+          `Click **'Book Consultation'** on the doctor card below, or tell me: *"Book an appointment with Dr. Aisha tomorrow"*.`;
+      }
+
+      return {
+        role: 'assistant',
+        content: responseText,
+        cardData: {
+          type: 'DOCTOR_AVAILABILITY_CARD',
+          doctors: detailedDoctors,
+          dates: [today, tomorrow, new Date(Date.now() + 172800000).toISOString().split('T')[0]]
+        }
+      };
+    }
+
+    // D3. General Doctor Search Intent (Fallback)
     const isDoctorIntent =
       lower.includes('doctor') ||
       lower.includes('cardiologist') ||
@@ -595,7 +856,7 @@ export class AiAgentOrchestrator {
       };
     }
 
-    // E. Booking Request Intent
+    // E. Guided Booking Request Intent
     const isBookingIntent =
       (lower.includes('book') ||
        lower.includes('appointment') ||

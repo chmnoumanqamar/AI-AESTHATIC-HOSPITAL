@@ -63,7 +63,6 @@ function resolveTerminalConfig(): TerminalConfig | null {
 
 export const App: React.FC = () => {
   const terminalConfig = resolveTerminalConfig();
-  const isTerminalLocked = Boolean(terminalConfig);
   const isolatedKey = terminalConfig ? terminalConfig.key : null;
 
   const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('hospital_token'));
@@ -88,45 +87,45 @@ export const App: React.FC = () => {
     setCurrentTab(getInitialTabForRole(role));
   };
 
-  // Initialize session on mount
+  const syncUrlForRole = (role: string) => {
+    const pathMap: Record<string, string> = {
+      DOCTOR: '/doctor',
+      RECEPTIONIST: '/receptionist',
+      PATIENT: '/patient',
+      ADMIN: '/admin'
+    };
+    if (pathMap[role] && window.location.pathname !== pathMap[role]) {
+      window.history.replaceState(null, '', pathMap[role]);
+    }
+  };
+
+  // Initialize saved session on mount only
   useEffect(() => {
     let isMounted = true;
-    const safetyTimer = setTimeout(() => {
-      if (isMounted) setIsInitializing(false);
-    }, 3000);
+    const existingToken = localStorage.getItem('hospital_token');
+    if (!existingToken) {
+      setIsInitializing(false);
+      return;
+    }
 
     const initSession = async () => {
       try {
-        if (authToken) {
-          try {
-            const res = await api.get('/auth/me');
-            const user = res.data.data;
-            if (isMounted && user) {
-              // If current terminal is locked to a specific role, verify session matches
-              if (isTerminalLocked && terminalConfig && user.role !== terminalConfig.role) {
-                // Different role on this terminal: require dedicated login
-                localStorage.removeItem('hospital_token');
-                setAuthToken(null);
-                setCurrentUser(null);
-              } else {
-                setCurrentUser(user);
-                setCurrentRole(user.role);
-                setDefaultTabForRole(user.role);
-              }
-            }
-          } catch {
-            // Token expired or invalid
-            localStorage.removeItem('hospital_token');
-            if (isMounted) {
-              setAuthToken(null);
-              setCurrentUser(null);
-            }
-          }
+        const res = await api.get('/auth/me');
+        const user = res.data.data;
+        if (isMounted && user) {
+          setCurrentUser(user);
+          setCurrentRole(user.role);
+          setDefaultTabForRole(user.role);
+          syncUrlForRole(user.role);
         }
       } catch (err) {
-        console.warn('Session check completed:', err);
+        console.warn('Stored session invalid or expired:', err);
+        localStorage.removeItem('hospital_token');
+        if (isMounted) {
+          setAuthToken(null);
+          setCurrentUser(null);
+        }
       } finally {
-        clearTimeout(safetyTimer);
         if (isMounted) setIsInitializing(false);
       }
     };
@@ -134,9 +133,17 @@ export const App: React.FC = () => {
     initSession();
     return () => {
       isMounted = false;
-      clearTimeout(safetyTimer);
     };
-  }, [authToken]);
+  }, []);
+
+  const handleLoginSuccess = (token: string, user: any) => {
+    localStorage.setItem('hospital_token', token);
+    setAuthToken(token);
+    setCurrentUser(user);
+    setCurrentRole(user.role);
+    setDefaultTabForRole(user.role);
+    syncUrlForRole(user.role);
+  };
 
   const handleSwitchRole = (role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT') => {
     const pathMap: Record<string, string> = {
@@ -154,6 +161,7 @@ export const App: React.FC = () => {
     localStorage.removeItem('hospital_token');
     setAuthToken(null);
     setCurrentUser(null);
+    window.history.replaceState(null, '', '/');
   };
 
   if (isInitializing) {
@@ -163,7 +171,7 @@ export const App: React.FC = () => {
           <div className="w-12 h-12 border-4 border-slate-200 dark:border-emerald-950 border-t-emerald-600 rounded-full animate-spin mx-auto" />
           <div>
             <h2 className="text-base font-extrabold text-slate-900 dark:text-white">
-              {terminalConfig ? `Connecting Isolated Terminal (${terminalConfig.role})...` : 'Booting Clinical Command Deck...'}
+              Booting Clinical Command Deck...
             </h2>
             <p className="text-xs text-slate-500 dark:text-emerald-400 mt-1">Connecting to clinical backend & AI engine...</p>
           </div>
@@ -176,12 +184,7 @@ export const App: React.FC = () => {
     return (
       <LoginView
         isolatedPort={isolatedKey}
-        onLoginSuccess={(token, user) => {
-          setAuthToken(token);
-          setCurrentUser(user);
-          setCurrentRole(user.role);
-          setDefaultTabForRole(user.role);
-        }}
+        onLoginSuccess={handleLoginSuccess}
       />
     );
   }

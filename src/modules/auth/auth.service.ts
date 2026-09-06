@@ -173,6 +173,39 @@ export class AuthService {
     };
   }
 
+  async getCurrentUser(userId: string) {
+    const user = db.users.find(u => u.id === userId);
+    if (!user) {
+      throw AppError.notFound('User session expired or user not found');
+    }
+
+    let profileId: string | undefined;
+    let profileData: any = null;
+
+    if (user.role === 'DOCTOR') {
+      const doc = db.doctors.find(d => d.userId === user.id);
+      profileId = doc?.id;
+      profileData = doc;
+    } else if (user.role === 'PATIENT') {
+      const pat = db.patients.find(p => p.userId === user.id);
+      profileId = pat?.id;
+      profileData = pat;
+    } else if (user.role === 'RECEPTIONIST') {
+      const recep = db.receptionists.find(r => r.userId === user.id);
+      profileId = recep?.id;
+      profileData = recep;
+    }
+
+    return {
+      id: user.id,
+      phone: user.phone,
+      email: user.email,
+      role: user.role,
+      profileId,
+      profile: profileData
+    };
+  }
+
   private resetOtpStore = new Map<string, { otp: string; expiresAt: number }>();
 
   async requestPasswordResetOtp(input: { identifier: string }) {

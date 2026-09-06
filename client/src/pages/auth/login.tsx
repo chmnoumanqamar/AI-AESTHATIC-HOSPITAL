@@ -166,6 +166,24 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
     setError(null);
   };
 
+  const handleQuickSignIn = async (accIdentifier: string, accPass: string = 'Password123!') => {
+    setLoading(true);
+    setError(null);
+    setIdentifier(accIdentifier);
+    setPassword(accPass);
+    try {
+      const res = await api.post('/auth/login', { identifier: accIdentifier, password: accPass });
+      const { token, user } = res.data.data;
+      localStorage.setItem('hospital_token', token);
+      onLoginSuccess(token, user);
+    } catch (err: any) {
+      const msg = err.response?.data?.error?.message || err.response?.data?.message || 'Login failed. Please check credentials.';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setSignUpLoading(true);
@@ -198,12 +216,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
       setSignUpLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (currentRoleConfig) {
-      setIdentifier(currentRoleConfig.email);
-    }
-  }, [isolatedPort, currentRoleConfig]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -893,72 +905,116 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
                       Click <strong>Fill</strong> to auto-enter credentials for testing:
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <div className="p-2 bg-white rounded-lg border border-slate-200 flex items-center justify-between gap-2 shadow-2xs">
+                      {/* Doctor */}
+                      <div className="p-2.5 bg-white rounded-lg border border-slate-200 flex items-center justify-between gap-2 shadow-2xs">
                         <div className="min-w-0">
                           <div className="font-bold text-slate-800 text-[11px] flex items-center gap-1">
-                            <Stethoscope className="w-3 h-3 text-emerald-600" />
+                            <Stethoscope className="w-3.5 h-3.5 text-emerald-600" />
                             <span>Doctor (Dr. Aisha)</span>
                           </div>
                           <div className="text-[10px] text-slate-500 truncate">dr.aisha@hospital.com</div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleQuickFill('dr.aisha@hospital.com')}
-                          className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-[10px] rounded border border-emerald-200 cursor-pointer shrink-0"
-                        >
-                          Fill
-                        </button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleQuickFill('dr.aisha@hospital.com')}
+                            className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[10px] rounded border border-slate-200 cursor-pointer"
+                          >
+                            Fill
+                          </button>
+                          <button
+                            type="button"
+                            disabled={loading}
+                            onClick={() => handleQuickSignIn('dr.aisha@hospital.com')}
+                            className="px-2.5 py-1 bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-bold text-[10px] rounded shadow-2xs cursor-pointer disabled:opacity-50"
+                          >
+                            Sign In
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="p-2 bg-white rounded-lg border border-slate-200 flex items-center justify-between gap-2 shadow-2xs">
+                      {/* Receptionist */}
+                      <div className="p-2.5 bg-white rounded-lg border border-slate-200 flex items-center justify-between gap-2 shadow-2xs">
                         <div className="min-w-0">
                           <div className="font-bold text-slate-800 text-[11px] flex items-center gap-1">
-                            <ClipboardList className="w-3 h-3 text-amber-600" />
+                            <ClipboardList className="w-3.5 h-3.5 text-amber-600" />
                             <span>Receptionist</span>
                           </div>
                           <div className="text-[10px] text-slate-500 truncate">receptionist@hospital.com</div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleQuickFill('receptionist@hospital.com')}
-                          className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-[10px] rounded border border-amber-200 cursor-pointer shrink-0"
-                        >
-                          Fill
-                        </button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleQuickFill('receptionist@hospital.com')}
+                            className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[10px] rounded border border-slate-200 cursor-pointer"
+                          >
+                            Fill
+                          </button>
+                          <button
+                            type="button"
+                            disabled={loading}
+                            onClick={() => handleQuickSignIn('receptionist@hospital.com')}
+                            className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] rounded shadow-2xs cursor-pointer disabled:opacity-50"
+                          >
+                            Sign In
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="p-2 bg-white rounded-lg border border-slate-200 flex items-center justify-between gap-2 shadow-2xs">
+                      {/* Patient */}
+                      <div className="p-2.5 bg-white rounded-lg border border-slate-200 flex items-center justify-between gap-2 shadow-2xs">
                         <div className="min-w-0">
                           <div className="font-bold text-slate-800 text-[11px] flex items-center gap-1">
-                            <User className="w-3 h-3 text-sky-600" />
+                            <User className="w-3.5 h-3.5 text-sky-600" />
                             <span>Patient (John Doe)</span>
                           </div>
                           <div className="text-[10px] text-slate-500 truncate">john.doe@example.com</div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleQuickFill('john.doe@example.com')}
-                          className="px-2 py-1 bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-[10px] rounded border border-sky-200 cursor-pointer shrink-0"
-                        >
-                          Fill
-                        </button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleQuickFill('john.doe@example.com')}
+                            className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[10px] rounded border border-slate-200 cursor-pointer"
+                          >
+                            Fill
+                          </button>
+                          <button
+                            type="button"
+                            disabled={loading}
+                            onClick={() => handleQuickSignIn('john.doe@example.com')}
+                            className="px-2.5 py-1 bg-sky-600 hover:bg-sky-700 text-white font-bold text-[10px] rounded shadow-2xs cursor-pointer disabled:opacity-50"
+                          >
+                            Sign In
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="p-2 bg-white rounded-lg border border-slate-200 flex items-center justify-between gap-2 shadow-2xs">
+                      {/* Admin */}
+                      <div className="p-2.5 bg-white rounded-lg border border-slate-200 flex items-center justify-between gap-2 shadow-2xs">
                         <div className="min-w-0">
                           <div className="font-bold text-slate-800 text-[11px] flex items-center gap-1">
-                            <ShieldCheck className="w-3 h-3 text-purple-600" />
+                            <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />
                             <span>Administrator</span>
                           </div>
                           <div className="text-[10px] text-slate-500 truncate">admin@hospital.com</div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleQuickFill('admin@hospital.com')}
-                          className="px-2 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 font-bold text-[10px] rounded border border-purple-200 cursor-pointer shrink-0"
-                        >
-                          Fill
-                        </button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleQuickFill('admin@hospital.com')}
+                            className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[10px] rounded border border-slate-200 cursor-pointer"
+                          >
+                            Fill
+                          </button>
+                          <button
+                            type="button"
+                            disabled={loading}
+                            onClick={() => handleQuickSignIn('admin@hospital.com')}
+                            className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white font-bold text-[10px] rounded shadow-2xs cursor-pointer disabled:opacity-50"
+                          >
+                            Sign In
+                          </button>
+                        </div>
                       </div>
                     </div>
                     <div className="text-[10px] text-slate-500 text-center pt-1 font-mono">

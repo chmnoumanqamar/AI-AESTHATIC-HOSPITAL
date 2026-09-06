@@ -150,6 +150,9 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
   const [signUpEmail, setSignUpEmail] = useState('');
   const [signUpPhone, setSignUpPhone] = useState('');
   const [signUpPassword, setSignUpPassword] = useState('');
+  const [signUpConfirmPassword, setSignUpConfirmPassword] = useState('');
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false);
+  const [showSignUpConfirmPassword, setShowSignUpConfirmPassword] = useState(false);
   const [signUpGender, setSignUpGender] = useState<'Male' | 'Female' | 'Other'>('Male');
   const [signUpCnic, setSignUpCnic] = useState('');
   const [signUpLoading, setSignUpLoading] = useState(false);
@@ -186,12 +189,29 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
     e.preventDefault();
     setSignUpLoading(true);
     setSignUpError(null);
+
+    let finalPassword = signUpPassword.trim();
+    if (finalPassword) {
+      if (finalPassword.length < 6) {
+        setSignUpError('Password must be at least 6 characters long.');
+        setSignUpLoading(false);
+        return;
+      }
+      if (finalPassword !== signUpConfirmPassword.trim()) {
+        setSignUpError('Passwords do not match. Please verify your confirm password.');
+        setSignUpLoading(false);
+        return;
+      }
+    } else {
+      finalPassword = 'Password123!';
+    }
+
     try {
       const payload: any = {
         fullName: signUpName.trim(),
         phone: signUpPhone.trim(),
         email: signUpEmail.trim() || undefined,
-        password: signUpPassword,
+        password: finalPassword,
         role: 'PATIENT',
         gender: signUpGender,
         cnic: signUpCnic.trim() || undefined
@@ -590,11 +610,10 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
                   {/* Email */}
                   <div className="space-y-1">
                     <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-                      Email Address
+                      Email Address (Optional)
                     </label>
                     <input
                       type="email"
-                      required
                       value={signUpEmail}
                       onChange={e => setSignUpEmail(e.target.value)}
                       placeholder="e.g. patient@example.com"
@@ -605,7 +624,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
                   {/* Phone */}
                   <div className="space-y-1">
                     <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-                      Phone Number
+                      Phone Number *
                     </label>
                     <input
                       type="tel"
@@ -618,21 +637,80 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
                   </div>
                 </div>
 
-                {/* Password */}
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-                    Create Password
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    minLength={6}
-                    value={signUpPassword}
-                    onChange={e => setSignUpPassword(e.target.value)}
-                    placeholder="At least 6 characters"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all tracking-wider"
-                  />
+                {/* Password & Confirm Password Fields */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {/* Create Password */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                        Password (Optional)
+                      </label>
+                      <span className="text-[10px] text-emerald-600 font-semibold">Default: Password123!</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type={showSignUpPassword ? 'text' : 'password'}
+                        autoComplete="new-password"
+                        value={signUpPassword}
+                        onChange={e => setSignUpPassword(e.target.value)}
+                        placeholder="Set password or leave blank"
+                        className="w-full pl-3.5 pr-9 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all tracking-wider"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSignUpPassword(!showSignUpPassword)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer p-0.5"
+                      >
+                        {showSignUpPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Confirm Password */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                      Confirm Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showSignUpConfirmPassword ? 'text' : 'password'}
+                        autoComplete="new-password"
+                        value={signUpConfirmPassword}
+                        onChange={e => setSignUpConfirmPassword(e.target.value)}
+                        placeholder={signUpPassword ? "Confirm your password" : "Optional (Disabled when blank)"}
+                        disabled={!signUpPassword}
+                        className="w-full pl-3.5 pr-9 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSignUpConfirmPassword(!showSignUpConfirmPassword)}
+                        disabled={!signUpPassword}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer p-0.5 disabled:opacity-50"
+                      >
+                        {showSignUpConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Password Match Status Indicator */}
+                {signUpPassword && (
+                  <div className="text-[11px] font-medium px-1 flex items-center gap-1.5">
+                    {signUpConfirmPassword ? (
+                      signUpPassword === signUpConfirmPassword ? (
+                        <span className="text-emerald-600 flex items-center gap-1 font-semibold">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Passwords match perfectly
+                        </span>
+                      ) : (
+                        <span className="text-amber-600 flex items-center gap-1 font-semibold">
+                          <ShieldAlert className="w-3.5 h-3.5" /> Passwords do not match yet
+                        </span>
+                      )
+                    ) : (
+                      <span className="text-slate-500">Please re-type password in Confirm Password to verify</span>
+                    )}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div className="space-y-1">

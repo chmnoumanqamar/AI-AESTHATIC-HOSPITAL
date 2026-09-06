@@ -9,7 +9,7 @@ export const registerPatientDto = z.object({
   fullName: z.string().min(2, 'Full name is required'),
   phone: z.string().min(10, 'Valid phone number is required'),
   email: z.string().email().optional().or(z.literal('')),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string().min(6, 'Password must be at least 6 characters').optional().or(z.literal('')).default('Password123!'),
   role: z.enum(['PATIENT', 'DOCTOR', 'RECEPTIONIST']).default('PATIENT').optional(),
   specialization: z.string().optional(),
   cnic: z.string().optional(),

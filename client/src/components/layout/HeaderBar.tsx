@@ -45,9 +45,10 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   });
 
   const getRoleDisplayName = () => {
+    if (currentUser?.profile?.fullName) return currentUser.profile.fullName;
     if (currentUser?.profile?.name) return currentUser.profile.name;
-    if (currentUser?.name) return currentUser.name;
     if (currentUser?.fullName) return currentUser.fullName;
+    if (currentUser?.name) return currentUser.name;
 
     switch (currentRole) {
       case 'DOCTOR':

@@ -1,0 +1,684 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* ==========================================================================
+     EXACT 10-SWATCH COLOR PALETTE SYSTEM (STRICT ENFORCEMENT)
+     Swatch 1:  #582F0E (Deep Espresso Bronze)
+     Swatch 2:  #7F4F24 (Warm Walnut / Cognac)
+     Swatch 3:  #936639 (Caramel Amber Earth)
+     Swatch 4:  #A68A64 (Warm Taupe Sand)
+     Swatch 5:  #B6AD90 (Soft Ecru Linen)
+     Swatch 6:  #C2C5AA (Light Sage Celadon)
+     Swatch 7:  #A4AC86 (Muted Sage Herb)
+     Swatch 8:  #656D4A (Moss Olive Green)
+     Swatch 9:  #414833 (Deep Olive Slate)
+     Swatch 10: #333D29 (Deep Forest Olive Charcoal)
+     ========================================================================== */
+  --palette-1: #582F0E;
+  --palette-2: #7F4F24;
+  --palette-3: #936639;
+  --palette-4: #A68A64;
+  --palette-5: #B6AD90;
+  --palette-6: #C2C5AA;
+  --palette-7: #A4AC86;
+  --palette-8: #656D4A;
+  --palette-9: #414833;
+  --palette-10: #333D29;
+
+  --color-50: #F6F7F2;   /* Clean light sage cream base */
+  --color-100: #EAECE2;  /* Soft secondary surface */
+  --color-200: #D7DBC7;  /* Subtle card border */
+  --color-300: #C2C5AA;  /* Swatch 6 */
+  --color-400: #B6AD90;  /* Swatch 5 */
+  --color-500: #A68A64;  /* Swatch 4 */
+  --color-600: #656D4A;  /* Swatch 8 */
+  --color-700: #936639;  /* Swatch 3 */
+  --color-800: #414833;  /* Swatch 9 */
+  --color-900: #333D29;  /* Swatch 10 */
+  --color-950: #582F0E;  /* Swatch 1 */
+
+  --brand-primary: #333D29;
+  --brand-accent: #656D4A;
+}
+
+/* ==========================================================================
+   FORCE COMPLETE PALETTE OVERRIDES ACROSS ALL UTILITY CLASSES
+   Guarantees 100% adherence even with cached in-memory Tailwind builds.
+   ========================================================================== */
+
+/* BRAND FAMILY OVERRIDES -> Scoped strictly to light mode so dark mode is never overridden */
+html:not(.dark) .bg-brand-950 { background-color: #582F0E !important; }
+html:not(.dark) .bg-brand-900 { background-color: #333D29 !important; }
+html:not(.dark) .bg-brand-800 { background-color: #414833 !important; }
+html:not(.dark) .bg-brand-700 { background-color: #936639 !important; }
+html:not(.dark) .bg-brand-600 { background-color: #656D4A !important; }
+html:not(.dark) .bg-brand-500 { background-color: #A68A64 !important; }
+html:not(.dark) .bg-brand-400 { background-color: #B6AD90 !important; }
+html:not(.dark) .bg-brand-300 { background-color: #C2C5AA !important; }
+html:not(.dark) .bg-brand-200 { background-color: #D7DBC7 !important; }
+html:not(.dark) .bg-brand-100 { background-color: #EAECE2 !important; }
+html:not(.dark) .bg-brand-50  { background-color: #FAFBF7 !important; }
+
+html:not(.dark) .bg-brand-50\/40, 
+html:not(.dark) .bg-brand-50\/50, 
+html:not(.dark) .bg-brand-50\/60, 
+html:not(.dark) .bg-brand-50\/70 { background-color: #FAFBF7 !important; }
+html:not(.dark) .bg-brand-100\/60, 
+html:not(.dark) .bg-brand-100\/70 { background-color: #EAECE2 !important; }
+html:not(.dark) .bg-brand-300\/50 { background-color: #C2C5AA !important; }
+
+html:not(.dark) .text-brand-950 { color: #582F0E !important; }
+html:not(.dark) .text-brand-900 { color: #333D29 !important; }
+html:not(.dark) .text-brand-800 { color: #414833 !important; }
+html:not(.dark) .text-brand-700 { color: #936639 !important; }
+html:not(.dark) .text-brand-600 { color: #656D4A !important; }
+html:not(.dark) .text-brand-500 { color: #A68A64 !important; }
+html:not(.dark) .text-brand-400 { color: #B6AD90 !important; }
+html:not(.dark) .text-brand-300 { color: #C2C5AA !important; }
+html:not(.dark) .text-brand-100 { color: #EAECE2 !important; }
+html:not(.dark) .text-brand-50  { color: #FAFBF7 !important; }
+
+html:not(.dark) .border-brand-900 { border-color: #333D29 !important; }
+html:not(.dark) .border-brand-800 { border-color: #414833 !important; }
+html:not(.dark) .border-brand-700 { border-color: #936639 !important; }
+html:not(.dark) .border-brand-600 { border-color: #656D4A !important; }
+html:not(.dark) .border-brand-500 { border-color: #A68A64 !important; }
+html:not(.dark) .border-brand-400 { border-color: #B6AD90 !important; }
+html:not(.dark) .border-brand-300 { border-color: #C2C5AA !important; }
+html:not(.dark) .border-brand-200 { border-color: #D7DBC7 !important; }
+html:not(.dark) .border-brand-100 { border-color: #EAECE2 !important; }
+html:not(.dark) .border-brand-50  { border-color: #FAFBF7 !important; }
+
+html:not(.dark) .border-brand-300\/50, 
+html:not(.dark) .border-brand-300\/60, 
+html:not(.dark) .border-brand-300\/70, 
+html:not(.dark) .border-brand-300\/80 { border-color: #C2C5AA !important; }
+html:not(.dark) .border-brand-900\/40 { border-color: #414833 !important; }
+
+html:not(.dark) .divide-brand-300\/60 > :not([hidden]) ~ :not([hidden]),
+html:not(.dark) .divide-brand-300\/70 > :not([hidden]) ~ :not([hidden]),
+html:not(.dark) .divide-brand-300 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #D7DBC7 !important;
+}
+
+/* SLATE FAMILY OVERRIDES -> Crisp clinical slate neutrals in light mode */
+html:not(.dark) .bg-slate-950 { background-color: #0F172A !important; }
+html:not(.dark) .bg-slate-900 { background-color: #1E293B !important; }
+html:not(.dark) .bg-slate-800 { background-color: #334155 !important; }
+html:not(.dark) .bg-slate-700 { background-color: #475569 !important; }
+html:not(.dark) .bg-slate-600 { background-color: #64748B !important; }
+html:not(.dark) .bg-slate-400 { background-color: #94A3B8 !important; }
+html:not(.dark) .bg-slate-300 { background-color: #CBD5E1 !important; }
+html:not(.dark) .bg-slate-200 { background-color: #E2E8F0 !important; }
+html:not(.dark) .bg-slate-100 { background-color: #F1F5F9 !important; }
+html:not(.dark) .bg-slate-50  { background-color: #F8FAFC !important; }
+
+html:not(.dark) .bg-slate-900\/60 { background-color: rgba(15, 23, 42, 0.6) !important; }
+html:not(.dark) .bg-slate-800\/50 { background-color: rgba(30, 41, 59, 0.5) !important; }
+html:not(.dark) .bg-slate-50\/70, html:not(.dark) .bg-slate-50\/80 { background-color: #F8FAFC !important; }
+
+html:not(.dark) .text-slate-900 { color: #0F172A !important; }
+html:not(.dark) .text-slate-800 { color: #1E293B !important; }
+html:not(.dark) .text-slate-700 { color: #334155 !important; }
+html:not(.dark) .text-slate-600 { color: #475569 !important; }
+html:not(.dark) .text-slate-500 { color: #64748B !important; }
+html:not(.dark) .text-slate-400 { color: #94A3B8 !important; }
+html:not(.dark) .text-slate-300 { color: #CBD5E1 !important; }
+html:not(.dark) .text-slate-200 { color: #E2E8F0 !important; }
+html:not(.dark) .text-slate-100 { color: #F1F5F9 !important; }
+
+html:not(.dark) .border-slate-900 { border-color: #1E293B !important; }
+html:not(.dark) .border-slate-800 { border-color: #334155 !important; }
+html:not(.dark) .border-slate-700 { border-color: #475569 !important; }
+html:not(.dark) .border-slate-300 { border-color: #CBD5E1 !important; }
+html:not(.dark) .border-slate-200 { border-color: #E2E8F0 !important; }
+html:not(.dark) .border-slate-100 { border-color: #F1F5F9 !important; }
+
+html:not(.dark) .border-slate-700\/60, html:not(.dark) .border-slate-700\/80 { border-color: rgba(71, 85, 105, 0.7) !important; }
+html:not(.dark) .border-slate-200\/60, html:not(.dark) .border-slate-200\/80 { border-color: rgba(226, 232, 240, 0.7) !important; }
+
+html:not(.dark) .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #E2E8F0 !important;
+}
+
+/* SKY / BLUE OVERRIDES -> Fresh, clear clinical blues in light mode */
+html:not(.dark) .bg-sky-600, html:not(.dark) .bg-blue-600 { background-color: #2563EB !important; }
+html:not(.dark) .bg-sky-500, html:not(.dark) .bg-blue-500 { background-color: #3B82F6 !important; }
+html:not(.dark) .bg-sky-400, html:not(.dark) .bg-blue-400 { background-color: #60A5FA !important; }
+html:not(.dark) .bg-sky-300, html:not(.dark) .bg-blue-300 { background-color: #93C5FD !important; }
+html:not(.dark) .bg-sky-200, html:not(.dark) .bg-blue-200 { background-color: #BAE6FD !important; }
+html:not(.dark) .bg-sky-100, html:not(.dark) .bg-blue-100 { background-color: #E0F2FE !important; }
+html:not(.dark) .bg-sky-50,  html:not(.dark) .bg-blue-50  { background-color: #F0F9FF !important; }
+
+html:not(.dark) .text-sky-700, html:not(.dark) .text-blue-700 { color: #0369A1 !important; }
+html:not(.dark) .text-sky-600, html:not(.dark) .text-blue-600 { color: #0284C7 !important; }
+html:not(.dark) .text-sky-500, html:not(.dark) .text-blue-500 { color: #0EA5E9 !important; }
+html:not(.dark) .text-sky-400, html:not(.dark) .text-blue-400 { color: #38BDF8 !important; }
+
+html:not(.dark) .border-sky-500, html:not(.dark) .border-blue-500 { border-color: #38BDF8 !important; }
+html:not(.dark) .border-sky-200, html:not(.dark) .border-blue-200 { border-color: #BAE6FD !important; }
+
+/* EMERALD / GREEN OVERRIDES -> Vibrant clinical jade & emerald */
+.bg-emerald-600 { background-color: #2D6A4F !important; }
+.bg-emerald-500 { background-color: #40916C !important; }
+.bg-emerald-400 { background-color: #52B788 !important; }
+.bg-emerald-100 { background-color: #E8F3EB !important; }
+.bg-emerald-50  { background-color: #F4F9F5 !important; }
+
+.bg-emerald-50\/30, .bg-emerald-50\/40, .bg-emerald-50\/70 { background-color: #F4F9F5 !important; }
+
+.text-emerald-950, .text-emerald-900, .text-emerald-800 { color: #1B4332 !important; }
+.text-emerald-700 { color: #2D6A4F !important; }
+.text-emerald-600, .text-emerald-500 { color: #2D6A4F !important; }
+.text-emerald-400 { color: #52B788 !important; }
+
+.border-emerald-200 { border-color: #A7D7C5 !important; }
+.border-emerald-300 { border-color: #74C69D !important; }
+
+/* AMBER / ORANGE OVERRIDES -> Vibrant clinical amber & gold */
+.bg-amber-600, .bg-orange-600 { background-color: #D97706 !important; }
+.bg-amber-500, .bg-orange-500 { background-color: #F59E0B !important; }
+.bg-amber-100, .bg-orange-100 { background-color: #FEF3C7 !important; }
+.bg-amber-50,  .bg-orange-50  { background-color: #FFFBEB !important; }
+
+.text-amber-700, .text-orange-700 { color: #B45309 !important; }
+.text-amber-600, .text-orange-600 { color: #D97706 !important; }
+.text-amber-500, .text-orange-500 { color: #F59E0B !important; }
+.border-amber-200, .border-orange-200 { border-color: #FDE68A !important; }
+
+/* ROSE / RED OVERRIDES -> Vibrant clinical alert crimson & rose */
+.bg-rose-600, .bg-red-600 { background-color: #DC2626 !important; }
+.bg-rose-500, .bg-red-500 { background-color: #EF4444 !important; }
+.bg-rose-100, .bg-red-100 { background-color: #FEE2E2 !important; }
+.bg-rose-50,  .bg-red-50  { background-color: #FEF2F2 !important; }
+
+.text-rose-700, .text-red-700, .text-red-900, .text-red-950 { color: #B91C1C !important; }
+.text-rose-600, .text-red-600 { color: #DC2626 !important; }
+.text-rose-500, .text-red-500 { color: #EF4444 !important; }
+.border-rose-200, .border-red-200 { border-color: #FECACA !important; }
+.border-rose-300, .border-red-300 { border-color: #FCA5A5 !important; }
+
+/* SEMANTIC ALIASES */
+.text-semantic-success   { color: #2D6A4F !important; }
+.text-semantic-warning   { color: #D97706 !important; }
+.text-semantic-emergency { color: #DC2626 !important; }
+.text-semantic-info      { color: #2563EB !important; }
+
+.bg-semantic-emergency   { background-color: #DC2626 !important; }
+
+/* BASE APP & SCROLLBAR */
+body {
+  background-color: #F6F7F2 !important;
+  color: #333D29 !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C2C5AA;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #A4AC86;
+}
+
+/* Card and container utilities */
+.clinical-card {
+  background-color: #FFFFFF !important;
+  border: 1px solid #E2E6D8 !important;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
+}
+
+.clinical-input {
+  background-color: #FFFFFF !important;
+  border: 1.5px solid #DDE2D5 !important;
+  color: #1F291E !important;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  padding: 0.6rem 0.9rem;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Guard against icon overlap across all inputs with left padding */
+.clinical-input.pl-8, input.pl-8 { padding-left: 2.25rem !important; }
+.clinical-input.pl-9, input.pl-9 { padding-left: 2.5rem !important; }
+.clinical-input.pl-10, input.pl-10 { padding-left: 2.75rem !important; }
+.clinical-input.pl-11, input.pl-11 { padding-left: 3rem !important; }
+.clinical-input.pl-12, input.pl-12 { padding-left: 3.25rem !important; }
+
+.clinical-input:focus {
+  outline: none;
+  border-color: #2D6A4F !important;
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.15) !important;
+}
+
+.clinical-button-primary {
+  background: linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%) !important;
+  color: #FFFFFF !important;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.6rem 1.25rem;
+  border-radius: 10px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(45, 106, 79, 0.25), 0 1px 2px rgba(0, 0, 0, 0.05);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+}
+
+.clinical-button-primary:hover {
+  background: linear-gradient(135deg, #388463 0%, #225640 100%) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(45, 106, 79, 0.35);
+}
+
+.clinical-button-primary:active {
+  transform: scale(0.98);
+}
+
+.clinical-button-secondary {
+  background-color: #F4F6F0 !important;
+  color: #2D4026 !important;
+  border: 1px solid #D0D7C2 !important;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: 10px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.clinical-button-secondary:hover {
+  background-color: #E9ECE2 !important;
+  border-color: #A7D7C5 !important;
+}
+
+/* ==========================================================================
+   PALETTE-BASED DARK MODE SYSTEM (Strict 10-Swatch Colors)
+   Swatch 1:  #582F0E (Deep Espresso Bronze)
+   Swatch 2:  #7F4F24 (Warm Walnut / Cognac)
+   Swatch 3:  #936639 (Caramel Amber Earth)
+   Swatch 4:  #A68A64 (Warm Taupe Sand)
+   Swatch 5:  #B6AD90 (Soft Ecru Linen)
+   Swatch 6:  #C2C5AA (Light Sage Celadon)
+   Swatch 7:  #A4AC86 (Muted Sage Herb)
+   Swatch 8:  #656D4A (Moss Olive Green)
+   Swatch 9:  #414833 (Deep Olive Slate)
+   Swatch 10: #333D29 (Deep Forest Olive Charcoal)
+   ========================================================================== */
+
+html.dark body {
+  background-color: #1A2215 !important;
+  color: #F6F7F2 !important;
+}
+
+html.dark [style*="background-color: rgb(255, 255, 255)"],
+html.dark [style*="background-color: #FFFFFF"],
+html.dark [style*="background-color: #ffffff"],
+html.dark .bg-white {
+  background-color: #242E1C !important;
+}
+
+html.dark [style*="background-color: #FAFBF7"],
+html.dark [style*="background-color: rgb(250, 251, 247)"] {
+  background-color: #1F2718 !important;
+}
+
+html.dark [style*="background-color: #F6F7F2"],
+html.dark [style*="background-color: rgb(246, 247, 242)"],
+html.dark .bg-slate-50,
+html.dark .bg-brand-50,
+html.dark .bg-sky-50 {
+  background-color: #1A2215 !important;
+}
+
+html.dark [style*="background-color: #EAECE2"],
+html.dark [style*="background-color: rgb(234, 236, 226)"],
+html.dark .bg-slate-100,
+html.dark .bg-brand-100 {
+  background-color: #2D3923 !important;
+}
+
+/* Brand Family Dark Mode Enforcements (No Stark White Boxes) */
+html.dark .bg-brand-50,
+html.dark .bg-brand-50\/40,
+html.dark .bg-brand-50\/50,
+html.dark .bg-brand-50\/60,
+html.dark .bg-brand-50\/70 {
+  background-color: #151D12 !important;
+}
+
+html.dark .bg-brand-100,
+html.dark .bg-brand-100\/60,
+html.dark .bg-brand-100\/70 {
+  background-color: #242E1C !important;
+}
+
+html.dark .border-brand-100,
+html.dark .border-brand-200,
+html.dark .border-brand-300 {
+  border-color: #2F3E29 !important;
+}
+
+html.dark .text-brand-900,
+html.dark .text-brand-800 {
+  color: #F6F7F2 !important;
+}
+
+html.dark .text-brand-600,
+html.dark .text-brand-500,
+html.dark .text-brand-400 {
+  color: #A4AC86 !important;
+}
+
+
+/* Tinted Containers & Badges in Dark Mode (Never allow blinding stark white) */
+html.dark .bg-emerald-50,
+html.dark .bg-emerald-100,
+html.dark [style*="background-color: #F4F9F5"],
+html.dark [style*="background-color: #E8F3EB"] {
+  background-color: rgba(45, 106, 79, 0.25) !important;
+  border-color: rgba(82, 183, 136, 0.35) !important;
+}
+
+html.dark .bg-rose-50,
+html.dark .bg-rose-100,
+html.dark .bg-red-50,
+html.dark .bg-red-100,
+html.dark [style*="background-color: #FAF6F2"],
+html.dark [style*="background-color: #FEF2F2"],
+html.dark [style*="background-color: #FEE2E2"] {
+  background-color: rgba(220, 38, 38, 0.22) !important;
+  border-color: rgba(248, 113, 113, 0.35) !important;
+}
+
+html.dark .bg-amber-50,
+html.dark .bg-amber-100,
+html.dark .bg-orange-50,
+html.dark .bg-orange-100,
+html.dark [style*="background-color: #FAF7F2"],
+html.dark [style*="background-color: #FFFBEB"],
+html.dark [style*="background-color: #FEF3C7"] {
+  background-color: rgba(217, 119, 6, 0.22) !important;
+  border-color: rgba(251, 191, 36, 0.35) !important;
+}
+
+/* Hospital Theme Surface Overrides in Dark Mode */
+html.dark .bg-slate-900 {
+  background-color: #204532 !important;
+  color: #FFFFFF !important;
+}
+
+html.dark .bg-slate-800 {
+  background-color: #2D6A4F !important;
+  color: #FFFFFF !important;
+}
+
+html.dark .bg-sky-50,
+html.dark .bg-sky-100,
+html.dark .bg-blue-50,
+html.dark .bg-blue-100 {
+  background-color: rgba(37, 99, 235, 0.22) !important;
+  border-color: rgba(96, 165, 250, 0.35) !important;
+}
+
+html.dark .bg-emerald-50\/60,
+html.dark .bg-emerald-50\/70,
+html.dark .bg-emerald-50\/80,
+html.dark .bg-emerald-50\/90 {
+  background-color: rgba(45, 106, 79, 0.25) !important;
+}
+
+html.dark .bg-amber-50\/60,
+html.dark .bg-amber-50\/70,
+html.dark .bg-amber-50\/80 {
+  background-color: rgba(217, 119, 6, 0.22) !important;
+}
+
+html.dark .bg-purple-50,
+html.dark .bg-purple-100 {
+  background-color: rgba(147, 51, 234, 0.22) !important;
+  border-color: rgba(192, 132, 252, 0.35) !important;
+}
+
+html.dark [style*="background-color: #F4ECE0"] {
+  background-color: #352B1E !important;
+}
+
+html.dark [style*="background-color: #F2E8DE"] {
+  background-color: #382417 !important;
+}
+
+html.dark [style*="border-color: #C2C5AA"],
+html.dark [style*="border-color: rgb(194, 197, 170)"],
+html.dark [style*="border-color: #D7DBC7"],
+html.dark .border-slate-100,
+html.dark .border-slate-200,
+html.dark .border-brand-300 {
+  border-color: #414833 !important;
+}
+
+html.dark .border-emerald-100,
+html.dark .border-emerald-200,
+html.dark .border-emerald-300 {
+  border-color: rgba(82, 183, 136, 0.35) !important;
+}
+
+html.dark .border-rose-100,
+html.dark .border-rose-200,
+html.dark .border-rose-300,
+html.dark .border-red-200 {
+  border-color: rgba(248, 113, 113, 0.35) !important;
+}
+
+/* High Contrast Readable Text in Dark Mode */
+html.dark [style*="color: #333D29"],
+html.dark [style*="color: rgb(51, 61, 41)"],
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-brand-950,
+html.dark .text-brand-900,
+html.dark .hud-token-display,
+html.dark .screen-main-header,
+html.dark .operational-sub-header {
+  color: #F8FAFC !important;
+}
+
+html.dark [style*="color: #414833"],
+html.dark [style*="color: rgb(65, 72, 51)"],
+html.dark [style*="color: #7F4F24"],
+html.dark [style*="color: #656D4A"],
+html.dark .text-slate-700,
+html.dark .text-slate-600,
+html.dark .text-brand-800,
+html.dark .text-brand-700 {
+  color: #CBD5E1 !important;
+}
+
+html.dark .text-slate-500,
+html.dark .text-slate-400,
+html.dark .text-brand-600,
+html.dark .text-brand-500 {
+  color: #A4AC86 !important;
+}
+
+html.dark .text-emerald-600,
+html.dark .text-emerald-500,
+html.dark .text-emerald-700,
+html.dark .text-emerald-800 {
+  color: #52B788 !important;
+}
+
+html.dark .text-rose-600,
+html.dark .text-rose-500,
+html.dark .text-rose-700,
+html.dark .text-rose-800,
+html.dark .text-red-600,
+html.dark .text-red-500 {
+  color: #F87171 !important;
+}
+
+html.dark .text-amber-600,
+html.dark .text-amber-500,
+html.dark .text-amber-700,
+html.dark .text-orange-600 {
+  color: #FBBF24 !important;
+}
+
+html.dark .text-sky-600,
+html.dark .text-sky-500,
+html.dark .text-sky-700,
+html.dark .text-blue-600 {
+  color: #60A5FA !important;
+}
+
+html.dark .text-purple-600,
+html.dark .text-purple-500,
+html.dark .text-purple-700 {
+  color: #C084FC !important;
+}
+
+html.dark .clinical-card {
+  background-color: #242E1C !important;
+  border-color: #414833 !important;
+  color: #F6F7F2 !important;
+}
+
+html.dark .clinical-input {
+  background-color: #1E2717 !important;
+  border-color: #414833 !important;
+  color: #F6F7F2 !important;
+}
+
+html.dark .clinical-input:focus {
+  border-color: #A4AC86 !important;
+  box-shadow: 0 0 0 2px rgba(164, 172, 134, 0.25) !important;
+}
+
+html.dark .clinical-button-primary {
+  background-color: #656D4A !important;
+  color: #FFFFFF !important;
+}
+
+html.dark .clinical-button-primary:hover {
+  background-color: #7F4F24 !important;
+}
+
+html.dark .clinical-button-secondary {
+  background-color: #2D3923 !important;
+  color: #F6F7F2 !important;
+  border-color: #414833 !important;
+}
+
+html.dark .clinical-button-secondary:hover {
+  background-color: #414833 !important;
+}
+
+/* Dark mode inputs, selects, textareas */
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: #1E2717 !important;
+  border-color: #414833 !important;
+  color: #F6F7F2 !important;
+}
+
+html.dark input:focus,
+html.dark select:focus,
+html.dark textarea:focus {
+  border-color: #A4AC86 !important;
+}
+
+/* Dark mode tables */
+html.dark table {
+  color: #F6F7F2 !important;
+}
+
+html.dark th {
+  background-color: #1F2718 !important;
+  color: #A4AC86 !important;
+  border-color: #414833 !important;
+}
+
+html.dark td {
+  border-color: #414833 !important;
+}
+
+html.dark tr:hover {
+  background-color: #2D3923 !important;
+}
+
+html.dark .hover\:bg-\[\#F6F7F2\]:hover,
+html.dark .hover\:bg-\[\#FAFBF7\]:hover {
+  background-color: #2D3923 !important;
+}
+
+/* ==========================================================================
+   INTERACTIVE CHOICE BUTTONS & CARDS (Tactile, High-Affordance Design)
+   Guarantees elderly and new users can instantly recognize and operate buttons
+   ========================================================================== */
+.interactive-choice-btn {
+  border: 1.5px solid #E2E6D8;
+  background-color: #FFFFFF;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  position: relative;
+}
+
+.interactive-choice-btn:hover {
+  border-color: #52B788;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(45, 106, 79, 0.08);
+}
+
+.interactive-choice-btn.selected {
+  border-color: #2D6A4F !important;
+  background-color: #F4F9F5 !important;
+  box-shadow: 0 0 0 1px #2D6A4F, 0 4px 14px rgba(45, 106, 79, 0.12) !important;
+}
+
+html.dark .interactive-choice-btn {
+  border-color: #414833 !important;
+  background-color: #1E2717 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4) !important;
+}
+
+html.dark .interactive-choice-btn:hover {
+  border-color: #A4AC86 !important;
+  background-color: #242E1C !important;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.6) !important;
+}
+
+html.dark .interactive-choice-btn.selected {
+  border-color: #A4AC86 !important;
+  background-color: #2D3923 !important;
+  box-shadow: 0 0 0 1px #A4AC86, 0 4px 16px rgba(164, 172, 134, 0.3) !important;
+}
+
+/* Dark mode modals and overlays */
+html.dark .bg-black\/50,
+html.dark .bg-slate-900\/50 {
+  background-color: rgba(26, 34, 21, 0.75) !important;
+}
+

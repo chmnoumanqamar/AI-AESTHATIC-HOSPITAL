@@ -19,11 +19,5 @@ const envSchema = z.object({
   SMS_GATEWAY_KEY: z.string().default('mock-sms-key'),
 });
 
-const parsedEnv = envSchema.safeParse(process.env);
+export const ENV = envSchema.parse(process.env);
 
-if (!parsedEnv.success) {
-  console.error('❌ Invalid environment variables:', parsedEnv.error.format());
-  process.exit(1);
-}
-
-export const ENV = parsedEnv.data;

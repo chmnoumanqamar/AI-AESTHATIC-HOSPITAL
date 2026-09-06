@@ -119,13 +119,10 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
   const currentRoleConfig = isolatedPort ? ROLES[isolatedPort] : null;
   const isPortLocked = Boolean(currentRoleConfig);
 
-  const [selectedRoleKey, setSelectedRoleKey] = useState<string>(
-    isolatedPort && ROLES[isolatedPort] ? isolatedPort : '3001'
-  );
   const [identifier, setIdentifier] = useState(
-    currentRoleConfig ? currentRoleConfig.email : ROLES[selectedRoleKey]?.email || 'dr.aisha@hospital.com'
+    currentRoleConfig ? currentRoleConfig.email : ''
   );
-  const [password, setPassword] = useState('Password123!');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -149,15 +146,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
       setIdentifier(currentRoleConfig.email);
     }
   }, [isolatedPort, currentRoleConfig]);
-
-  const handleSelectRole = (key: string) => {
-    setSelectedRoleKey(key);
-    const role = ROLES[key];
-    if (role) {
-      setIdentifier(role.email);
-      setPassword('Password123!');
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -515,78 +503,11 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
                 </div>
 
                 {/* Role Header Badge */}
-                {isPortLocked && currentRoleConfig ? (
-                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-slate-100 border border-slate-200 shadow-sm text-slate-800">
-                    {renderRoleIcon(currentRoleConfig.role, "w-4 h-4")}
-                    <span>{currentRoleConfig.role} Access Terminal</span>
-                    <span className="text-slate-300">•</span>
-                    <span className="text-[11px] font-semibold text-emerald-700 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" />
-                      Isolated Session
-                    </span>
-                  </div>
-                ) : (
-                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-slate-100 border border-slate-200 shadow-sm text-slate-700">
-                    <Sparkles className="w-3.5 h-3.5 text-sky-600" />
-                    <span>Clinical Terminal</span>
-                  </div>
-                )}
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-slate-100 border border-slate-200 shadow-sm text-slate-700">
+                  <Shield className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Secure Sign In</span>
+                </div>
               </div>
-
-              {/* Role Persona Card */}
-              {isPortLocked && currentRoleConfig ? (
-                <div className={`rounded-2xl p-4 border ${currentRoleConfig.themeColor.border} ${currentRoleConfig.themeColor.bg} flex items-center justify-between gap-3 shadow-sm`}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-xl bg-white border border-slate-200/80 shadow-sm flex items-center justify-center shrink-0">
-                      {renderRoleIcon(currentRoleConfig.role, "w-6 h-6")}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-bold text-slate-900">{currentRoleConfig.name}</h3>
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/90 border border-slate-200 text-slate-700">
-                          {currentRoleConfig.role}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-600 mt-0.5">{currentRoleConfig.title}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-full border border-emerald-200 shrink-0">
-                    <Shield className="w-3.5 h-3.5" />
-                    <span>Protected</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
-                    Select Identity
-                  </span>
-                  <div className="grid grid-cols-2 gap-2">
-                    {Object.entries(ROLES).map(([key, role]) => {
-                      const isSelected = selectedRoleKey === key;
-                      return (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => handleSelectRole(key)}
-                          className={`p-3 rounded-xl border text-left transition-all relative group cursor-pointer ${
-                            isSelected
-                              ? 'bg-[#E8F3EB] dark:bg-slate-800 text-[#1B4332] dark:text-white border-[#2D6A4F] shadow-sm ring-2 ring-[#2D6A4F]/20'
-                              : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            {renderRoleIcon(role.role, "w-5 h-5")}
-                          </div>
-                          <div className="mt-1.5 font-bold text-xs truncate text-[#1F291E] dark:text-white">{role.name}</div>
-                          <div className={`text-[10px] truncate ${isSelected ? 'text-[#2D6A4F] dark:text-emerald-400 font-semibold' : 'text-slate-500'}`}>
-                            {role.role}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
 
               {/* Error Message */}
               {error && (

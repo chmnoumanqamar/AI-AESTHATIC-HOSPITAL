@@ -56,7 +56,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
       case 'RECEPTIONIST':
         return 'Sarah Jenkins';
       case 'PATIENT':
-        return 'John Doe';
+        return currentUser?.phone || 'Patient';
       case 'ADMIN':
         return 'System Administrator';
       default:

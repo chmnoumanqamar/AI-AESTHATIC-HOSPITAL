@@ -284,17 +284,19 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Patient Portal</h1>
           <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mt-0.5">
-            Khush Aamdeed, <strong>{currentUser?.profile?.fullName || currentUser?.fullName || currentUser?.phone || 'Patient'}</strong>
+            Welcome back, <strong>{currentUser?.profile?.fullName || currentUser?.fullName || currentUser?.name || currentUser?.phone || 'Patient'}</strong>
           </p>
         </div>
 
-        <button
-          onClick={() => switchTab('patient_booking')}
-          className="clinical-button-primary flex items-center gap-2 text-xs"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Book Appointment</span>
-        </button>
+        {activeTab !== 'patient_booking' && (
+          <button
+            onClick={() => switchTab('patient_booking')}
+            className="clinical-button-primary flex items-center gap-2 text-xs"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Book Appointment</span>
+          </button>
+        )}
       </div>
 
 
@@ -502,46 +504,46 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
             </div>
           )}
 
-          {/* Streamlined Modern Booking Suite */}
-          <div className="bg-white dark:bg-[#1E2717] rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800 space-y-6">
-            <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+          {/* Streamlined Luxury Aesthetic Booking Suite */}
+          <div className="bg-white dark:bg-[#192215] rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-white/10 space-y-7">
+            <div className="border-b border-slate-100 dark:border-white/10 pb-4">
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                Doctor Ki Appointment Book Karein
+                Book an Appointment
               </h2>
               <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
-                Doctor chunein aur apna token foran WhatsApp par hasil karein.
+                Choose your specialist and preferred date to reserve your consultation token.
               </p>
             </div>
 
             <form onSubmit={handlePromptCrossCheck} className="space-y-6">
               {/* STEP 1: PATIENT IDENTITY SELECTION */}
               <div className="space-y-3">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
-                  1. Appointment Kiske Liye Hai? (Select Patient)
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 block">
+                  1. Who is this appointment for?
                 </label>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   {/* Option 1: Book for Myself */}
                   <div
                     onClick={() => setBookingFor('SELF')}
                     className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between gap-3 select-none ${
                       bookingFor === 'SELF'
-                        ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 ring-2 ring-emerald-600/20'
-                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'
+                        ? 'border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/40 ring-2 ring-emerald-600/20'
+                        : 'border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 hover:border-slate-300 dark:hover:border-white/20'
                     }`}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex items-center gap-3.5 min-w-0">
                       <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                        bookingFor === 'SELF' ? 'bg-emerald-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                        bookingFor === 'SELF' ? 'bg-emerald-600 text-white' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300'
                       }`}>
                         <User className="w-5 h-5" />
                       </div>
                       <div className="min-w-0">
                         <div className="font-bold text-sm text-slate-900 dark:text-white">
-                          Mere Liye (For Myself)
+                          For Myself
                         </div>
                         <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 truncate mt-0.5">
-                          {currentUser?.profile?.fullName || currentUser?.fullName || 'Apna Account'}
+                          {currentUser?.profile?.fullName || currentUser?.fullName || currentUser?.name || 'Registered Account'}
                         </div>
                       </div>
                     </div>
@@ -557,22 +559,22 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                     onClick={() => setBookingFor('NEW')}
                     className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between gap-3 select-none ${
                       bookingFor === 'NEW'
-                        ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 ring-2 ring-emerald-600/20'
-                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'
+                        ? 'border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/40 ring-2 ring-emerald-600/20'
+                        : 'border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 hover:border-slate-300 dark:hover:border-white/20'
                     }`}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex items-center gap-3.5 min-w-0">
                       <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                        bookingFor === 'NEW' ? 'bg-emerald-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                        bookingFor === 'NEW' ? 'bg-emerald-600 text-white' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300'
                       }`}>
                         <UserPlus className="w-5 h-5" />
                       </div>
                       <div className="min-w-0">
                         <div className="font-bold text-sm text-slate-900 dark:text-white">
-                          Kisi Aur Ke Liye (Other Person)
+                          For Someone Else
                         </div>
                         <div className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                          Ghar walon ya dost ke liye
+                          Family member or friend
                         </div>
                       </div>
                     </div>
@@ -586,11 +588,11 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
 
                 {/* Only 2 Simple Fields for Other Person */}
                 {bookingFor === 'NEW' && (
-                  <div className="p-4 sm:p-5 bg-emerald-50/40 dark:bg-slate-900/60 border border-emerald-200 dark:border-slate-800 rounded-2xl space-y-3 animate-fade-in mt-2">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-5 bg-slate-50/90 dark:bg-black/25 border border-slate-200 dark:border-white/10 rounded-2xl space-y-4 animate-fade-in mt-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                          Mareez Ka Naam (Patient Name) *
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-200 block mb-1.5">
+                          Patient Full Name *
                         </label>
                         <input
                           type="text"
@@ -598,12 +600,12 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                           value={newPatientName}
                           onChange={e => setNewPatientName(e.target.value)}
                           placeholder="e.g. Ayesha Khan"
-                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          className="w-full px-4 py-3 bg-white dark:bg-[#10160D] border border-slate-300 dark:border-white/15 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
                         />
                       </div>
 
                       <div>
-                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-200 block mb-1.5">
                           WhatsApp / Mobile Number *
                         </label>
                         <input
@@ -612,8 +614,8 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                           value={newPatientPhone}
                           onChange={e => setNewPatientPhone(e.target.value)}
                           onBlur={handleCheckDuplicate}
-                          placeholder="e.g. 0300 1234567"
-                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                          placeholder="e.g. +92 300 1234567"
+                          className="w-full px-4 py-3 bg-white dark:bg-[#10160D] border border-slate-300 dark:border-white/15 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono transition-all shadow-2xs"
                         />
                       </div>
                     </div>
@@ -622,12 +624,12 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
               </div>
 
               {/* STEP 2: DOCTOR SELECTION & DATE */}
-              <div className="space-y-3 pt-5 border-t border-slate-100 dark:border-slate-800">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
-                  2. Doctor Chunein (Select Specialist)
+              <div className="space-y-3 pt-5 border-t border-slate-100 dark:border-white/10">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 block">
+                  2. Select Specialist Doctor
                 </label>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   {doctors.map(doc => {
                     const isSelected = selectedDoctorId === doc.id;
                     return (
@@ -636,13 +638,13 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                         onClick={() => setSelectedDoctorId(doc.id)}
                         className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between gap-3 select-none ${
                           isSelected
-                            ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 ring-2 ring-emerald-600/20'
-                            : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'
+                            ? 'border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/40 ring-2 ring-emerald-600/20'
+                            : 'border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 hover:border-slate-300 dark:hover:border-white/20'
                         }`}
                       >
                         <div className="flex items-center gap-3.5 min-w-0">
                           <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                            isSelected ? 'bg-emerald-600 text-white' : 'bg-emerald-100 dark:bg-slate-800 text-emerald-800 dark:text-emerald-400'
+                            isSelected ? 'bg-emerald-600 text-white' : 'bg-emerald-100 dark:bg-white/5 text-emerald-800 dark:text-emerald-400'
                           }`}>
                             <Stethoscope className="w-6 h-6" />
                           </div>
@@ -654,7 +656,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                               {doc.specialization}
                             </div>
                             <div className="text-xs font-bold font-mono text-slate-600 dark:text-slate-300 mt-1">
-                              Fees: PKR {doc.consultationFee}
+                              Consultation Fee: PKR {doc.consultationFee}
                             </div>
                           </div>
                         </div>
@@ -673,8 +675,8 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
 
                 {/* Appointment Date */}
                 <div className="pt-2">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                    Konsay Din Ana Hai? (Appointment Date) *
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-200 block mb-1.5">
+                    Preferred Appointment Date *
                   </label>
                   <input
                     type="date"
@@ -682,49 +684,52 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                     min={new Date().toISOString().split('T')[0]}
                     value={bookingDate}
                     onChange={e => setBookingDate(e.target.value)}
-                    className="w-full sm:w-72 px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                    className="w-full sm:w-72 px-4 py-3 bg-white dark:bg-[#10160D] border border-slate-300 dark:border-white/15 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono transition-all shadow-2xs"
                   />
                 </div>
               </div>
 
-              {/* STEP 3: SYMPTOMS & CHIEF COMPLAINT */}
-              <div className="space-y-3 pt-5 border-t border-slate-100 dark:border-slate-800">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
-                  3. Wajah / Takleef (Optional)
+              {/* STEP 3: SYMPTOMS & REASON */}
+              <div className="space-y-3 pt-5 border-t border-slate-100 dark:border-white/10">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 block">
+                  3. Reason for Visit (Optional)
                 </label>
                 <input
                   type="text"
                   value={chiefComplaint}
                   onChange={e => setChiefComplaint(e.target.value)}
-                  placeholder="e.g. Skin checkup, Laser, Hair problem, Routine visit..."
-                  className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="e.g. Skin consultation, routine aesthetic checkup, laser treatment..."
+                  className="w-full px-4 py-3 bg-white dark:bg-[#10160D] border border-slate-300 dark:border-white/15 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
                 />
 
-                <div className="flex items-center gap-2.5 text-xs font-medium text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 p-3 rounded-xl border border-emerald-200 dark:border-emerald-900/50">
+                <div className="flex items-center gap-3 text-xs font-medium text-emerald-800 dark:text-emerald-300 bg-emerald-50/80 dark:bg-emerald-950/40 p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-900/40">
                   <MessageSquare className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Aap ka token aur confirmation alert seedha aap ke WhatsApp par dispatch ho ga.</span>
+                  <span>Instant digital token and appointment confirmation will be dispatched to WhatsApp.</span>
                 </div>
               </div>
 
               {/* STEP 4: FEE SUMMARY & ACTION BUTTON */}
-              <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-5">
+              <div className="p-6 rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/90 dark:bg-black/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-5">
                 <div>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
-                    Kul Fees (Pay at Clinic Reception):
+                    Total Consultation Fee:
                   </span>
                   <div className="text-2xl font-black font-mono text-emerald-700 dark:text-emerald-400">
                     PKR {totalEstimatedFee.toFixed(2)}
                   </div>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Pay at clinic reception during check-in
+                  </span>
                 </div>
 
                 <button
                   type="submit"
                   disabled={isSubmittingBooking}
-                  className="w-full sm:w-auto px-8 py-3.5 rounded-xl font-bold text-sm text-white shadow-lg shadow-emerald-800/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70"
+                  className="w-full sm:w-auto px-9 py-3.5 rounded-xl font-bold text-sm text-white shadow-lg shadow-emerald-900/30 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70"
                   style={{ background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)' }}
                 >
                   <CalendarCheck className="w-5 h-5" />
-                  <span>{isSubmittingBooking ? 'Token Ban Raha Hai...' : 'Book Appointment Karein'}</span>
+                  <span>{isSubmittingBooking ? 'Reserving Token...' : 'Confirm & Book Appointment'}</span>
                 </button>
               </div>
             </form>
@@ -1092,56 +1097,56 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
         />
       )}
 
-      {/* Patient Booking Details Cross-Check Modal */}
+      {/* Patient Booking Details Verification Modal */}
       {isCrossCheckModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in" style={{ backgroundColor: 'rgba(27, 67, 50, 0.75)' }}>
-          <div className="w-full max-w-lg bg-white dark:bg-[#1E2717] border border-[#A7D7C5] dark:border-[#333D29] rounded-2xl p-6 sm:p-7 space-y-5 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-fade-in" style={{ backgroundColor: 'rgba(15, 23, 13, 0.75)' }}>
+          <div className="w-full max-w-lg bg-white dark:bg-[#192215] border border-slate-200 dark:border-white/10 rounded-3xl p-6 sm:p-7 space-y-5 shadow-2xl">
             {/* Header */}
-            <div className="flex items-start justify-between gap-3 border-b border-[#E2E6D8] dark:border-[#333D29] pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#E8F3EB] dark:bg-[#2D3923] text-[#2D6A4F] shrink-0 border border-[#A7D7C5]">
-                  <ShieldCheck className="w-6 h-6 text-[#2D6A4F]" />
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 dark:border-white/10 pb-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl flex items-center justify-center bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 shrink-0 border border-emerald-200 dark:border-emerald-800/40">
+                  <ShieldCheck className="w-6 h-6 text-emerald-600" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold text-[#1F291E] dark:text-white">
-                    Cross-Check Booking Details
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                    Verify Appointment Details
                   </h3>
-                  <p className="text-xs text-[#656D4A] dark:text-[#A4AC86]">
-                    Baraye meharbani apni maloomat cross-check ker lein taakeh koi ghalati na ho.
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                    Please review your booking information before final confirmation.
                   </p>
                 </div>
               </div>
             </div>
 
             {/* Summary Details Card */}
-            <div className="bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+            <div className="bg-slate-50 dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded-2xl p-4 sm:p-5 space-y-3.5 text-xs">
+              <div className="grid grid-cols-2 gap-4 pb-3 border-b border-slate-200 dark:border-white/10">
                 <div>
-                  <span className="text-slate-500 dark:text-slate-400 font-medium block">Mareez Ka Naam (Patient):</span>
+                  <span className="text-slate-500 dark:text-slate-400 font-medium block mb-0.5">Patient Name:</span>
                   <span className="font-bold text-slate-900 dark:text-white text-sm">
-                    {bookingFor === 'SELF' ? (currentUser?.profile?.fullName || currentUser?.fullName || 'Self') : newPatientName}
+                    {bookingFor === 'SELF' ? (currentUser?.profile?.fullName || currentUser?.fullName || 'For Myself') : newPatientName}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-500 dark:text-slate-400 font-medium block">Mobile Number:</span>
+                  <span className="text-slate-500 dark:text-slate-400 font-medium block mb-0.5">Mobile Number:</span>
                   <span className="font-bold font-mono text-slate-900 dark:text-white text-sm">
                     {bookingFor === 'SELF' ? (currentUser?.profile?.phone || currentUser?.phone || 'On File') : newPatientPhone}
                   </span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div className="grid grid-cols-2 gap-4 pb-3 border-b border-slate-200 dark:border-white/10">
                 <div>
-                  <span className="text-slate-500 dark:text-slate-400 font-medium block">Doctor:</span>
-                  <span className="font-bold text-emerald-700 dark:text-emerald-400 text-sm">
+                  <span className="text-slate-500 dark:text-slate-400 font-medium block mb-0.5">Doctor:</span>
+                  <span className="font-bold text-emerald-700 dark:text-emerald-400 text-sm block">
                     {doctors.find(d => d.id === selectedDoctorId)?.fullName || 'Selected Specialist'}
                   </span>
-                  <span className="text-[11px] text-slate-500 block">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
                     {doctors.find(d => d.id === selectedDoctorId)?.specialization}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-500 dark:text-slate-400 font-medium block">Tareekh (Date):</span>
+                  <span className="text-slate-500 dark:text-slate-400 font-medium block mb-0.5">Appointment Date:</span>
                   <span className="font-bold font-mono text-slate-900 dark:text-white text-sm">
                     {bookingDate}
                   </span>
@@ -1150,7 +1155,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
 
               {chiefComplaint && (
                 <div className="pt-1">
-                  <span className="text-slate-500 dark:text-slate-400 font-medium block">Wajah / Masla:</span>
+                  <span className="text-slate-500 dark:text-slate-400 font-medium block mb-0.5">Reason for Visit:</span>
                   <span className="text-slate-900 dark:text-white italic">
                     "{chiefComplaint}"
                   </span>
@@ -1158,18 +1163,18 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
               )}
             </div>
 
-            {/* Total Fee & Notice */}
-            <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#E8F3EB] dark:bg-[#1C2C1D] border border-[#A7D7C5] dark:border-[#2D5A3D]">
+            {/* Total Fee & Reception Note */}
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#2D6A4F] dark:text-[#52B788] block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400 block">
                   Payable at Reception:
                 </span>
-                <span className="text-lg font-black font-mono text-[#1B4332] dark:text-white">
+                <span className="text-xl font-black font-mono text-emerald-900 dark:text-emerald-200">
                   PKR {totalEstimatedFee.toFixed(2)}
                 </span>
               </div>
-              <div className="text-right text-[11px] text-[#2D6A4F] dark:text-[#A4AC86]">
-                Receptionist approval is required<br />to confirm this booking.
+              <div className="text-right text-[11px] text-emerald-800 dark:text-emerald-400 font-medium">
+                Instant queue token<br />dispatched upon booking
               </div>
             </div>
 
@@ -1179,15 +1184,15 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                 type="button"
                 onClick={() => setIsCrossCheckModalOpen(false)}
                 disabled={isSubmittingBooking}
-                className="px-4 py-2.5 rounded-xl text-xs font-bold border border-[#DDE2D5] text-[#656D4A] hover:bg-[#F4F6F0] transition-colors"
+                className="px-5 py-2.5 rounded-xl text-xs font-bold border border-slate-300 dark:border-white/20 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
               >
-                Ghalti Durust Karein (Edit)
+                Edit Details
               </button>
               <button
                 type="button"
                 onClick={handleExecuteBooking}
                 disabled={isSubmittingBooking}
-                className="px-6 py-2.5 rounded-xl text-xs font-extrabold text-white shadow-md active:scale-95 transition-all flex items-center gap-2"
+                className="px-7 py-2.5 rounded-xl text-xs font-extrabold text-white shadow-lg shadow-emerald-900/30 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
                 style={{ background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)' }}
               >
                 {isSubmittingBooking ? (
@@ -1198,7 +1203,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                 ) : (
                   <>
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>Haan, Bilkul Theek Hai (Confirm & Book)</span>
+                    <span>Confirm & Book Appointment</span>
                   </>
                 )}
               </button>

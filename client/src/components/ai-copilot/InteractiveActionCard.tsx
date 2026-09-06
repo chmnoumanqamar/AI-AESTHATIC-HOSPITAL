@@ -255,6 +255,67 @@ export const InteractiveActionCard: React.FC<InteractiveActionCardProps> = ({
     );
   }
 
+  // 2.6. Booking Cross-Check Verification Card
+  if (cardData.type === 'BOOKING_CROSS_CHECK') {
+    return (
+      <div className="mt-2.5 p-4 bg-[#FAFBF7] dark:bg-[#1A2317] border-2 border-emerald-500/80 dark:border-emerald-600 rounded-2xl shadow-sm space-y-3 animate-in fade-in">
+        <div className="flex items-center justify-between pb-2 border-b border-emerald-200 dark:border-emerald-900/60">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white">Tafseelat Cross-Check / Verify</h4>
+              <p className="text-[10px] text-slate-500 dark:text-[#A4AC86]">Galat information se bachne ke liye check karein</p>
+            </div>
+          </div>
+          <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200 border border-emerald-300">
+            VERIFY DETAILS
+          </span>
+        </div>
+
+        <div className="bg-white dark:bg-[#202C1C] rounded-xl p-3 border border-emerald-100 dark:border-emerald-900/40 space-y-2 text-xs">
+          <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-1.5">
+            <span className="text-slate-500 dark:text-[#A4AC86] text-[11px]">Mareez Ka Naam:</span>
+            <span className="font-bold text-slate-900 dark:text-white">{cardData.patientName}</span>
+          </div>
+          <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-1.5">
+            <span className="text-slate-500 dark:text-[#A4AC86] text-[11px]">Mobile Number:</span>
+            <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">{cardData.patientPhone}</span>
+          </div>
+          <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-1.5">
+            <span className="text-slate-500 dark:text-[#A4AC86] text-[11px]">Specialist Doctor:</span>
+            <span className="font-bold text-slate-900 dark:text-white">{cardData.doctorName}</span>
+          </div>
+          <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-1.5">
+            <span className="text-slate-500 dark:text-[#A4AC86] text-[11px]">Tareekh & Shift:</span>
+            <span className="font-semibold text-slate-800 dark:text-slate-200">{cardData.appointmentDate} ({cardData.shift})</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-slate-500 dark:text-[#A4AC86] text-[11px]">Consultation Fees:</span>
+            <span className="font-extrabold text-emerald-800 dark:text-emerald-300">Rs. {Number(cardData.fee || 2500).toLocaleString()}</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 pt-1">
+          <button
+            onClick={() => onConfirmAction && onConfirmAction('Haan, details theek hain')}
+            className="w-full py-2 px-3 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+          >
+            <Check className="w-3.5 h-3.5" />
+            <span>Haan, Theek Hai</span>
+          </button>
+          <button
+            onClick={() => onConfirmAction && onConfirmAction('Nahi, details tabdeel karni hain')}
+            className="w-full py-2 px-3 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+          >
+            <span>Nahi, Change Karein</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // 2.7. Booking Confirmed Token Card
   if (cardData.type === 'BOOKING_CONFIRMED') {
     return (

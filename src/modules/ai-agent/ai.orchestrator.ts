@@ -24,10 +24,13 @@ export interface AiChatMessage {
 }
 
 export interface AiChatSessionContext {
-  userId: string;
+  userId?: string;
   patientId?: string;
-  userRole: string;
+  userRole?: string;
   sessionId: string;
+  channel?: 'WEB' | 'WHATSAPP';
+  senderPhone?: string;
+  senderName?: string;
 }
 
 export class AiAgentOrchestrator {
@@ -57,6 +60,68 @@ export class AiAgentOrchestrator {
     }
 
     return 'english';
+  }
+
+  /**
+   * Frictionless Patient Resolution / Auto-Provisioner:
+   * Resolves patient record by phone lookup, or automatically creates a guest patient
+   * record with no password or CNIC hurdles.
+   */
+  async resolveOrCreateGuestPatient(fullName: string, rawPhone: string): Promise<string> {
+    const cleanPhone = (rawPhone || '').replace(/\D/g, '');
+
+    // 1. Search for existing patient by phone
+    const existingUser = db.users.find(u => {
+      const uPhone = (u.phone || '').replace(/\D/g, '');
+      return uPhone.length >= 7 && (uPhone.endsWith(cleanPhone.slice(-7)) || cleanPhone.endsWith(uPhone.slice(-7)));
+    });
+
+    if (existingUser) {
+      const existingPat = db.patients.find(p => p.userId === existingUser.id);
+      if (existingPat) {
+        if (fullName && (!existingPat.fullName || existingPat.fullName.toLowerCase().includes('valued') || existingPat.fullName.toLowerCase().includes('guest'))) {
+          existingPat.fullName = fullName;
+        }
+        return existingPat.id;
+      }
+    }
+
+    // 2. Frictionless Auto-Provisioning
+    const userId = `u-guest-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const patientId = `p-guest-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+    const formattedPhone = rawPhone && rawPhone.startsWith('+') ? rawPhone : `+92${cleanPhone.replace(/^0/, '')}`;
+    const cleanName = fullName && fullName.trim().length > 1 ? fullName.trim() : 'Valued Patient';
+
+    const newUser = {
+      id: userId,
+      phone: formattedPhone || '+923000000000',
+      name: cleanName,
+      passwordHash: '$2a$10$autoprovisionedguestpatienthash2026',
+      role: 'PATIENT' as const,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    db.users.push(newUser);
+
+    const newPatient = {
+      id: patientId,
+      userId,
+      fullName: cleanName,
+      cnic: 'N/A (Bot Registered)',
+      gender: 'OTHER',
+      dateOfBirth: '2000-01-01',
+      address: 'Hospital Visitor / WhatsApp Bot',
+      emergencyContact: formattedPhone || '+923000000000',
+      hasWhatsApp: true,
+      primaryNotificationChannel: 'WhatsApp',
+      backupNotificationChannel: 'SMS',
+      createdAt: new Date().toISOString()
+    };
+    db.patients.push(newPatient);
+
+    logger.info(`[AI Orchestrator] Auto-provisioned frictionless guest patient record ${patientId} for ${cleanName} (${formattedPhone})`);
+    return patientId;
   }
 
   /**
@@ -123,7 +188,7 @@ export class AiAgentOrchestrator {
           const res = await toolHandlers.cancelAppointment(
             pendingAction.parameters,
             context.patientId!,
-            context.userId
+            context.userId || 'system_patient'
           );
 
           const confirmedMsg = lang === 'roman_urdu'
@@ -142,7 +207,7 @@ export class AiAgentOrchestrator {
           const res = await toolHandlers.requestReschedule(
             pendingAction.parameters,
             context.patientId!,
-            context.userId
+            context.userId || 'system_patient'
           );
 
           const confirmedMsg = lang === 'roman_urdu'
@@ -157,12 +222,65 @@ export class AiAgentOrchestrator {
               ...res
             }
           };
+        } else if (pendingAction.action === 'BOOK_APPOINTMENT') {
+          const { doctorId, doctorName, appointmentDate, shift, patientName, patientPhone, fee } = pendingAction.parameters;
+
+          // Resolve or auto-register guest patient if needed
+          let targetPatientId = resolvedPatientId;
+          if (!targetPatientId) {
+            targetPatientId = await this.resolveOrCreateGuestPatient(patientName, patientPhone);
+          }
+
+          const source = context.channel === 'WHATSAPP' ? 'WHATSAPP_BOT' : 'WEB_BOT';
+          const bookingRes = await toolHandlers.createBookingRequest(
+            { doctorId, date: appointmentDate, bookingSource: source },
+            targetPatientId,
+            context.userId || `guest_${(patientPhone || '').replace(/\D/g, '')}`
+          );
+
+          const successText = lang === 'roman_urdu'
+            ? `✅ **Appointment Request Kamyabi Se Bhej Di Gayi Hai!**\n\n` +
+              `• **Mareez:** **${patientName}**\n` +
+              `• **Rabta Number:** **${patientPhone}**\n` +
+              `• **Doctor:** **${bookingRes.doctorName}**\n` +
+              `• **Tareekh & Shift:** **${bookingRes.appointmentDate}** (${shift || 'Morning OPD'})\n` +
+              `• **Allocated Token:** **#${bookingRes.tokenNumber}**\n` +
+              `• **Status:** \`PENDING\` *(Front-Desk Receptionist review kar ke approve karein ge)*\n\n` +
+              `Reception se approve hotay he aap ko WhatsApp / SMS par confirmation notification mil jayegi.`
+            : `✅ **Appointment Request Submitted Successfully!**\n\n` +
+              `• **Patient:** **${patientName}**\n` +
+              `• **Phone:** **${patientPhone}**\n` +
+              `• **Physician:** **${bookingRes.doctorName}**\n` +
+              `• **Date & Shift:** **${bookingRes.appointmentDate}** (${shift || 'OPD'})\n` +
+              `• **Allocated Token:** **#${bookingRes.tokenNumber}**\n` +
+              `• **Status:** \`PENDING\` *(Awaiting front-desk receptionist triage & confirmation)*\n\n` +
+              `A WhatsApp notification will be transmitted as soon as reception validates.`;
+
+          return {
+            role: 'assistant',
+            content: successText,
+            cardData: {
+              type: 'BOOKING_CONFIRMED',
+              ...bookingRes,
+              patientName,
+              patientPhone
+            }
+          };
         }
-      } else if (lower.includes('no') || lower.includes('nahi') || lower.includes('cancel') || lower.includes('mat')) {
+      } else if (
+        confirmationGuard.isConfirmationNegative(trimmedInput) ||
+        lower.includes('no') ||
+        lower.includes('nahi') ||
+        lower.includes('cancel') ||
+        lower.includes('tabdeel') ||
+        lower.includes('change') ||
+        lower.includes('edit') ||
+        lower.includes('mat')
+      ) {
         confirmationGuard.clearPendingAction(context.sessionId);
         const cancelAck = lang === 'roman_urdu'
-          ? 'Amal rok diya gaya hai. Aap ki appointment pehle ki tarah barqarar hai. Main mazeed kis cheez mein madad kar sakta hoon?'
-          : 'Action cancelled. Your appointment remains unchanged. How else may I assist you?';
+          ? 'Amal rok diya gaya hai. Details submit nahi huin. Baraye meharbani batayein ke aap ko kya tabdeel karna hai? (Doctor, Tareekh, ya Mareez ka Naam?)'
+          : 'Action cancelled. Your request has not been submitted. What would you like to modify (Physician, Date, or Name)?';
         return {
           role: 'assistant',
           content: cancelAck
@@ -579,25 +697,14 @@ export class AiAgentOrchestrator {
 
     // D1. Direct Booking Execution Intent (When patient asks to book with a specific doctor and/or date)
     const isDirectBookingRequest =
-      (lower.includes('book an appointment with doctor') ||
-       (lower.includes('book') && (lower.includes('doc-') || lower.includes('aisha') || lower.includes('marcus'))) ||
-       (lower.includes('appointment book') && (lower.includes('aisha') || lower.includes('marcus') || lower.includes('karo')))) &&
+      ((lower.includes('appointment') || lower.includes('book') || lower.includes('mulaqat') || lower.includes('milna') || lower.includes('chahiye') || lower.includes('chahye')) &&
+       (lower.includes('aisha') || lower.includes('marcus') || lower.includes('doc-') || lower.includes('doctor') || lower.includes('dr.') || lower.includes('dr '))) &&
       !lower.includes('approval') &&
       !lower.includes('pending') &&
       !lower.includes('list');
 
     if (isDirectBookingRequest) {
-      if (!resolvedPatientId) {
-        const loginReqMsg = lang === 'roman_urdu'
-          ? '⚠️ **Patient Login Darkaar Hai:** Appointment request bhejne ke liye baraye meharbani Patient account se login ya register karein.'
-          : '⚠️ **Patient Login Required:** Please log in with your patient account to book an appointment with our specialist physicians.';
-        return {
-          role: 'assistant',
-          content: loginReqMsg
-        };
-      }
-
-      // Determine Doctor ID
+      // Determine Doctor
       let selectedDoctorId = 'doc-01'; // Default Dr. Aisha
       const allDocs = await doctorService.getAllDoctors();
       if (lower.includes('doc-02') || lower.includes('marcus')) {
@@ -608,6 +715,7 @@ export class AiAgentOrchestrator {
         const matched = allDocs.find(d => lower.includes(d.name.toLowerCase()));
         if (matched) selectedDoctorId = matched.id;
       }
+      const selectedDoc = allDocs.find(d => d.id === selectedDoctorId) || allDocs[0];
 
       // Determine Target Date
       let targetDate = new Date().toISOString().split('T')[0];
@@ -618,44 +726,120 @@ export class AiAgentOrchestrator {
         targetDate = new Date(Date.now() + 86400000).toISOString().split('T')[0];
       } else if (lower.includes('parson')) {
         targetDate = new Date(Date.now() + 172800000).toISOString().split('T')[0];
+      } else {
+        // Default to tomorrow for convenience
+        targetDate = new Date(Date.now() + 86400000).toISOString().split('T')[0];
       }
 
-      try {
-        const bookingRes = await toolHandlers.createBookingRequest(
-          { doctorId: selectedDoctorId, date: targetDate },
-          resolvedPatientId,
-          context.userId
-        );
+      // Determine Shift
+      const shiftLabel = (lower.includes('sham') || lower.includes('evening') || lower.includes('raat'))
+        ? 'Evening (04:00 PM - 08:00 PM)'
+        : 'Morning (09:00 AM - 01:00 PM)';
 
-        const successText = lang === 'roman_urdu'
-          ? `✅ **Appointment Request Kamyabi Se Bhej Di Gayi Hai!**\n\n` +
-            `• **Doctor:** **${bookingRes.doctorName}**\n` +
-            `• **Tareekh:** **${bookingRes.appointmentDate}**\n` +
-            `• **Assigned Token:** **#${bookingRes.tokenNumber}**\n` +
-            `• **Status:** \`PENDING\` *(Front-desk review ke baad confirm ho jayegi)*\n\n` +
-            `Reception se verify hotay he aap ki appointment confirm ho jayegi.`
-          : `✅ **Appointment Request Submitted Successfully!**\n\n` +
-            `• **Physician:** **${bookingRes.doctorName}**\n` +
-            `• **Appointment Date:** **${bookingRes.appointmentDate}**\n` +
-            `• **Allocated Sequential Token:** **#${bookingRes.tokenNumber}**\n` +
-            `• **Status:** \`PENDING\` *(Awaiting front-desk triage & confirmation)*\n\n` +
-            `A confirmation notice will be transmitted upon receptionist validation.`;
+      // Determine Patient Name & Phone
+      let patientName = '';
+      let patientPhone = '';
 
-        return {
-          role: 'assistant',
-          content: successText,
-          cardData: {
-            type: 'BOOKING_CONFIRMED',
-            ...bookingRes
-          }
-        };
-      } catch (err: any) {
-        const errMsg = err.message || 'Failed to allocate token slot.';
-        return {
-          role: 'assistant',
-          content: `❌ **Booking Error:** ${errMsg}`
-        };
+      if (resolvedPatientId) {
+        const curPat = db.patients.find(p => p.id === resolvedPatientId);
+        const curUser = curPat ? db.users.find(u => u.id === curPat.userId) : null;
+        patientName = curPat?.fullName || 'Valued Patient';
+        patientPhone = curUser?.phone || '+923000000000';
+      } else if (context.channel === 'WHATSAPP' || context.senderPhone) {
+        patientPhone = context.senderPhone || '';
+        patientName = context.senderName || 'Valued Patient';
+        // Check if patient provided their name in the chat
+        const nameMatch = trimmedInput.match(/(?:mera naam|name is|i am|naam)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)(?:\s+hai|\s+ha|\s*,|\s*$|\s+aur)/i) ||
+          trimmedInput.match(/(?:mera naam|name is|i am|naam)\s+([A-Za-z]{2,20})/i);
+        if (nameMatch && nameMatch[1]) {
+          patientName = nameMatch[1].trim().replace(/\s+(?:hai|ha|hoon|hun)$/i, '');
+        }
+      } else {
+        // Web Guest visitor
+        const phoneMatch = trimmedInput.match(/(?:\+92|03)\d{9}|\b0\d{10}\b|\b\d{11}\b/);
+        const nameMatch = trimmedInput.match(/(?:mera naam|name is|i am|naam)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)(?:\s+hai|\s+ha|\s*,|\s*$|\s+aur)/i) ||
+          trimmedInput.match(/(?:mera naam|name is|i am|naam)\s+([A-Za-z]{2,20})/i);
+
+        if (phoneMatch) {
+          patientPhone = phoneMatch[0];
+        }
+        if (nameMatch && nameMatch[1]) {
+          patientName = nameMatch[1].trim().replace(/\s+(?:hai|ha|hoon|hun)$/i, '');
+        }
+
+        // If phone is missing, prompt user gently without login friction
+        if (!patientPhone) {
+          const askContactText = lang === 'roman_urdu'
+            ? `🏥 **Dr. ${selectedDoc.name} (${selectedDoc.specialization}) ke sath appointment ke liye:**\n\n` +
+              `Baraye meharbani apna **Naam** aur **Mobile Number** batayein (jaise: *Ali, 03001234567*) taake hum aap ki slot verify kar sakein.`
+            : `🏥 **To book your appointment with Dr. ${selectedDoc.name}:**\n\n` +
+              `Please provide your **Full Name** and **Contact Mobile Number** (e.g., *Ali Khan, 03001234567*) to prepare your reservation.`;
+
+          return {
+            role: 'assistant',
+            content: askContactText
+          };
+        }
+
+        if (!patientName) {
+          patientName = 'Guest Patient';
+        }
       }
+
+      // STEP: Cross-Check Verification Before Final Registration
+      confirmationGuard.registerPendingAction(
+        context.sessionId,
+        'BOOK_APPOINTMENT',
+        {
+          doctorId: selectedDoctorId,
+          doctorName: selectedDoc.name,
+          specialization: selectedDoc.specialization,
+          appointmentDate: targetDate,
+          shift: shiftLabel,
+          patientName,
+          patientPhone,
+          fee: selectedDoc.consultationFee
+        },
+        `Book appointment with ${selectedDoc.name} on ${targetDate} for ${patientName}`
+      );
+
+      const crossCheckMsg = lang === 'roman_urdu'
+        ? `📋 **Baraye Meharbani Apni Details Cross-Check Kar Lein:**\n\n` +
+          `• **Mareez Ka Naam:** **${patientName}**\n` +
+          `• **Rabta Number:** **${patientPhone}**\n` +
+          `• **Doctor:** **${selectedDoc.name}** (${selectedDoc.specialization})\n` +
+          `• **Tareekh & Shift:** **${targetDate}** (${shiftLabel})\n` +
+          `• **Consultation Fees:** **Rs. ${selectedDoc.consultationFee.toLocaleString()}**\n\n` +
+          `──────────────────────────────\n` +
+          `**Kia yeh saari information bilkul theek hai?**\n\n` +
+          `👉 **'Haan' / 'Yes' / '1'** type karein ya button click karein taake request submit ho jaye.\n` +
+          `👉 **'Nahi' / '2'** type karein agar koi cheez tabdeel karni hai.`
+        : `📋 **Please Cross-Check Your Appointment Details:**\n\n` +
+          `• **Patient Name:** **${patientName}**\n` +
+          `• **Mobile Phone:** **${patientPhone}**\n` +
+          `• **Physician:** **${selectedDoc.name}** (${selectedDoc.specialization})\n` +
+          `• **Date & Shift:** **${targetDate}** (${shiftLabel})\n` +
+          `• **Consultation Fee:** **Rs. ${selectedDoc.consultationFee.toLocaleString()}**\n\n` +
+          `──────────────────────────────\n` +
+          `**Is all this information correct?**\n\n` +
+          `👉 Reply **'Yes' / '1'** to confirm and submit request.\n` +
+          `👉 Reply **'No' / '2'** to modify details.`;
+
+      return {
+        role: 'assistant',
+        content: crossCheckMsg,
+        cardData: {
+          type: 'BOOKING_CROSS_CHECK',
+          doctorId: selectedDoctorId,
+          doctorName: selectedDoc.name,
+          specialization: selectedDoc.specialization,
+          appointmentDate: targetDate,
+          shift: shiftLabel,
+          patientName,
+          patientPhone,
+          fee: selectedDoc.consultationFee
+        }
+      };
     }
 
     // D2. Doctor Availability, OPD Timings & Live Slot Capacity Inquiry Intent

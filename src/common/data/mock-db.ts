@@ -182,6 +182,21 @@ export interface DbNotificationLog {
   createdAt: string;
 }
 
+export interface DbSystemSettings {
+  whatsappBotEnabled: boolean;
+  hospitalWhatsAppNumber: string;
+  whatsappProvider: 'META_CLOUD_API' | 'TWILIO' | 'SIMULATOR';
+  metaPhoneNumberId: string;
+  metaAccessToken: string;
+  metaVerifyToken: string;
+  twilioAccountSid?: string;
+  twilioAuthToken?: string;
+  twilioWhatsAppNumber?: string;
+  botWelcomeMessageUrdu?: string;
+  botWelcomeMessageEnglish?: string;
+  updatedAt: string;
+}
+
 class InMemoryHospitalDatabase {
   users: DbUser[] = [];
   patients: DbPatient[] = [];
@@ -198,6 +213,15 @@ class InMemoryHospitalDatabase {
   doctorPatientRelationships: DbDoctorPatientRelationship[] = [];
   payments: DbPayment[] = [];
   notificationLogs: DbNotificationLog[] = [];
+  systemSettings: DbSystemSettings = {
+    whatsappBotEnabled: true,
+    hospitalWhatsAppNumber: '+92 300 7654321',
+    whatsappProvider: 'META_CLOUD_API',
+    metaPhoneNumberId: process.env.META_WHATSAPP_PHONE_NUMBER_ID || '',
+    metaAccessToken: process.env.META_WHATSAPP_TOKEN || '',
+    metaVerifyToken: process.env.META_WHATSAPP_VERIFY_TOKEN || 'hospital_wa_verify_token_2026',
+    updatedAt: new Date().toISOString()
+  };
 
   constructor() {
     this.seedDefaultData();

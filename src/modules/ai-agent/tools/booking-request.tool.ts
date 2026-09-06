@@ -6,6 +6,7 @@ export async function createBookingRequest(
     doctorId: string;
     serviceId?: string;
     date: string;
+    bookingSource?: 'PORTAL' | 'AI_AGENT' | 'RECEPTIONIST' | 'CALL' | 'WHATSAPP_BOT' | 'WEB_BOT';
   },
   patientId: string,
   userId: string
@@ -14,17 +15,17 @@ export async function createBookingRequest(
     throw AppError.unauthorized('Patient context is required to create a booking request.');
   }
 
-  // Force bookingSource to 'AI_AGENT' and status to 'PENDING'
+  const source = params.bookingSource || 'AI_AGENT';
   const appointment = await appointmentService.createBooking(
     {
       doctorId: params.doctorId,
       serviceId: params.serviceId,
       appointmentDate: params.date,
       patientId,
-      bookingSource: 'AI_AGENT'
+      bookingSource: source
     },
     userId,
-    'AI_AGENT'
+    source
   );
 
   return {

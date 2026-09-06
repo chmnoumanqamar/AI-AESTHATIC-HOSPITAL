@@ -1,5 +1,5 @@
 export interface PendingConfirmationState {
-  action: 'CANCEL_APPOINTMENT' | 'RESCHEDULE_APPOINTMENT';
+  action: 'CANCEL_APPOINTMENT' | 'RESCHEDULE_APPOINTMENT' | 'BOOK_APPOINTMENT';
   parameters: any;
   summaryText: string;
   expiresAt: number;
@@ -11,7 +11,7 @@ export class ConfirmationGuard {
 
   registerPendingAction(
     sessionId: string,
-    action: 'CANCEL_APPOINTMENT' | 'RESCHEDULE_APPOINTMENT',
+    action: 'CANCEL_APPOINTMENT' | 'RESCHEDULE_APPOINTMENT' | 'BOOK_APPOINTMENT',
     parameters: any,
     summaryText: string
   ): PendingConfirmationState {
@@ -48,7 +48,38 @@ export class ConfirmationGuard {
       clean === 'proceed' ||
       clean === 'i confirm' ||
       clean === 'yes, cancel' ||
-      clean === 'yes, reschedule'
+      clean === 'yes, reschedule' ||
+      clean === 'haan' ||
+      clean === 'theek hai' ||
+      clean === 'theek' ||
+      clean === 'sahi hai' ||
+      clean === 'ji' ||
+      clean === 'ji haan' ||
+      clean === '1' ||
+      clean === 'ok' ||
+      clean === 'done' ||
+      clean === 'book karo' ||
+      clean === 'book kar dein' ||
+      clean === 'confirm karo'
+    );
+  }
+
+  isConfirmationNegative(text: string): boolean {
+    const clean = text.trim().toLowerCase();
+    return (
+      clean === 'no' ||
+      clean === 'nahi' ||
+      clean === 'nahin' ||
+      clean === 'cancel' ||
+      clean === 'edit' ||
+      clean === 'change' ||
+      clean === 'tabdeel' ||
+      clean === 'tabdeel karo' ||
+      clean === 'galat' ||
+      clean === '2' ||
+      clean === 'nhi' ||
+      clean === 'dont book' ||
+      clean === 'mat karo'
     );
   }
 }

@@ -5,7 +5,7 @@ export const createBookingDto = z.object({
   doctorId: z.string(),
   serviceId: z.string().optional(),
   appointmentDate: z.string().refine(val => !isNaN(Date.parse(val)), 'Valid date required'),
-  bookingSource: z.enum(['PORTAL', 'AI_AGENT', 'RECEPTIONIST', 'CALL']).default('PORTAL'),
+  bookingSource: z.enum(['PORTAL', 'AI_AGENT', 'RECEPTIONIST', 'CALL', 'WHATSAPP_BOT', 'WEB_BOT']).default('PORTAL'),
   chiefComplaint: z.string().optional(),
   notes: z.string().optional()
 });

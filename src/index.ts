@@ -20,6 +20,7 @@ import notificationRoutes from './modules/notification/notification.routes';
 import auditRoutes from './modules/audit/audit.routes';
 import adminRoutes from './modules/admin/admin.routes';
 import reportsRoutes from './modules/reports/reports.routes';
+import whatsappRoutes from './modules/ai-agent/whatsapp.routes';
 import { aiController } from './modules/ai-agent/ai.controller';
 import { authMiddleware } from './common/middleware/auth.middleware';
 
@@ -74,6 +75,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/ai/whatsapp', whatsappRoutes);
 
 // AI Chat Endpoint (Optional Auth so guests can explore or authenticated patients get full context)
 app.post('/api/ai/chat', (req, res, next) => {

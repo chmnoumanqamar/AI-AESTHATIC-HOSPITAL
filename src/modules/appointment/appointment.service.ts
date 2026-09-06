@@ -5,6 +5,7 @@ import { tokenService } from '../token/token.service';
 import { normalizeDateString } from '../../common/utils/date-helper';
 import { CreateBookingInput, UpdateAppointmentStatusInput, RescheduleAppointmentInput } from './appointment.dto';
 import { recordAuditLog } from '../../common/middleware/audit.middleware';
+import { notificationService } from '../notification/notification.service';
 
 export class AppointmentService {
   async getAllAppointments(filters?: { doctorId?: string; patientId?: string; date?: string; status?: string }) {
@@ -137,6 +138,36 @@ export class AppointmentService {
         const token = db.dailyTokens.find(t => t.id === appointment.tokenId);
         if (token) token.status = 'ACTIVE';
       }
+
+      // Automated WhatsApp Confirmation Dispatch to Patient
+      try {
+        const patient = db.patients.find(p => p.id === appointment.patientId);
+        const user = patient ? db.users.find(u => u.id === patient.userId) : null;
+        const doctor = db.doctors.find(d => d.id === appointment.doctorId);
+        const token = appointment.tokenId ? db.dailyTokens.find(t => t.id === appointment.tokenId) : null;
+        const phone = user?.phone;
+
+        if (phone) {
+          const confirmNotice =
+            `✅ *Appointment Confirmed - Aesthetic Hospital*\n\n` +
+            `Moazziz *${patient?.fullName || 'Patient'}*,\n` +
+            `Front-desk receptionist ne aap ki appointment *${doctor?.name || 'Doctor'}* ke sath CONFIRM kar di hai!\n\n` +
+            `📋 *Allocated Token:* *#${token?.tokenNumber || 'N/A'}*\n` +
+            `📅 *Tareekh:* ${appointment.appointmentDate}\n` +
+            `🩺 *Doctor:* ${doctor?.name || 'Consultant'}\n` +
+            `🏥 *Location:* Reception OPD Counter, AI Aesthetic Hospital\n\n` +
+            `Baraye meharbani apna Token Number counter par show karein. Shukriya!`;
+
+          notificationService.dispatchNotification(
+            appointment.patientId,
+            'APPOINTMENT_CONFIRMED',
+            confirmNotice,
+            `Appointment Confirmed - Token #${token?.tokenNumber || ''}`
+          ).catch(() => {});
+        }
+      } catch (err: any) {
+        // Log silently
+      }
     } else if (input.status === 'DECLINED' || input.status === 'CANCELLED') {
       appointment.status = input.status;
       // Invariant: Non-reusable cancelled token
@@ -146,6 +177,34 @@ export class AppointmentService {
       // Update queue
       const queue = db.queueEntries.find(q => q.appointmentId === appointment.id);
       if (queue) queue.queueStatus = 'NO_SHOW';
+
+      // Automated WhatsApp Rejection/Decline Notice to Patient
+      if (input.status === 'DECLINED') {
+        try {
+          const patient = db.patients.find(p => p.id === appointment.patientId);
+          const user = patient ? db.users.find(u => u.id === patient.userId) : null;
+          const doctor = db.doctors.find(d => d.id === appointment.doctorId);
+          const phone = user?.phone;
+
+          if (phone) {
+            const declineNotice =
+              `⚠️ *Appointment Update - Aesthetic Hospital*\n\n` +
+              `Moazziz *${patient?.fullName || 'Patient'}*,\n` +
+              `Schedule conflict ya doctor ki masroofiat ki waja se aap ki appointment request baraye *${doctor?.name || 'Doctor'}* (${appointment.appointmentDate}) manzoor nahi ho saki.\n\n` +
+              `Waja: ${input.reason || 'Front-desk schedule conflict'}\n\n` +
+              `Baraye meharbani kisi doosray din ya slot ke liye hamaray WhatsApp Bot par dobara rabta karein.`;
+
+            notificationService.dispatchNotification(
+              appointment.patientId,
+              'APPOINTMENT_DECLINED',
+              declineNotice,
+              'Appointment Request Declined'
+            ).catch(() => {});
+          }
+        } catch (err: any) {
+          // Log silently
+        }
+      }
     }
 
     appointment.updatedAt = new Date().toISOString();

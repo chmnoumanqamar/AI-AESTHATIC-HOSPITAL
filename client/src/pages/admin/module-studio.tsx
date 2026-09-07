@@ -89,8 +89,8 @@ const CATEGORIES: {
       border: 'border-emerald-300 dark:border-emerald-800/60',
       bg: 'bg-emerald-50/30 dark:bg-[#1A2518]/50',
       headerBg: 'bg-[#DCFCE7] dark:bg-[#1B3624] border-b border-emerald-200 dark:border-emerald-900/60',
-      text: 'text-emerald-950 dark:text-white',
-      subtitleText: 'text-emerald-800/90 dark:text-emerald-200/80',
+      text: 'module-col-title text-slate-900 dark:!text-white',
+      subtitleText: 'module-col-subtitle text-slate-600 dark:!text-slate-300',
       badge: 'bg-emerald-700 text-white dark:bg-emerald-500 dark:text-slate-950 font-black',
       dropZone: 'border-emerald-500 bg-emerald-50 dark:bg-[#203622]/80',
     },
@@ -103,8 +103,8 @@ const CATEGORIES: {
       border: 'border-sky-300 dark:border-sky-800/60',
       bg: 'bg-sky-50/30 dark:bg-sky-950/20',
       headerBg: 'bg-[#E0F2FE] dark:bg-[#152B3C] border-b border-sky-200 dark:border-sky-900/60',
-      text: 'text-sky-950 dark:text-white',
-      subtitleText: 'text-sky-800/90 dark:text-sky-200/80',
+      text: 'module-col-title text-slate-900 dark:!text-white',
+      subtitleText: 'module-col-subtitle text-slate-600 dark:!text-slate-300',
       badge: 'bg-sky-700 text-white dark:bg-sky-400 dark:text-slate-950 font-black',
       dropZone: 'border-sky-500 bg-sky-50 dark:bg-sky-950/60',
     },
@@ -117,8 +117,8 @@ const CATEGORIES: {
       border: 'border-purple-300 dark:border-purple-800/60',
       bg: 'bg-purple-50/30 dark:bg-purple-950/20',
       headerBg: 'bg-[#F3E8FF] dark:bg-[#2E1A3C] border-b border-purple-200 dark:border-purple-900/60',
-      text: 'text-purple-950 dark:text-white',
-      subtitleText: 'text-purple-800/90 dark:text-purple-200/80',
+      text: 'module-col-title text-slate-900 dark:!text-white',
+      subtitleText: 'module-col-subtitle text-slate-600 dark:!text-slate-300',
       badge: 'bg-purple-700 text-white dark:bg-purple-400 dark:text-slate-950 font-black',
       dropZone: 'border-purple-500 bg-purple-50 dark:bg-purple-950/60',
     },
@@ -131,8 +131,8 @@ const CATEGORIES: {
       border: 'border-amber-300 dark:border-amber-800/60',
       bg: 'bg-amber-50/30 dark:bg-amber-950/20',
       headerBg: 'bg-[#FEF3C7] dark:bg-[#3D2812] border-b border-amber-200 dark:border-amber-900/60',
-      text: 'text-amber-950 dark:text-white',
-      subtitleText: 'text-amber-800/90 dark:text-amber-200/80',
+      text: 'module-col-title text-slate-900 dark:!text-white',
+      subtitleText: 'module-col-subtitle text-slate-600 dark:!text-slate-300',
       badge: 'bg-amber-700 text-white dark:bg-amber-400 dark:text-slate-950 font-black',
       dropZone: 'border-amber-500 bg-amber-50 dark:bg-amber-950/60',
     },
@@ -145,8 +145,8 @@ const CATEGORIES: {
       border: 'border-teal-300 dark:border-teal-800/60',
       bg: 'bg-teal-50/30 dark:bg-teal-950/20',
       headerBg: 'bg-[#CCFBF1] dark:bg-[#13352E] border-b border-teal-200 dark:border-teal-900/60',
-      text: 'text-teal-950 dark:text-white',
-      subtitleText: 'text-teal-800/90 dark:text-teal-200/80',
+      text: 'module-col-title text-slate-900 dark:!text-white',
+      subtitleText: 'module-col-subtitle text-slate-600 dark:!text-slate-300',
       badge: 'bg-teal-700 text-white dark:bg-teal-400 dark:text-slate-950 font-black',
       dropZone: 'border-teal-500 bg-teal-50 dark:bg-teal-950/60',
     },
@@ -439,10 +439,16 @@ export const AdminModuleStudio: React.FC = () => {
                 className={`p-3.5 rounded-t-2xl ${cat.theme.headerBg} flex items-start justify-between gap-2 shrink-0 min-h-[76px]`}
               >
                 <div className="min-w-0 flex-1">
-                  <h3 className={`font-extrabold text-xs sm:text-[13px] leading-tight break-words ${cat.theme.text}`} title={cat.title}>
-                    {cat.title}
+                  <h3
+                    className={`module-col-title font-extrabold text-xs sm:text-[13px] leading-tight break-words text-slate-900 dark:!text-white ${cat.theme.text}`}
+                    title={cat.title}
+                  >
+                    <span className="text-slate-900 dark:!text-white font-extrabold">{cat.title}</span>
                   </h3>
-                  <p className={`text-[10.5px] mt-0.5 leading-tight line-clamp-1 ${cat.theme.subtitleText}`} title={cat.subtitle}>
+                  <p
+                    className={`module-col-subtitle text-[10.5px] mt-0.5 leading-tight line-clamp-1 text-slate-600 dark:!text-slate-300 ${cat.theme.subtitleText}`}
+                    title={cat.subtitle}
+                  >
                     {cat.subtitle}
                   </p>
                 </div>

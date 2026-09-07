@@ -334,9 +334,15 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
           </div>
         </div>
 
-        {/* 4 Key Performance Metrics Cards */}
+        {/* 4 Key Performance Metrics Cards (Interactive Quick Jumps) */}
         <div className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
-          <div className="rounded-2xl bg-white/90 dark:bg-white/10 backdrop-blur-md p-4 border border-emerald-100/80 dark:border-white/15 flex items-center justify-between shadow-2xs transition-shadow hover:shadow-xs">
+          <div
+            onClick={() => onSelectTab && onSelectTab('pharma_queue')}
+            role="button"
+            tabIndex={0}
+            title="Click to view Pending Prescription Queue"
+            className="rounded-2xl bg-white/90 dark:bg-white/10 backdrop-blur-md p-4 border border-emerald-100/80 dark:border-white/15 flex items-center justify-between shadow-2xs transition-all hover:shadow-md hover:scale-[1.01] cursor-pointer"
+          >
             <div>
               <p className="text-xs font-semibold text-slate-500 dark:text-emerald-200">Pending Rx Queue</p>
               <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{pendingRxCount}</p>
@@ -347,7 +353,13 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
             </div>
           </div>
 
-          <div className="rounded-2xl bg-white/90 dark:bg-white/10 backdrop-blur-md p-4 border border-emerald-100/80 dark:border-white/15 flex items-center justify-between shadow-2xs transition-shadow hover:shadow-xs">
+          <div
+            onClick={() => onSelectTab && onSelectTab('pharma_inventory')}
+            role="button"
+            tabIndex={0}
+            title="Click to view Drug Inventory Vault & Low Stock"
+            className="rounded-2xl bg-white/90 dark:bg-white/10 backdrop-blur-md p-4 border border-emerald-100/80 dark:border-white/15 flex items-center justify-between shadow-2xs transition-all hover:shadow-md hover:scale-[1.01] cursor-pointer"
+          >
             <div>
               <p className="text-xs font-semibold text-slate-500 dark:text-emerald-200">Low Stock Triggers</p>
               <p className="text-2xl font-black text-amber-600 dark:text-amber-300 mt-1">{lowStockCount}</p>
@@ -358,7 +370,13 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
             </div>
           </div>
 
-          <div className="rounded-2xl bg-white/90 dark:bg-white/10 backdrop-blur-md p-4 border border-emerald-100/80 dark:border-white/15 flex items-center justify-between shadow-2xs transition-shadow hover:shadow-xs">
+          <div
+            onClick={() => onSelectTab && onSelectTab('pharma_queue')}
+            role="button"
+            tabIndex={0}
+            title="Click to view Dispensed Prescriptions"
+            className="rounded-2xl bg-white/90 dark:bg-white/10 backdrop-blur-md p-4 border border-emerald-100/80 dark:border-white/15 flex items-center justify-between shadow-2xs transition-all hover:shadow-md hover:scale-[1.01] cursor-pointer"
+          >
             <div>
               <p className="text-xs font-semibold text-slate-500 dark:text-emerald-200">Dispensed Today</p>
               <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{fulfilledTodayCount}</p>
@@ -369,7 +387,13 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
             </div>
           </div>
 
-          <div className="rounded-2xl bg-white/90 dark:bg-white/10 backdrop-blur-md p-4 border border-emerald-100/80 dark:border-white/15 flex items-center justify-between shadow-2xs transition-shadow hover:shadow-xs">
+          <div
+            onClick={() => onSelectTab && onSelectTab('pharma_inventory')}
+            role="button"
+            tabIndex={0}
+            title="Click to view Inventory Ledger & Valuation"
+            className="rounded-2xl bg-white/90 dark:bg-white/10 backdrop-blur-md p-4 border border-emerald-100/80 dark:border-white/15 flex items-center justify-between shadow-2xs transition-all hover:shadow-md hover:scale-[1.01] cursor-pointer"
+          >
             <div>
               <p className="text-xs font-semibold text-slate-500 dark:text-emerald-200">Inventory Valuation</p>
               <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">${estimatedVaultValue.toLocaleString()}</p>
@@ -380,41 +404,6 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Sub-View Navigation Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-200 dark:border-slate-800 scrollbar-none">
-        {[
-          { id: 'pharma_queue', label: 'Live Dispense Queue', icon: Pill, badge: pendingRxCount > 0 ? pendingRxCount : null },
-          { id: 'pharma_inventory', label: 'Drug Inventory Vault', icon: Package, badge: lowStockCount > 0 ? `${lowStockCount} Low` : null },
-          { id: 'pharma_pos', label: 'Pharmacy POS Counter', icon: ShoppingCart, badge: cart.length > 0 ? cart.length : null },
-          { id: 'pharma_safety', label: 'Drug Safety & AI Screener', icon: ShieldAlert },
-          { id: 'pharma_procurement', label: 'Suppliers & Procurement', icon: Truck, badge: procurementOrders.filter(o => o.status !== 'RECEIVED').length || null },
-        ].map(tab => {
-          const Icon = tab.icon;
-          const isActive = activeSubTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => onSelectTab && onSelectTab(tab.id)}
-              className={`flex items-center gap-2.5 px-4 py-3 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer select-none ${
-                isActive
-                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                  : 'bg-white dark:bg-[#1E2718] text-slate-600 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-slate-200 dark:border-slate-800'
-              }`}
-            >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'}`} />
-              <span>{tab.label}</span>
-              {tab.badge !== null && (
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                  isActive ? 'bg-white text-emerald-700' : 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200'
-                }`}>
-                  {tab.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
       </div>
 
       {/* ========================================================================= */}

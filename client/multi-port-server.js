@@ -70,6 +70,7 @@ const PORT_MAPPINGS = [
   { port: 3002, role: 'RECEPTIONIST', name: 'Sarah Jenkins', description: 'Reception & Queue Desk' },
   { port: 3003, role: 'PATIENT', name: 'John Doe', description: 'Patient Self-Service Portal' },
   { port: 3004, role: 'ADMIN', name: 'Administrator', description: 'Admin Vault & Audit Trail' },
+  { port: 3005, role: 'PHARMACIST', name: 'Tariq Mehmood, RPh', description: 'Pharmacy & Dispensary Suite' },
 ];
 
 console.log('\n============================================================');

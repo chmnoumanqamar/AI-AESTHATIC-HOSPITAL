@@ -20,14 +20,19 @@ import {
   ArrowRightLeft,
   GripVertical,
   CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  Pill,
+  Package,
+  ShoppingCart,
+  ShieldAlert,
+  Truck
 } from 'lucide-react';
 import { api } from '../../services/api';
 
 export interface ModuleNavDef {
   id: string;
   label: string;
-  category: 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN';
+  category: 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN' | 'PHARMACY';
   categoryLabel: string;
   icon: any;
 }
@@ -49,6 +54,13 @@ export const ALL_HOSPITAL_MODULES: ModuleNavDef[] = [
   { id: 'patient_booking', label: 'Book Appointment', category: 'PATIENT', categoryLabel: 'Patient Services', icon: Activity },
   { id: 'patient_history', label: 'Medical Records & Rx', category: 'PATIENT', categoryLabel: 'Patient Services', icon: FileText },
   { id: 'patient_billing', label: 'Billing & Invoices', category: 'PATIENT', categoryLabel: 'Patient Services', icon: CreditCard },
+
+  // Pharmacy & Medical Store
+  { id: 'pharma_queue', label: 'Live Dispense Queue', category: 'PHARMACY', categoryLabel: 'Pharmacy & Medical Store', icon: Pill },
+  { id: 'pharma_inventory', label: 'Drug Inventory Vault', category: 'PHARMACY', categoryLabel: 'Pharmacy & Medical Store', icon: Package },
+  { id: 'pharma_pos', label: 'Pharmacy POS Counter', category: 'PHARMACY', categoryLabel: 'Pharmacy & Medical Store', icon: ShoppingCart },
+  { id: 'pharma_safety', label: 'Drug Safety & AI Screener', category: 'PHARMACY', categoryLabel: 'Pharmacy & Medical Store', icon: ShieldAlert },
+  { id: 'pharma_procurement', label: 'Suppliers & Procurement', category: 'PHARMACY', categoryLabel: 'Pharmacy & Medical Store', icon: Truck },
 
   // System Administration
   { id: 'admin_users', label: 'User Access Control', category: 'ADMIN', categoryLabel: 'System Administration', icon: Users },
@@ -84,11 +96,12 @@ export const ROLE_DEFAULT_IDS: Record<string, string[]> = {
   DOCTOR: ['doctor_queue', 'doctor_consultation', 'doctor_tokens'],
   RECEPTIONIST: ['recep_desk', 'recep_approvals', 'recep_pos', 'recep_reports'],
   PATIENT: ['patient_portal', 'patient_booking', 'patient_history', 'patient_billing'],
+  PHARMACIST: ['pharma_queue', 'pharma_inventory', 'pharma_pos', 'pharma_safety', 'pharma_procurement'],
   ADMIN: ALL_HOSPITAL_MODULES.map(m => m.id),
 };
 
 interface StructuralRailNavProps {
-  currentRole: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT';
+  currentRole: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST';
   currentTab: string;
   onSelectTab: (tab: string) => void;
   isExpanded: boolean;
@@ -115,7 +128,7 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
   const [sidebarMoveLoading, setSidebarMoveLoading] = useState(false);
   const [pendingSidebarMove, setPendingSidebarMove] = useState<{
     page: ModuleNavDef;
-    targetCategory: 'ADMIN' | 'CLINICAL' | 'RECEPTION' | 'PATIENT';
+    targetCategory: 'ADMIN' | 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'PHARMACY';
     targetCategoryLabel: string;
   } | null>(null);
 
@@ -170,11 +183,12 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
   }, []);
 
   // Map role to its primary domain category
-  const roleToCategoryKey: Record<string, 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN'> = {
+  const roleToCategoryKey: Record<string, 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN' | 'PHARMACY'> = {
     ADMIN: 'ADMIN',
     DOCTOR: 'CLINICAL',
     RECEPTIONIST: 'RECEPTION',
     PATIENT: 'PATIENT',
+    PHARMACIST: 'PHARMACY',
   };
 
   const primaryCategory = roleToCategoryKey[currentRole] || 'ADMIN';
@@ -196,16 +210,17 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
   }
 
   // Category display order: Current role's own department is ALWAYS placed at the TOP
-  const orderedCategoryKeys: ('CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN')[] = [
+  const orderedCategoryKeys: ('CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN' | 'PHARMACY')[] = [
     primaryCategory,
-    ...(['ADMIN', 'CLINICAL', 'RECEPTION', 'PATIENT'] as const).filter(k => k !== primaryCategory)
+    ...(['ADMIN', 'CLINICAL', 'RECEPTION', 'PATIENT', 'PHARMACY'] as const).filter(k => k !== primaryCategory)
   ];
 
-  const categoryLabels: Record<'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN', string> = {
+  const categoryLabels: Record<'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN' | 'PHARMACY', string> = {
     ADMIN: 'System Administration',
     CLINICAL: 'Clinical Deck',
     RECEPTION: 'Front-Desk & Reception',
     PATIENT: 'Patient Services',
+    PHARMACY: 'Pharmacy & Medical Store',
   };
 
   const categories = orderedCategoryKeys.map(key => ({
@@ -233,7 +248,7 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
     }
   };
 
-  const handleSidebarDrop = (e: React.DragEvent, targetCategory: 'ADMIN' | 'CLINICAL' | 'RECEPTION' | 'PATIENT') => {
+  const handleSidebarDrop = (e: React.DragEvent, targetCategory: 'ADMIN' | 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'PHARMACY') => {
     if (currentRole !== 'ADMIN') return;
     e.preventDefault();
     setDragOverCatKey(null);

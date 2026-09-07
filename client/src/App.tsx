@@ -10,12 +10,13 @@ import { AdminQueueMonitor } from './pages/admin/queue-monitor';
 import { AdminHospitalLedger } from './pages/admin/ledger';
 import { AdminDatabaseMaintenance } from './pages/admin/database-maintenance';
 import { AdminModuleStudio } from './pages/admin/module-studio';
+import { PharmacyWorkspace } from './pages/pharmacist/pharmacy-workspace';
 import { ReportsAnalyticsDashboard } from './components/reports/ReportsAnalyticsDashboard';
 import { LoginView } from './pages/auth/login';
 import { api } from './services/api';
 
 interface TerminalConfig {
-  role: 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'ADMIN';
+  role: 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'ADMIN' | 'PHARMACIST';
   email: string;
   name: string;
   key: string;
@@ -27,6 +28,7 @@ const TERMINAL_REGISTRY: Record<string, TerminalConfig> = {
   '3002': { role: 'RECEPTIONIST', email: 'receptionist@hospital.com', name: 'Sarah Jenkins', key: '3002', path: '/receptionist' },
   '3003': { role: 'PATIENT', email: 'john.doe@example.com', name: 'John Doe', key: '3003', path: '/patient' },
   '3004': { role: 'ADMIN', email: 'admin@hospital.com', name: 'Administrator', key: '3004', path: '/admin' },
+  '3005': { role: 'PHARMACIST', email: 'pharmacy@hospital.com', name: 'Tariq Mehmood, RPh', key: '3005', path: '/pharmacist' },
 };
 
 function resolveTerminalConfig(): TerminalConfig | null {
@@ -41,23 +43,26 @@ function resolveTerminalConfig(): TerminalConfig | null {
   // 1. Port mapping (Local development)
   if (TERMINAL_REGISTRY[port]) return TERMINAL_REGISTRY[port];
 
-  // 2. Direct dedicated paths (Production / Vercel: /doctor, /receptionist, /patient, /admin)
+  // 2. Direct dedicated paths (Production / Vercel: /doctor, /receptionist, /patient, /admin, /pharmacist)
   if (path.startsWith('/doctor')) return TERMINAL_REGISTRY['3001'];
   if (path.startsWith('/reception')) return TERMINAL_REGISTRY['3002'];
   if (path.startsWith('/patient')) return TERMINAL_REGISTRY['3003'];
   if (path.startsWith('/admin')) return TERMINAL_REGISTRY['3004'];
+  if (path.startsWith('/pharmacist') || path.startsWith('/pharma')) return TERMINAL_REGISTRY['3005'];
 
   // 3. Query params (?terminal=doctor or ?role=doctor)
   if (queryRole === 'doctor') return TERMINAL_REGISTRY['3001'];
   if (queryRole === 'receptionist' || queryRole === 'reception') return TERMINAL_REGISTRY['3002'];
   if (queryRole === 'patient') return TERMINAL_REGISTRY['3003'];
   if (queryRole === 'admin') return TERMINAL_REGISTRY['3004'];
+  if (queryRole === 'pharmacist' || queryRole === 'pharma' || queryRole === 'pharmacy') return TERMINAL_REGISTRY['3005'];
 
   // 4. Subdomains (doctor.xxx, reception.xxx, etc.)
   if (host.startsWith('doctor.')) return TERMINAL_REGISTRY['3001'];
   if (host.startsWith('reception.') || host.startsWith('receptionist.')) return TERMINAL_REGISTRY['3002'];
   if (host.startsWith('patient.')) return TERMINAL_REGISTRY['3003'];
   if (host.startsWith('admin.')) return TERMINAL_REGISTRY['3004'];
+  if (host.startsWith('pharma.') || host.startsWith('pharmacy.')) return TERMINAL_REGISTRY['3005'];
 
   return null;
 }
@@ -68,7 +73,7 @@ export const App: React.FC = () => {
 
   const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('hospital_token'));
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [currentRole, setCurrentRole] = useState<'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT'>(
+  const [currentRole, setCurrentRole] = useState<'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST'>(
     terminalConfig ? terminalConfig.role : 'DOCTOR'
   );
   const [currentTab, setCurrentTab] = useState<string>(
@@ -76,9 +81,9 @@ export const App: React.FC = () => {
   );
   const [isInitializing, setIsInitializing] = useState(true);
 
-  function getInitialTabForRole(role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT', allowedModules?: string[]) {
+  function getInitialTabForRole(role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST', allowedModules?: string[]) {
     if (allowedModules && Array.isArray(allowedModules) && allowedModules.length > 0) {
-      const defaultRoleTab = role === 'DOCTOR' ? 'doctor_queue' : role === 'RECEPTIONIST' ? 'recep_desk' : role === 'PATIENT' ? 'patient_portal' : 'admin_users';
+      const defaultRoleTab = role === 'DOCTOR' ? 'doctor_queue' : role === 'RECEPTIONIST' ? 'recep_desk' : role === 'PATIENT' ? 'patient_portal' : role === 'PHARMACIST' ? 'pharma_queue' : 'admin_users';
       if (allowedModules.includes(defaultRoleTab)) {
         return defaultRoleTab;
       }
@@ -87,11 +92,12 @@ export const App: React.FC = () => {
     if (role === 'DOCTOR') return 'doctor_queue';
     if (role === 'RECEPTIONIST') return 'recep_desk';
     if (role === 'PATIENT') return 'patient_portal';
+    if (role === 'PHARMACIST') return 'pharma_queue';
     if (role === 'ADMIN') return 'admin_users';
     return 'doctor_queue';
   }
 
-  const setDefaultTabForRole = (role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT', allowedModules?: string[]) => {
+  const setDefaultTabForRole = (role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST', allowedModules?: string[]) => {
     setCurrentTab(getInitialTabForRole(role, allowedModules));
   };
 
@@ -100,7 +106,8 @@ export const App: React.FC = () => {
       DOCTOR: '/doctor',
       RECEPTIONIST: '/receptionist',
       PATIENT: '/patient',
-      ADMIN: '/admin'
+      ADMIN: '/admin',
+      PHARMACIST: '/pharmacist'
     };
     if (pathMap[role] && window.location.pathname !== pathMap[role]) {
       window.history.replaceState(null, '', pathMap[role]);
@@ -153,12 +160,13 @@ export const App: React.FC = () => {
     syncUrlForRole(user.role);
   };
 
-  const handleSwitchRole = (role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT') => {
+  const handleSwitchRole = (role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST') => {
     const pathMap: Record<string, string> = {
       DOCTOR: '/doctor',
       RECEPTIONIST: '/receptionist',
       PATIENT: '/patient',
-      ADMIN: '/admin'
+      ADMIN: '/admin',
+      PHARMACIST: '/pharmacist'
     };
     if (pathMap[role]) {
       window.location.href = pathMap[role];
@@ -207,7 +215,7 @@ export const App: React.FC = () => {
       onLogout={handleLogout}
       isolatedPort={isolatedKey}
     >
-      {/* Universal Dynamic View Switcher: decpouled from role so Admin & cross-permitted users can render any view */}
+      {/* Universal Dynamic View Switcher: decoupled from role so Admin & cross-permitted users can render any view */}
       {currentTab.startsWith('doctor_') && (
         <DoctorDashboard
           currentUser={currentUser}
@@ -225,6 +233,14 @@ export const App: React.FC = () => {
 
       {currentTab.startsWith('patient_') && (
         <PatientDashboard
+          currentUser={currentUser}
+          currentTab={currentTab}
+          onSelectTab={tab => setCurrentTab(tab)}
+        />
+      )}
+
+      {currentTab.startsWith('pharma_') && (
+        <PharmacyWorkspace
           currentUser={currentUser}
           currentTab={currentTab}
           onSelectTab={tab => setCurrentTab(tab)}

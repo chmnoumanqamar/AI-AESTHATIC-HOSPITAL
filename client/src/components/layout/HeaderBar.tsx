@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Sun, Moon, Stethoscope, ClipboardList, User, ShieldCheck } from 'lucide-react';
+import { Calendar, Sun, Moon, Stethoscope, ClipboardList, User, ShieldCheck, Pill } from 'lucide-react';
 
 interface HeaderBarProps {
   currentUser?: any;
-  currentRole: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT';
-  onSwitchRole: (role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT') => void;
+  currentRole: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST';
+  onSwitchRole: (role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST') => void;
   isolatedPort?: string | null;
 }
 
@@ -59,6 +59,8 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
         return currentUser?.phone || 'Patient';
       case 'ADMIN':
         return 'System Administrator';
+      case 'PHARMACIST':
+        return 'Tariq Mehmood, RPh';
       default:
         return 'Operator';
     }
@@ -74,6 +76,8 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
         return 'Patient Portal';
       case 'ADMIN':
         return 'System Operations & Compliance';
+      case 'PHARMACIST':
+        return 'Chief Clinical Pharmacist & Dispensary';
       default:
         return currentRole;
     }
@@ -123,6 +127,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             {currentRole === 'RECEPTIONIST' && <ClipboardList className="w-4 h-4 text-[#B45309] dark:text-[#FBBF24]" />}
             {currentRole === 'PATIENT' && <User className="w-4 h-4 text-[#2D6A4F] dark:text-[#A4AC86]" />}
             {currentRole === 'ADMIN' && <ShieldCheck className="w-4 h-4 text-[#7C3AED] dark:text-[#C084FC]" />}
+            {currentRole === 'PHARMACIST' && <Pill className="w-4 h-4 text-[#0F766E] dark:text-[#2DD4BF]" />}
           </div>
 
           <div className="hidden sm:block text-left">

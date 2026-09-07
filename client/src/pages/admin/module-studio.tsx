@@ -20,14 +20,19 @@ import {
   ClipboardList,
   Sparkles,
   HelpCircle,
-  X
+  X,
+  Pill,
+  Package,
+  ShoppingCart,
+  ShieldAlert,
+  Truck
 } from 'lucide-react';
 import { api } from '../../services/api';
 
 export interface PageHierarchyItem {
   id: string;
   label: string;
-  category: 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN';
+  category: 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN' | 'PHARMACY';
   categoryLabel: string;
   description: string;
 }
@@ -44,6 +49,11 @@ const ICON_MAP: Record<string, any> = {
   patient_booking: Activity,
   patient_history: FileText,
   patient_billing: CreditCard,
+  pharma_queue: Pill,
+  pharma_inventory: Package,
+  pharma_pos: ShoppingCart,
+  pharma_safety: ShieldAlert,
+  pharma_procurement: Truck,
   admin_users: Users,
   admin_studio: Layers,
   admin_audit: ShieldCheck,
@@ -55,7 +65,7 @@ const ICON_MAP: Record<string, any> = {
 };
 
 const CATEGORIES: {
-  key: 'ADMIN' | 'CLINICAL' | 'RECEPTION' | 'PATIENT';
+  key: 'ADMIN' | 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'PHARMACY';
   title: string;
   subtitle: string;
   theme: {
@@ -119,6 +129,19 @@ const CATEGORIES: {
       dropZone: 'border-amber-500 bg-amber-50 dark:bg-amber-950/60',
     },
   },
+  {
+    key: 'PHARMACY',
+    title: 'Pharmacy & Medical Store',
+    subtitle: 'Rx fulfillment, vault inventory & POS counter',
+    theme: {
+      border: 'border-teal-200 dark:border-teal-900/60',
+      bg: 'bg-teal-50/20 dark:bg-teal-950/20',
+      headerBg: 'bg-teal-100/50 dark:bg-teal-950/50',
+      text: 'text-teal-900 dark:text-teal-300',
+      badge: 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200',
+      dropZone: 'border-teal-500 bg-teal-50 dark:bg-teal-950/60',
+    },
+  },
 ];
 
 export const AdminModuleStudio: React.FC = () => {
@@ -143,7 +166,7 @@ export const AdminModuleStudio: React.FC = () => {
   // Confirmation Modal State
   const [pendingMove, setPendingMove] = useState<{
     page: PageHierarchyItem;
-    targetCategory: 'ADMIN' | 'CLINICAL' | 'RECEPTION' | 'PATIENT';
+    targetCategory: 'ADMIN' | 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'PHARMACY';
     targetCategoryTitle: string;
   } | null>(null);
 
@@ -198,7 +221,7 @@ export const AdminModuleStudio: React.FC = () => {
     }
   };
 
-  const handleDrop = (e: React.DragEvent, targetCategory: 'ADMIN' | 'CLINICAL' | 'RECEPTION' | 'PATIENT') => {
+  const handleDrop = (e: React.DragEvent, targetCategory: 'ADMIN' | 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'PHARMACY') => {
     e.preventDefault();
     setDragOverCategory(null);
 
@@ -335,8 +358,8 @@ export const AdminModuleStudio: React.FC = () => {
         </div>
       </div>
 
-      {/* 4-Column Drag & Drop Board */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+      {/* 5-Column Drag & Drop Board */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {CATEGORIES.map((cat) => {
           const categoryPages = pages.filter((p) => p.category === cat.key);
           const isOverThis = dragOverCategory === cat.key;

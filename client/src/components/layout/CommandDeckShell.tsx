@@ -5,10 +5,10 @@ import { DockedCopilotDrawer } from '../ai-copilot/DockedCopilotDrawer';
 import { Bot, Sparkles, X } from 'lucide-react';
 
 interface CommandDeckShellProps {
-  currentRole: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT';
+  currentRole: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST';
   currentTab: string;
   onSelectTab: (tab: string) => void;
-  onSwitchRole: (role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT') => void;
+  onSwitchRole: (role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST') => void;
   currentUser?: any;
   onLogout: () => void;
   isolatedPort?: string | null;

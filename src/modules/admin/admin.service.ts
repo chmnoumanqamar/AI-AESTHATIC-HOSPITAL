@@ -170,8 +170,8 @@ export class AdminService {
     return db.getModuleHierarchy();
   }
 
-  async movePageModule(pageId: string, targetCategory: 'ADMIN' | 'CLINICAL' | 'RECEPTION' | 'PATIENT', adminActorId: string = 'admin') {
-    const validCategories = ['ADMIN', 'CLINICAL', 'RECEPTION', 'PATIENT'];
+  async movePageModule(pageId: string, targetCategory: 'ADMIN' | 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'PHARMACY', adminActorId: string = 'admin') {
+    const validCategories = ['ADMIN', 'CLINICAL', 'RECEPTION', 'PATIENT', 'PHARMACY'];
     if (!validCategories.includes(targetCategory)) {
       throw AppError.badRequest(`Invalid target department: ${targetCategory}`);
     }

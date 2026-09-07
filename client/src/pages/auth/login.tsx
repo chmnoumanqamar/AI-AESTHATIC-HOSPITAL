@@ -21,7 +21,8 @@ import {
   ChevronDown,
   ChevronUp,
   Sun,
-  Moon
+  Moon,
+  Pill
 } from 'lucide-react';
 import { api } from '../../services/api';
 
@@ -33,6 +34,9 @@ const renderRoleIcon = (roleName: string, className = "w-5 h-5") => {
       return <ClipboardList className={`${className} text-amber-600`} />;
     case 'patient':
       return <User className={`${className} text-blue-600`} />;
+    case 'pharmacist':
+    case 'pharmacy':
+      return <Pill className={`${className} text-teal-600`} />;
     case 'admin':
     case 'admin vault':
       return <ShieldCheck className={`${className} text-purple-600`} />;
@@ -116,6 +120,20 @@ const ROLES: Record<string, RoleInfo> = {
       border: 'border-purple-200',
       badge: 'bg-purple-100 text-purple-800 border-purple-300',
       gradient: 'from-indigo-600 to-purple-600'
+    }
+  },
+  '3005': {
+    email: 'pharmacy@hospital.com',
+    name: 'Tariq Mehmood, RPh',
+    role: 'Pharmacist',
+    title: 'Chief Clinical Pharmacist & Dispensary',
+    icon: '💊',
+    themeColor: {
+      bg: 'bg-teal-50',
+      text: 'text-teal-800',
+      border: 'border-teal-200',
+      badge: 'bg-teal-100 text-teal-800 border-teal-300',
+      gradient: 'from-teal-600 to-emerald-600'
     }
   }
 };
@@ -1338,6 +1356,45 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
                             disabled={loading}
                             onClick={() => handleQuickSignIn('admin@hospital.com')}
                             className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white font-bold text-[10px] rounded shadow-2xs cursor-pointer disabled:opacity-50"
+                          >
+                            Sign In
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Pharmacist */}
+                      <div 
+                        className="p-2.5 rounded-lg border flex items-center justify-between gap-2 shadow-2xs"
+                        style={{
+                          backgroundColor: isDark ? '#1E2717' : '#FFFFFF',
+                          borderColor: isDark ? '#333D29' : '#E2E8F0'
+                        }}
+                      >
+                        <div className="min-w-0">
+                          <div className="font-bold text-[11px] flex items-center gap-1" style={{ color: isDark ? '#FFFFFF' : '#0F172A' }}>
+                            <Pill className="w-3.5 h-3.5 text-teal-500" />
+                            <span>Pharmacist</span>
+                          </div>
+                          <div className="text-[10px] truncate" style={{ color: isDark ? '#A4AC86' : '#64748B' }}>pharmacy@hospital.com</div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleQuickFill('pharmacy@hospital.com')}
+                            className="px-2 py-1 font-semibold text-[10px] rounded border cursor-pointer transition-colors"
+                            style={{
+                              backgroundColor: isDark ? '#2D3923' : '#F1F5F9',
+                              borderColor: isDark ? '#414833' : '#CBD5E1',
+                              color: isDark ? '#F6F7F2' : '#334155'
+                            }}
+                          >
+                            Fill
+                          </button>
+                          <button
+                            type="button"
+                            disabled={loading}
+                            onClick={() => handleQuickSignIn('pharmacy@hospital.com')}
+                            className="px-2.5 py-1 bg-teal-600 hover:bg-teal-700 text-white font-bold text-[10px] rounded shadow-2xs cursor-pointer disabled:opacity-50"
                           >
                             Sign In
                           </button>

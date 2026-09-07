@@ -5,7 +5,7 @@ import { AppError } from '../errors/AppError';
 
 export interface JwtAuthPayload {
   userId: string;
-  role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'AI_AGENT';
+  role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST' | 'AI_AGENT';
   email?: string;
   phone: string;
   profileId?: string; // patientId, doctorId, or receptionistId

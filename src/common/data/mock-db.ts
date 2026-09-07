@@ -7,7 +7,7 @@ export interface DbUser {
   email?: string;
   name?: string;
   passwordHash: string;
-  role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT';
+  role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST';
   isBlocked?: boolean;
   blockedReason?: string;
   blockedAt?: string;
@@ -19,7 +19,7 @@ export interface DbUser {
 export interface HospitalModuleDef {
   id: string;
   label: string;
-  category: 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN';
+  category: 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN' | 'PHARMACY';
   categoryLabel: string;
   description: string;
 }
@@ -42,6 +42,13 @@ export const ORIGINAL_HOSPITAL_MODULES: readonly HospitalModuleDef[] = [
   { id: 'patient_history', label: 'Medical Records & Prescriptions', category: 'PATIENT', categoryLabel: 'Patient Services', description: 'Clinical diagnosis history, digital prescriptions & notification preferences' },
   { id: 'patient_billing', label: 'Billing & Invoices Ledger', category: 'PATIENT', categoryLabel: 'Patient Services', description: 'Consultation charges ledger, payment records & outstanding balance' },
 
+  // Pharmacy & Medical Store
+  { id: 'pharma_queue', label: 'Live Dispense Queue & Rx', category: 'PHARMACY', categoryLabel: 'Pharmacy & Medical Store', description: 'Real-time fulfillment of doctor digital prescriptions & dispense logging' },
+  { id: 'pharma_inventory', label: 'Drug Inventory Vault', category: 'PHARMACY', categoryLabel: 'Pharmacy & Medical Store', description: 'Medicine stock tracking, batch numbers, shelf locations & near-expiry alerts' },
+  { id: 'pharma_pos', label: 'Pharmacy POS & OTC Billing', category: 'PHARMACY', categoryLabel: 'Pharmacy & Medical Store', description: 'Point-of-sale terminal for walk-in OTC medicine purchases & invoice printing' },
+  { id: 'pharma_safety', label: 'Drug Safety & AI Interactions', category: 'PHARMACY', categoryLabel: 'Pharmacy & Medical Store', description: 'Contraindication analysis, drug-drug interactions & allergy cross-screening' },
+  { id: 'pharma_procurement', label: 'Suppliers & Procurement', category: 'PHARMACY', categoryLabel: 'Pharmacy & Medical Store', description: 'Pharmaceutical distributor purchase orders, stock replenishment & receiving' },
+
   // System Administration
   { id: 'admin_users', label: 'User Access & Permissions', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Staff account provisioning, blocking/unblocking & granular module access' },
   { id: 'admin_studio', label: 'Module & Page Studio', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Interactive drag-and-drop workspace to reassign and structure hospital pages across modules' },
@@ -59,6 +66,7 @@ export const ROLE_DEFAULT_MODULES: Record<string, string[]> = {
   DOCTOR: ['doctor_queue', 'doctor_consultation', 'doctor_tokens'],
   RECEPTIONIST: ['recep_desk', 'recep_approvals', 'recep_pos', 'recep_reports'],
   PATIENT: ['patient_portal', 'patient_booking', 'patient_history', 'patient_billing'],
+  PHARMACIST: ['pharma_queue', 'pharma_inventory', 'pharma_pos', 'pharma_safety', 'pharma_procurement'],
   ADMIN: HOSPITAL_MODULES.map(m => m.id),
 };
 
@@ -244,6 +252,97 @@ export interface DbSystemSettings {
   updatedAt: string;
 }
 
+export interface DbMedicineItem {
+  id: string;
+  name: string;
+  genericName: string;
+  brand: string;
+  category: 'Aesthetics & Dermatology' | 'Cardiology' | 'Antibiotics' | 'Analgesics & Pain' | 'Vitamins & Supplements' | 'Emergency & IV' | 'General';
+  form: 'Tablet' | 'Capsule' | 'Syrup' | 'Injection' | 'Cream/Ointment' | 'Drops';
+  strength: string;
+  stockQuantity: number;
+  minStockAlert: number;
+  unitPrice: number;
+  batchNumber: string;
+  expiryDate: string;
+  shelfLocation: string;
+  supplierName: string;
+  isControlled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DbDispenseRecord {
+  id: string;
+  prescriptionId: string;
+  prescriptionVersionId?: string;
+  patientId: string;
+  patientName: string;
+  patientPhone?: string;
+  doctorId: string;
+  doctorName: string;
+  diagnosis?: string;
+  status: 'PENDING' | 'PREPARING' | 'DISPENSED' | 'CANCELLED';
+  items: Array<{
+    medicineId?: string;
+    name: string;
+    dosage: string;
+    frequency: string;
+    duration: string;
+    quantityPrescribed: number;
+    quantityDispensed: number;
+    batchNumber?: string;
+    unitPrice: number;
+    subtotal: number;
+  }>;
+  totalAmount: number;
+  pharmacistId?: string;
+  pharmacistName?: string;
+  dispensedAt?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface DbPharmacySale {
+  id: string;
+  receiptNumber: string;
+  customerName: string;
+  customerPhone: string;
+  customerType: 'WALK_IN' | 'REGISTERED_PATIENT';
+  patientId?: string;
+  items: Array<{
+    medicineId: string;
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+  }>;
+  subtotal: number;
+  discount: number;
+  totalAmount: number;
+  paymentMethod: 'CASH' | 'CARD' | 'JAZZCASH' | 'EASYPAISA' | 'ONLINE';
+  processedBy: string;
+  createdAt: string;
+}
+
+export interface DbProcurementOrder {
+  id: string;
+  poNumber: string;
+  supplierName: string;
+  supplierContact: string;
+  status: 'ORDERED' | 'RECEIVED' | 'CANCELLED';
+  orderDate: string;
+  expectedDelivery: string;
+  totalCost: number;
+  items: Array<{
+    name: string;
+    quantity: number;
+    unitCost: number;
+  }>;
+  receivedAt?: string;
+  createdAt: string;
+}
+
 class InMemoryHospitalDatabase {
   users: DbUser[] = [];
   patients: DbPatient[] = [];
@@ -260,6 +359,10 @@ class InMemoryHospitalDatabase {
   doctorPatientRelationships: DbDoctorPatientRelationship[] = [];
   payments: DbPayment[] = [];
   notificationLogs: DbNotificationLog[] = [];
+  medicines: DbMedicineItem[] = [];
+  dispenseRecords: DbDispenseRecord[] = [];
+  pharmacySales: DbPharmacySale[] = [];
+  procurementOrders: DbProcurementOrder[] = [];
   moduleHierarchy: HospitalModuleDef[] = ORIGINAL_HOSPITAL_MODULES.map(m => ({ ...m }));
   systemSettings: DbSystemSettings = {
     whatsappBotEnabled: true,
@@ -279,16 +382,17 @@ class InMemoryHospitalDatabase {
     return this.moduleHierarchy;
   }
 
-  movePageModule(pageId: string, targetCategory: 'ADMIN' | 'CLINICAL' | 'RECEPTION' | 'PATIENT') {
+  movePageModule(pageId: string, targetCategory: 'ADMIN' | 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'PHARMACY') {
     const page = this.moduleHierarchy.find(m => m.id === pageId);
     if (!page) {
       throw new Error(`Page with ID ${pageId} not found`);
     }
-    const categoryLabels: Record<'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN', string> = {
+    const categoryLabels: Record<'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN' | 'PHARMACY', string> = {
       ADMIN: 'System Administration',
       CLINICAL: 'Clinical & Doctor Deck',
       RECEPTION: 'Front-Desk & Reception',
       PATIENT: 'Patient Services',
+      PHARMACY: 'Pharmacy & Medical Store',
     };
     page.category = targetCategory;
     page.categoryLabel = categoryLabels[targetCategory] || targetCategory;
@@ -388,6 +492,19 @@ class InMemoryHospitalDatabase {
     };
     this.users.push(recepUser);
     this.receptionists.push(receptionist);
+
+    // 3.1. Pharmacist User
+    const pharmaUser: DbUser = {
+      id: 'u-pharma-01',
+      name: 'Tariq Mehmood, RPh',
+      phone: '+15550000040',
+      email: 'pharmacy@hospital.com',
+      passwordHash: defaultPasswordHash,
+      role: 'PHARMACIST',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    this.users.push(pharmaUser);
 
     // 4. Services
     const service1: DbService = {
@@ -735,6 +852,310 @@ class InMemoryHospitalDatabase {
     };
     this.prescriptionVersions.push(rx1v1, rx1v2);
 
+    // 10.1 Pharmacy Medicines Inventory
+    this.medicines = [
+      {
+        id: 'med-01',
+        name: 'Augmentin 625mg',
+        genericName: 'Amoxicillin + Clavulanate Potassium',
+        brand: 'GSK',
+        category: 'Antibiotics',
+        form: 'Tablet',
+        strength: '625mg',
+        stockQuantity: 120,
+        minStockAlert: 20,
+        unitPrice: 420.00,
+        batchNumber: 'AG-9241',
+        expiryDate: '2027-11-30',
+        shelfLocation: 'Rack B-2',
+        supplierName: 'GlaxoSmithKline Pakistan',
+        isControlled: false,
+        createdAt: today,
+        updatedAt: today
+      },
+      {
+        id: 'med-02',
+        name: 'Lisinopril 20mg',
+        genericName: 'Lisinopril Dihydrate',
+        brand: 'Zestril',
+        category: 'Cardiology',
+        form: 'Tablet',
+        strength: '20mg',
+        stockQuantity: 85,
+        minStockAlert: 15,
+        unitPrice: 380.00,
+        batchNumber: 'LS-3012',
+        expiryDate: '2028-01-15',
+        shelfLocation: 'Rack C-1',
+        supplierName: 'AstraZeneca / Getz',
+        isControlled: false,
+        createdAt: today,
+        updatedAt: today
+      },
+      {
+        id: 'med-03',
+        name: 'Metoprolol Succinate ER 50mg',
+        genericName: 'Metoprolol Succinate',
+        brand: 'Betaloc CR',
+        category: 'Cardiology',
+        form: 'Tablet',
+        strength: '50mg',
+        stockQuantity: 95,
+        minStockAlert: 20,
+        unitPrice: 310.00,
+        batchNumber: 'MS-7714',
+        expiryDate: '2027-09-20',
+        shelfLocation: 'Rack C-2',
+        supplierName: 'AstraZeneca',
+        isControlled: false,
+        createdAt: today,
+        updatedAt: today
+      },
+      {
+        id: 'med-04',
+        name: 'Atorvastatin 20mg',
+        genericName: 'Atorvastatin Calcium',
+        brand: 'Lipitor',
+        category: 'Cardiology',
+        form: 'Tablet',
+        strength: '20mg',
+        stockQuantity: 110,
+        minStockAlert: 25,
+        unitPrice: 580.00,
+        batchNumber: 'AT-8821',
+        expiryDate: '2028-03-10',
+        shelfLocation: 'Rack C-3',
+        supplierName: 'Pfizer Pakistan',
+        isControlled: false,
+        createdAt: today,
+        updatedAt: today
+      },
+      {
+        id: 'med-05',
+        name: 'Tretinoin 0.05% Micro-Gel',
+        genericName: 'Tretinoin Micronized',
+        brand: 'Retin-A Micro',
+        category: 'Aesthetics & Dermatology',
+        form: 'Cream/Ointment',
+        strength: '0.05%',
+        stockQuantity: 45,
+        minStockAlert: 10,
+        unitPrice: 890.00,
+        batchNumber: 'TR-1102',
+        expiryDate: '2026-11-15',
+        shelfLocation: 'Rack D-1',
+        supplierName: 'Stiefel / GSK',
+        isControlled: false,
+        createdAt: today,
+        updatedAt: today
+      },
+      {
+        id: 'med-06',
+        name: 'Botox Cosmetic 100U',
+        genericName: 'OnabotulinumtoxinA',
+        brand: 'Allergan Botox',
+        category: 'Aesthetics & Dermatology',
+        form: 'Injection',
+        strength: '100 Units',
+        stockQuantity: 14,
+        minStockAlert: 5,
+        unitPrice: 18500.00,
+        batchNumber: 'BX-9941',
+        expiryDate: '2027-04-30',
+        shelfLocation: 'Cold Vault 4°C',
+        supplierName: 'Allergan Aesthetics',
+        isControlled: true,
+        createdAt: today,
+        updatedAt: today
+      },
+      {
+        id: 'med-07',
+        name: 'Juvederm Ultra Plus XC 1ml',
+        genericName: 'Cross-linked Hyaluronic Acid',
+        brand: 'Juvederm',
+        category: 'Aesthetics & Dermatology',
+        form: 'Injection',
+        strength: '24mg/ml + 0.3% Lido',
+        stockQuantity: 18,
+        minStockAlert: 5,
+        unitPrice: 22000.00,
+        batchNumber: 'JV-4019',
+        expiryDate: '2027-07-22',
+        shelfLocation: 'Cold Vault 4°C',
+        supplierName: 'Allergan Aesthetics',
+        isControlled: true,
+        createdAt: today,
+        updatedAt: today
+      },
+      {
+        id: 'med-08',
+        name: 'Panadol Extra 500mg',
+        genericName: 'Paracetamol + Caffeine',
+        brand: 'GSK Panadol',
+        category: 'Analgesics & Pain',
+        form: 'Tablet',
+        strength: '500mg/65mg',
+        stockQuantity: 340,
+        minStockAlert: 50,
+        unitPrice: 120.00,
+        batchNumber: 'PN-6621',
+        expiryDate: '2028-06-30',
+        shelfLocation: 'Front Counter A-1',
+        supplierName: 'GlaxoSmithKline',
+        isControlled: false,
+        createdAt: today,
+        updatedAt: today
+      },
+      {
+        id: 'med-09',
+        name: 'Cevit Effervescent 1000mg',
+        genericName: 'Vitamin C + Zinc',
+        brand: 'Cevit Gold',
+        category: 'Vitamins & Supplements',
+        form: 'Tablet',
+        strength: '1000mg',
+        stockQuantity: 85,
+        minStockAlert: 20,
+        unitPrice: 380.00,
+        batchNumber: 'CV-3310',
+        expiryDate: '2027-08-14',
+        shelfLocation: 'Front Showcase',
+        supplierName: 'Abbott Laboratories',
+        isControlled: false,
+        createdAt: today,
+        updatedAt: today
+      },
+      {
+        id: 'med-10',
+        name: 'Ciprofloxacin 500mg',
+        genericName: 'Ciprofloxacin HCl',
+        brand: 'Ciproxin',
+        category: 'Antibiotics',
+        form: 'Tablet',
+        strength: '500mg',
+        stockQuantity: 12,
+        minStockAlert: 25,
+        unitPrice: 450.00,
+        batchNumber: 'CP-2019',
+        expiryDate: '2026-10-10',
+        shelfLocation: 'Rack B-4',
+        supplierName: 'Bayer Pakistan',
+        isControlled: false,
+        createdAt: today,
+        updatedAt: today
+      }
+    ];
+
+    // 10.2 Pharmacy Dispense Records
+    this.dispenseRecords = [
+      {
+        id: 'disp-01',
+        prescriptionId: 'rx-01',
+        prescriptionVersionId: 'rx-v2-01',
+        patientId: 'pat-01',
+        patientName: 'John Doe',
+        patientPhone: '+15550000010',
+        doctorId: 'doc-01',
+        doctorName: 'Dr. Aisha Khan',
+        diagnosis: 'Stage 1 Essential Hypertension',
+        status: 'PENDING',
+        items: [
+          {
+            medicineId: 'med-02',
+            name: 'Lisinopril 20mg',
+            dosage: '20mg',
+            frequency: 'Once Daily',
+            duration: '30 Days',
+            quantityPrescribed: 30,
+            quantityDispensed: 0,
+            batchNumber: 'LS-3012',
+            unitPrice: 380.00,
+            subtotal: 380.00
+          },
+          {
+            medicineId: 'med-03',
+            name: 'Metoprolol Succinate ER 50mg',
+            dosage: '50mg',
+            frequency: 'Once Daily',
+            duration: '30 Days',
+            quantityPrescribed: 30,
+            quantityDispensed: 0,
+            batchNumber: 'MS-7714',
+            unitPrice: 310.00,
+            subtotal: 310.00
+          }
+        ],
+        totalAmount: 690.00,
+        createdAt: today + 'T08:53:00Z'
+      },
+      {
+        id: 'disp-02',
+        prescriptionId: 'rx-02',
+        patientId: 'pat-02',
+        patientName: 'Robert Taylor',
+        patientPhone: '+15550000030',
+        doctorId: 'doc-01',
+        doctorName: 'Dr. Aisha Khan',
+        diagnosis: 'Hyperlipidemia & Statin Therapy',
+        status: 'DISPENSED',
+        items: [
+          {
+            medicineId: 'med-04',
+            name: 'Atorvastatin 20mg',
+            dosage: '20mg',
+            frequency: 'Once Daily at Night',
+            duration: '30 Days',
+            quantityPrescribed: 30,
+            quantityDispensed: 30,
+            batchNumber: 'AT-8821',
+            unitPrice: 580.00,
+            subtotal: 580.00
+          }
+        ],
+        totalAmount: 580.00,
+        pharmacistId: 'u-pharma-01',
+        pharmacistName: 'Tariq Mehmood, RPh',
+        dispensedAt: today + 'T09:15:00Z',
+        notes: 'Counselled on taking medication after dinner. Verified liver profile clear.',
+        createdAt: today + 'T09:00:00Z'
+      }
+    ];
+
+    // 10.3 Procurement Orders
+    this.procurementOrders = [
+      {
+        id: 'po-101',
+        poNumber: 'PO-2026-0881',
+        supplierName: 'GlaxoSmithKline Pakistan',
+        supplierContact: '+92 21 35060121 (Karachi Hub)',
+        status: 'ORDERED',
+        orderDate: today,
+        expectedDelivery: today,
+        totalCost: 52000.00,
+        items: [
+          { name: 'Augmentin 625mg', quantity: 60, unitCost: 350.00 },
+          { name: 'Panadol Extra 500mg', quantity: 200, unitCost: 85.00 }
+        ],
+        createdAt: today + 'T07:30:00Z'
+      },
+      {
+        id: 'po-102',
+        poNumber: 'PO-2026-0879',
+        supplierName: 'Allergan Aesthetics ME',
+        supplierContact: '+971 4 4289000',
+        status: 'RECEIVED',
+        orderDate: '2026-09-01',
+        expectedDelivery: '2026-09-05',
+        totalCost: 285000.00,
+        items: [
+          { name: 'Botox Cosmetic 100U', quantity: 10, unitCost: 15500.00 },
+          { name: 'Juvederm Ultra Plus XC 1ml', quantity: 10, unitCost: 18500.00 }
+        ],
+        receivedAt: today + 'T08:00:00Z',
+        createdAt: '2026-09-01T10:00:00Z'
+      }
+    ];
+
     // 11. Payments
     this.payments.push(
       {
@@ -992,7 +1413,9 @@ class InMemoryHospitalDatabase {
       users: this.users.length,
       doctors: this.doctors.length,
       receptionists: this.receptionists.length,
-      services: this.services.length
+      services: this.services.length,
+      medicines: this.medicines.length,
+      dispenseRecords: this.dispenseRecords.length
     };
   }
 
@@ -1009,6 +1432,8 @@ class InMemoryHospitalDatabase {
     this.payments = [];
     this.notificationLogs = [];
     this.doctorPatientRelationships = [];
+    this.dispenseRecords = [];
+    this.pharmacySales = [];
 
     // 2. Wipe all mock patients & patient user accounts
     this.patients = [];
@@ -1024,13 +1449,15 @@ class InMemoryHospitalDatabase {
         clinicalRecords: statsBefore.clinicalRecords,
         prescriptions: statsBefore.prescriptions,
         payments: statsBefore.payments,
-        notificationLogs: statsBefore.notificationLogs
+        notificationLogs: statsBefore.notificationLogs,
+        dispenseRecords: statsBefore.dispenseRecords
       },
       preserved: {
         staffUsers: this.users.length,
         doctors: this.doctors.length,
         receptionists: this.receptionists.length,
-        services: this.services.length
+        services: this.services.length,
+        medicines: this.medicines.length
       },
       purgedAt: new Date().toISOString()
     };
@@ -1052,6 +1479,10 @@ class InMemoryHospitalDatabase {
     this.doctorPatientRelationships = [];
     this.payments = [];
     this.notificationLogs = [];
+    this.medicines = [];
+    this.dispenseRecords = [];
+    this.pharmacySales = [];
+    this.procurementOrders = [];
 
     this.seedDefaultData();
     return this.getDatabaseStats();

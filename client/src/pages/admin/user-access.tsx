@@ -21,7 +21,8 @@ import {
   Eye,
   EyeOff,
   Sliders,
-  KeyRound
+  KeyRound,
+  Pill
 } from 'lucide-react';
 import { api } from '../../services/api';
 
@@ -29,7 +30,7 @@ export interface HospitalUser {
   id: string;
   phone: string;
   email: string;
-  role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT';
+  role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST';
   name: string;
   isBlocked: boolean;
   blockedReason?: string | null;
@@ -43,7 +44,7 @@ export interface ModuleCatalogItem {
   id: string;
   name: string;
   desc: string;
-  defaultCategory: 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN';
+  defaultCategory: 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN' | 'PHARMACY';
 }
 
 export const ALL_HOSPITAL_PAGE_ITEMS: ModuleCatalogItem[] = [
@@ -61,6 +62,12 @@ export const ALL_HOSPITAL_PAGE_ITEMS: ModuleCatalogItem[] = [
   { id: 'patient_history', name: 'Medical Records & Rx', desc: 'Diagnosis history, digital prescriptions & notification preferences', defaultCategory: 'PATIENT' },
   { id: 'patient_billing', name: 'Billing & Invoices', desc: 'Consultation charges ledger, payment records & balance', defaultCategory: 'PATIENT' },
 
+  { id: 'pharma_queue', name: 'Live Dispense Queue', desc: 'Real-time doctor prescription fulfillment & allergy cross-checks', defaultCategory: 'PHARMACY' },
+  { id: 'pharma_inventory', name: 'Drug Inventory Vault', desc: 'Electronic medicine stock levels, batch tracking, rack locations & low-stock alerts', defaultCategory: 'PHARMACY' },
+  { id: 'pharma_pos', name: 'Pharmacy POS Counter', desc: 'Walk-in over-the-counter sales, instant cart calculations & thermal receipt billing', defaultCategory: 'PHARMACY' },
+  { id: 'pharma_safety', name: 'Drug Safety & AI Screener', desc: 'Clinical contraindication screener, drug-drug interactions & patient allergy checks', defaultCategory: 'PHARMACY' },
+  { id: 'pharma_procurement', name: 'Suppliers & Procurement', desc: 'Distributor purchase orders, stock intake verification & supply chain tracking', defaultCategory: 'PHARMACY' },
+
   { id: 'admin_users', name: 'User Access Control', desc: 'Staff account provisioning, blocking & module access', defaultCategory: 'ADMIN' },
   { id: 'admin_studio', name: 'Module & Page Studio', desc: 'Interactive drag-and-drop workspace to reassign and structure hospital pages across modules', defaultCategory: 'ADMIN' },
   { id: 'admin_audit', name: 'Compliance Audit Vault', desc: 'Immutable HIPAA & clinical compliance audit ledger', defaultCategory: 'ADMIN' },
@@ -77,6 +84,7 @@ export const ROLE_DEFAULT_PERMS: Record<string, string[]> = {
   DOCTOR: ['doctor_queue', 'doctor_consultation', 'doctor_tokens'],
   RECEPTIONIST: ['recep_desk', 'recep_approvals', 'recep_pos', 'recep_reports'],
   PATIENT: ['patient_portal', 'patient_booking', 'patient_history', 'patient_billing'],
+  PHARMACIST: ['pharma_queue', 'pharma_inventory', 'pharma_pos', 'pharma_safety', 'pharma_procurement'],
   ADMIN: ALL_MODULE_IDS,
 };
 
@@ -105,7 +113,7 @@ export const AdminUserAccessView: React.FC = () => {
     phone: '',
     email: '',
     password: '',
-    role: 'DOCTOR' as 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT',
+    role: 'DOCTOR' as 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST',
     specialization: 'Internal Medicine'
   });
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -172,7 +180,7 @@ export const AdminUserAccessView: React.FC = () => {
     }
   };
 
-  const handleChangeRole = async (user: HospitalUser, newRole: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT') => {
+  const handleChangeRole = async (user: HospitalUser, newRole: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST') => {
     if (user.role === newRole) return;
     try {
       await api.patch(`/admin/users/${user.id}/role`, { role: newRole });
@@ -182,7 +190,7 @@ export const AdminUserAccessView: React.FC = () => {
     }
   };
 
-  const [categoryMap, setCategoryMap] = useState<Record<string, 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN'>>(() => {
+  const [categoryMap, setCategoryMap] = useState<Record<string, 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN' | 'PHARMACY'>>(() => {
     try {
       const raw = localStorage.getItem('hospital_dynamic_hierarchy');
       if (raw) {
@@ -247,6 +255,11 @@ export const AdminUserAccessView: React.FC = () => {
       modules: ALL_HOSPITAL_PAGE_ITEMS.filter(m => (categoryMap[m.id] || m.defaultCategory) === 'PATIENT')
     },
     {
+      category: 'PHARMACY',
+      title: 'Pharmacy & Medical Store',
+      modules: ALL_HOSPITAL_PAGE_ITEMS.filter(m => (categoryMap[m.id] || m.defaultCategory) === 'PHARMACY')
+    },
+    {
       category: 'ADMIN',
       title: 'System Administration',
       modules: ALL_HOSPITAL_PAGE_ITEMS.filter(m => (categoryMap[m.id] || m.defaultCategory) === 'ADMIN')
@@ -259,6 +272,7 @@ export const AdminUserAccessView: React.FC = () => {
       DOCTOR: 'CLINICAL',
       RECEPTIONIST: 'RECEPTION',
       PATIENT: 'PATIENT',
+      PHARMACIST: 'PHARMACY',
     };
     const targetCat = catMap[role];
     if (!targetCat) return [];
@@ -431,7 +445,7 @@ export const AdminUserAccessView: React.FC = () => {
         {/* Role Filters */}
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Filter:</span>
-          {['ALL', 'DOCTOR', 'RECEPTIONIST', 'PATIENT', 'ADMIN'].map(role => (
+          {['ALL', 'DOCTOR', 'RECEPTIONIST', 'PATIENT', 'PHARMACIST', 'ADMIN'].map(role => (
             <button
               key={role}
               onClick={() => setSelectedRoleFilter(role)}
@@ -507,6 +521,8 @@ export const AdminUserAccessView: React.FC = () => {
                             ? 'bg-sky-100 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800'
                             : user.role === 'RECEPTIONIST'
                             ? 'bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800'
+                            : user.role === 'PHARMACIST'
+                            ? 'bg-teal-100 dark:bg-teal-950/50 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-800'
                             : user.role === 'ADMIN'
                             ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                             : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
@@ -514,6 +530,7 @@ export const AdminUserAccessView: React.FC = () => {
                           {user.role === 'DOCTOR' && <Stethoscope className="w-4 h-4" />}
                           {user.role === 'RECEPTIONIST' && <ClipboardList className="w-4 h-4" />}
                           {user.role === 'PATIENT' && <User className="w-4 h-4" />}
+                          {user.role === 'PHARMACIST' && <Pill className="w-4 h-4" />}
                           {user.role === 'ADMIN' && <ShieldCheck className="w-4 h-4" />}
                         </div>
                         <div>
@@ -561,6 +578,7 @@ export const AdminUserAccessView: React.FC = () => {
                         <option value="DOCTOR">Doctor</option>
                         <option value="RECEPTIONIST">Receptionist</option>
                         <option value="PATIENT">Patient</option>
+                        <option value="PHARMACIST">Pharmacist</option>
                         <option value="ADMIN">Admin</option>
                       </select>
                     </td>
@@ -744,6 +762,7 @@ export const AdminUserAccessView: React.FC = () => {
                     <option value="DOCTOR">Doctor</option>
                     <option value="RECEPTIONIST">Receptionist</option>
                     <option value="PATIENT">Patient</option>
+                    <option value="PHARMACIST">Pharmacist</option>
                     <option value="ADMIN">Administrator</option>
                   </select>
                 </div>

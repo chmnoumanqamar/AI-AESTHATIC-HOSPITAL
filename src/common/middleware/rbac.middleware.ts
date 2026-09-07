@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../errors/AppError';
 
-export type UserRole = 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'AI_AGENT';
+export type UserRole = 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST' | 'AI_AGENT';
 
 export const requireRoles = (...allowedRoles: UserRole[]) => {
   return (req: Request, _res: Response, next: NextFunction): void => {
@@ -26,6 +26,7 @@ export const requireRoles = (...allowedRoles: UserRole[]) => {
       if (role === 'DOCTOR' && userModules.some(m => m.startsWith('doctor_'))) return true;
       if (role === 'RECEPTIONIST' && userModules.some(m => m.startsWith('recep_'))) return true;
       if (role === 'PATIENT' && userModules.some(m => m.startsWith('patient_'))) return true;
+      if (role === 'PHARMACIST' && userModules.some(m => m.startsWith('pharma_'))) return true;
       if (role === 'ADMIN' && userModules.some(m => m.startsWith('admin_'))) return true;
       return false;
     });

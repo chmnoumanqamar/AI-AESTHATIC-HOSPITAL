@@ -295,121 +295,121 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300 pb-12">
-      {/* Top Clinical Pharmacist Banner & HUD Metrics */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 dark:from-[#064E3B] dark:via-[#0F766E] dark:to-[#134E4A] p-6 sm:p-8 text-slate-900 dark:text-white shadow-xs dark:shadow-xl border border-emerald-200/80 dark:border-emerald-600/30">
-        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 rounded-full bg-emerald-300/20 dark:bg-emerald-400/10 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 -mb-12 w-48 h-48 rounded-full bg-teal-200/25 dark:bg-teal-300/10 blur-2xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100/80 dark:bg-emerald-500/20 border border-emerald-300/60 dark:border-emerald-400/30 text-emerald-800 dark:text-emerald-200 text-xs font-semibold backdrop-blur-md">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-300" />
-              <span>Pharmacy & Medical Store Operations</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
-              <Pill className="w-8 h-8 text-emerald-600 dark:text-emerald-300" />
-              Clinical Dispensary & Pharmacist Suite
-            </h1>
-            <p className="text-slate-600 dark:text-emerald-100/80 text-sm max-w-2xl font-medium">
-              Real-time doctor prescription fulfillment, electronic inventory ledger with rack tracing, POS cash counter, and AI interaction cross-screening.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 self-start md:self-auto">
-            <button
-              onClick={fetchAllPharmacyData}
-              disabled={loading}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-emerald-50 dark:bg-white/10 dark:hover:bg-white/20 active:scale-95 border border-emerald-200 dark:border-white/20 text-slate-800 dark:text-white text-xs font-bold transition-all shadow-2xs backdrop-blur-sm"
-              title="Refresh Pharmacy Data"
-            >
-              <RefreshCw className={`w-4 h-4 text-emerald-600 dark:text-emerald-300 ${loading ? 'animate-spin' : ''}`} />
-              <span>Refresh Vault</span>
-            </button>
-            <div className="hidden sm:flex flex-col text-right">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Logged Pharmacist</span>
-              <span className="text-sm font-bold text-slate-900 dark:text-white">
-                {currentUser?.profile?.name || currentUser?.fullName || 'Tariq Mehmood, RPh'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* 4 Key Performance Metrics Cards (Interactive Quick Jumps) */}
-        <div className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
-          <div
-            onClick={() => onSelectTab && onSelectTab('pharma_queue')}
-            role="button"
-            tabIndex={0}
-            title="Click to view Pending Prescription Queue"
-            className="rounded-2xl bg-white/90 dark:bg-white/10 backdrop-blur-md p-4 border border-emerald-100/80 dark:border-white/15 flex items-center justify-between shadow-2xs transition-all hover:shadow-md hover:scale-[1.01] cursor-pointer"
-          >
-            <div>
-              <p className="text-xs font-semibold text-slate-500 dark:text-emerald-200">Pending Rx Queue</p>
-              <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{pendingRxCount}</p>
-              <span className="text-[11px] text-emerald-700 dark:text-emerald-300 font-medium">Doctor Orders Awaiting</span>
-            </div>
-            <div className="w-11 h-11 rounded-xl bg-emerald-100 dark:bg-emerald-500/30 flex items-center justify-center text-emerald-700 dark:text-emerald-200">
-              <Clock className="w-5 h-5" />
-            </div>
-          </div>
-
-          <div
-            onClick={() => onSelectTab && onSelectTab('pharma_inventory')}
-            role="button"
-            tabIndex={0}
-            title="Click to view Drug Inventory Vault & Low Stock"
-            className="rounded-2xl bg-white/90 dark:bg-white/10 backdrop-blur-md p-4 border border-emerald-100/80 dark:border-white/15 flex items-center justify-between shadow-2xs transition-all hover:shadow-md hover:scale-[1.01] cursor-pointer"
-          >
-            <div>
-              <p className="text-xs font-semibold text-slate-500 dark:text-emerald-200">Low Stock Triggers</p>
-              <p className="text-2xl font-black text-amber-600 dark:text-amber-300 mt-1">{lowStockCount}</p>
-              <span className="text-[11px] text-amber-700 dark:text-amber-200/80 font-medium">Needs Reordering</span>
-            </div>
-            <div className="w-11 h-11 rounded-xl bg-amber-100 dark:bg-amber-500/30 flex items-center justify-center text-amber-700 dark:text-amber-200">
-              <AlertTriangle className="w-5 h-5" />
-            </div>
-          </div>
-
-          <div
-            onClick={() => onSelectTab && onSelectTab('pharma_queue')}
-            role="button"
-            tabIndex={0}
-            title="Click to view Dispensed Prescriptions"
-            className="rounded-2xl bg-white/90 dark:bg-white/10 backdrop-blur-md p-4 border border-emerald-100/80 dark:border-white/15 flex items-center justify-between shadow-2xs transition-all hover:shadow-md hover:scale-[1.01] cursor-pointer"
-          >
-            <div>
-              <p className="text-xs font-semibold text-slate-500 dark:text-emerald-200">Dispensed Today</p>
-              <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{fulfilledTodayCount}</p>
-              <span className="text-[11px] text-emerald-700 dark:text-emerald-300 font-medium">Completed Prescriptions</span>
-            </div>
-            <div className="w-11 h-11 rounded-xl bg-teal-100 dark:bg-teal-500/30 flex items-center justify-center text-teal-700 dark:text-teal-200">
-              <CheckCircle2 className="w-5 h-5" />
-            </div>
-          </div>
-
-          <div
-            onClick={() => onSelectTab && onSelectTab('pharma_inventory')}
-            role="button"
-            tabIndex={0}
-            title="Click to view Inventory Ledger & Valuation"
-            className="rounded-2xl bg-white/90 dark:bg-white/10 backdrop-blur-md p-4 border border-emerald-100/80 dark:border-white/15 flex items-center justify-between shadow-2xs transition-all hover:shadow-md hover:scale-[1.01] cursor-pointer"
-          >
-            <div>
-              <p className="text-xs font-semibold text-slate-500 dark:text-emerald-200">Inventory Valuation</p>
-              <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">${estimatedVaultValue.toLocaleString()}</p>
-              <span className="text-[11px] text-emerald-700 dark:text-emerald-300 font-medium">{inventory.length} Drug SKUs</span>
-            </div>
-            <div className="w-11 h-11 rounded-xl bg-emerald-100 dark:bg-emerald-400/30 flex items-center justify-center text-emerald-700 dark:text-emerald-100">
-              <Package className="w-5 h-5" />
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* ========================================================================= */}
       {/* SUB-VIEW 1: LIVE DISPENSE QUEUE */}
       {/* ========================================================================= */}
       {activeSubTab === 'pharma_queue' && (
+        <div className="space-y-6">
+          {/* Top Clinical Pharmacist Banner & HUD Metrics */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 dark:from-[#064E3B] dark:via-[#0F766E] dark:to-[#134E4A] p-6 sm:p-8 text-slate-900 dark:text-white shadow-xs dark:shadow-xl border border-emerald-200/80 dark:border-emerald-600/30">
+            <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 rounded-full bg-emerald-300/20 dark:bg-emerald-400/10 blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-1/3 -mb-12 w-48 h-48 rounded-full bg-teal-200/25 dark:bg-teal-300/10 blur-2xl pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100/80 dark:bg-emerald-500/20 border border-emerald-300/60 dark:border-emerald-400/30 text-emerald-800 dark:text-emerald-200 text-xs font-semibold backdrop-blur-md">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-300" />
+                  <span>Pharmacy & Medical Store Operations</span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
+                  <Pill className="w-8 h-8 text-emerald-600 dark:text-emerald-300" />
+                  Clinical Dispensary & Pharmacist Suite
+                </h1>
+                <p className="text-slate-600 dark:text-emerald-100/80 text-sm max-w-2xl font-medium">
+                  Real-time doctor prescription fulfillment, electronic inventory ledger with rack tracing, POS cash counter, and AI interaction cross-screening.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 self-start md:self-auto">
+                <button
+                  onClick={fetchAllPharmacyData}
+                  disabled={loading}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-emerald-50 dark:bg-white/10 dark:hover:bg-white/20 active:scale-95 border border-emerald-200 dark:border-white/20 text-slate-800 dark:text-white text-xs font-bold transition-all shadow-2xs backdrop-blur-sm"
+                  title="Refresh Pharmacy Data"
+                >
+                  <RefreshCw className={`w-4 h-4 text-emerald-600 dark:text-emerald-300 ${loading ? 'animate-spin' : ''}`} />
+                  <span>Refresh Vault</span>
+                </button>
+                <div className="hidden sm:flex flex-col text-right">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Logged Pharmacist</span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-white">
+                    {currentUser?.profile?.name || currentUser?.fullName || 'Tariq Mehmood, RPh'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 4 Key Performance Metrics Cards (Interactive Quick Jumps) */}
+            <div className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
+              <div
+                onClick={() => onSelectTab && onSelectTab('pharma_queue')}
+                role="button"
+                tabIndex={0}
+                title="Click to view Pending Prescription Queue"
+                className="rounded-2xl bg-white/90 dark:bg-white/10 backdrop-blur-md p-4 border border-emerald-100/80 dark:border-white/15 flex items-center justify-between shadow-2xs transition-all hover:shadow-md hover:scale-[1.01] cursor-pointer"
+              >
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-emerald-200">Pending Rx Queue</p>
+                  <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{pendingRxCount}</p>
+                  <span className="text-[11px] text-emerald-700 dark:text-emerald-300 font-medium">Doctor Orders Awaiting</span>
+                </div>
+                <div className="w-11 h-11 rounded-xl bg-emerald-100 dark:bg-emerald-500/30 flex items-center justify-center text-emerald-700 dark:text-emerald-200">
+                  <Clock className="w-5 h-5" />
+                </div>
+              </div>
+
+              <div
+                onClick={() => onSelectTab && onSelectTab('pharma_inventory')}
+                role="button"
+                tabIndex={0}
+                title="Click to view Drug Inventory Vault & Low Stock"
+                className="rounded-2xl bg-white/90 dark:bg-white/10 backdrop-blur-md p-4 border border-emerald-100/80 dark:border-white/15 flex items-center justify-between shadow-2xs transition-all hover:shadow-md hover:scale-[1.01] cursor-pointer"
+              >
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-emerald-200">Low Stock Triggers</p>
+                  <p className="text-2xl font-black text-amber-600 dark:text-amber-300 mt-1">{lowStockCount}</p>
+                  <span className="text-[11px] text-amber-700 dark:text-amber-200/80 font-medium">Needs Reordering</span>
+                </div>
+                <div className="w-11 h-11 rounded-xl bg-amber-100 dark:bg-amber-500/30 flex items-center justify-center text-amber-700 dark:text-amber-200">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+              </div>
+
+              <div
+                onClick={() => onSelectTab && onSelectTab('pharma_queue')}
+                role="button"
+                tabIndex={0}
+                title="Click to view Dispensed Prescriptions"
+                className="rounded-2xl bg-white/90 dark:bg-white/10 backdrop-blur-md p-4 border border-emerald-100/80 dark:border-white/15 flex items-center justify-between shadow-2xs transition-all hover:shadow-md hover:scale-[1.01] cursor-pointer"
+              >
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-emerald-200">Dispensed Today</p>
+                  <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{fulfilledTodayCount}</p>
+                  <span className="text-[11px] text-emerald-700 dark:text-emerald-300 font-medium">Completed Prescriptions</span>
+                </div>
+                <div className="w-11 h-11 rounded-xl bg-teal-100 dark:bg-teal-500/30 flex items-center justify-center text-teal-700 dark:text-teal-200">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+              </div>
+
+              <div
+                onClick={() => onSelectTab && onSelectTab('pharma_inventory')}
+                role="button"
+                tabIndex={0}
+                title="Click to view Inventory Ledger & Valuation"
+                className="rounded-2xl bg-white/90 dark:bg-white/10 backdrop-blur-md p-4 border border-emerald-100/80 dark:border-white/15 flex items-center justify-between shadow-2xs transition-all hover:shadow-md hover:scale-[1.01] cursor-pointer"
+              >
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-emerald-200">Inventory Valuation</p>
+                  <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">PKR {estimatedVaultValue.toLocaleString()}</p>
+                  <span className="text-[11px] text-emerald-700 dark:text-emerald-300 font-medium">{inventory.length} Drug SKUs</span>
+                </div>
+                <div className="w-11 h-11 rounded-xl bg-emerald-100 dark:bg-emerald-400/30 flex items-center justify-center text-emerald-700 dark:text-emerald-100">
+                  <Package className="w-5 h-5" />
+                </div>
+              </div>
+            </div>
+          </div>
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -476,7 +476,7 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
 
                       <div className="text-right">
                         <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Est. Bill</span>
-                        <span className="text-base font-black text-emerald-700 dark:text-emerald-400">${item.totalAmount}</span>
+                        <span className="text-base font-black text-emerald-700 dark:text-emerald-400">PKR {item.totalAmount}</span>
                       </div>
                     </div>
 
@@ -536,7 +536,8 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
             </div>
           )}
         </div>
-      )}
+      </div>
+    )}
 
       {/* ========================================================================= */}
       {/* SUB-VIEW 2: DRUG INVENTORY VAULT */}
@@ -639,7 +640,7 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
                             {item.expiryDate}
                           </td>
                           <td className="px-4 py-3.5 font-bold text-slate-900 dark:text-white">
-                            ${item.unitPrice.toFixed(2)}
+                            PKR {item.unitPrice.toFixed(2)}
                           </td>
                           <td className="px-4 py-3.5">
                             <div className="flex items-center gap-2">
@@ -726,7 +727,7 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
                           <p className="text-[11px] text-slate-500 dark:text-slate-400">{item.genericName}</p>
                         </div>
                         <span className="text-xs font-black text-emerald-700 dark:text-emerald-400">
-                          ${item.unitPrice.toFixed(2)}
+                          PKR {item.unitPrice.toFixed(2)}
                         </span>
                       </div>
 
@@ -804,7 +805,7 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
                   >
                     <div className="flex-1 min-w-0 pr-2">
                       <div className="font-bold text-slate-900 dark:text-white truncate">{item.medicine.name}</div>
-                      <div className="text-[11px] text-slate-500">${item.medicine.unitPrice.toFixed(2)} each</div>
+                      <div className="text-[11px] text-slate-500">PKR {item.medicine.unitPrice.toFixed(2)} each</div>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -837,7 +838,7 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
             <div className="mt-4 space-y-2 text-xs">
               <div className="flex justify-between text-slate-500 dark:text-slate-400">
                 <span>Subtotal</span>
-                <span>${cartSubtotal.toFixed(2)}</span>
+                <span>PKR {cartSubtotal.toFixed(2)}</span>
               </div>
 
               <div className="flex items-center justify-between">
@@ -854,7 +855,7 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
 
               <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-800 text-sm">
                 <span className="font-bold text-slate-900 dark:text-white">Net Total</span>
-                <span className="font-black text-lg text-emerald-700 dark:text-emerald-400">${cartTotal.toFixed(2)}</span>
+                <span className="font-black text-lg text-emerald-700 dark:text-emerald-400">PKR {cartTotal.toFixed(2)}</span>
               </div>
 
               {/* Payment Method Selector */}
@@ -1169,7 +1170,7 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
                         Expected Delivery: <span className="font-semibold text-slate-800 dark:text-slate-200">{order.expectedDelivery}</span>
                       </p>
                       <p className="text-slate-500 dark:text-slate-400">
-                        Total Invoice: <span className="font-black text-emerald-700 dark:text-emerald-400">${order.totalCost}</span>
+                        Total Invoice: <span className="font-black text-emerald-700 dark:text-emerald-400">PKR {order.totalCost}</span>
                       </p>
                     </div>
 
@@ -1178,7 +1179,7 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
                       {order.items?.map((item: any, idx: number) => (
                         <div key={idx} className="flex justify-between text-xs py-1 border-b border-slate-100 dark:border-slate-800/50">
                           <span className="font-medium text-slate-700 dark:text-slate-300">{item.medicineName}</span>
-                          <span className="font-bold text-slate-900 dark:text-white">{item.quantity} units @ ${item.unitCost}</span>
+                          <span className="font-bold text-slate-900 dark:text-white">{item.quantity} units @ PKR {item.unitCost}</span>
                         </div>
                       ))}
                     </div>
@@ -1230,7 +1231,7 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
             <div className="mt-4 space-y-3 text-xs">
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
                 <p className="font-bold text-slate-900 dark:text-white text-sm">{selectedRxToDispense.patientName}</p>
-                <p className="text-slate-500">Doctor: {selectedRxToDispense.doctorName} • Total Bill: ${selectedRxToDispense.totalAmount}</p>
+                <p className="text-slate-500">Doctor: {selectedRxToDispense.doctorName} • Total Bill: PKR {selectedRxToDispense.totalAmount}</p>
               </div>
 
               {selectedRxToDispense.patientAllergies?.length > 0 && (
@@ -1316,7 +1317,7 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Payment:</span>
-                <span className="font-bold text-emerald-600">{dispenseSuccessModal.paymentMethod} (${dispenseSuccessModal.totalAmount})</span>
+                <span className="font-bold text-emerald-600">{dispenseSuccessModal.paymentMethod} (PKR {dispenseSuccessModal.totalAmount})</span>
               </div>
             </div>
 
@@ -1351,14 +1352,14 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
                 {posReceiptModal.items?.map((item: any, idx: number) => (
                   <div key={idx} className="flex justify-between text-slate-700 dark:text-slate-300">
                     <span>{item.medicineName} x{item.quantity}</span>
-                    <span className="font-bold">${item.totalPrice.toFixed(2)}</span>
+                    <span className="font-bold">PKR {item.totalPrice.toFixed(2)}</span>
                   </div>
                 ))}
               </div>
 
               <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-between font-black text-sm">
                 <span className="text-slate-900 dark:text-white">Total Paid:</span>
-                <span className="text-emerald-700 dark:text-emerald-400">${posReceiptModal.netTotal.toFixed(2)} ({posReceiptModal.paymentMethod})</span>
+                <span className="text-emerald-700 dark:text-emerald-400">PKR {posReceiptModal.netTotal.toFixed(2)} ({posReceiptModal.paymentMethod})</span>
               </div>
             </div>
 
@@ -1462,7 +1463,7 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Unit Retail ($)</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Unit Retail Price (PKR)</label>
                   <input
                     type="number"
                     step="0.01"

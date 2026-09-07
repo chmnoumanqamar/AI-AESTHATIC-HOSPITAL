@@ -137,20 +137,31 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
       return [
         { label: 'Next Patient in Queue', prompt: 'Who is the next patient waiting in my queue?' },
         { label: 'Today Schedule', prompt: 'Give me a summary of my appointments today' },
-        { label: 'Prescription Guide', prompt: 'Show active prescriptions requiring follow up' }
+        { label: 'Prescription Guide', prompt: 'Show active prescriptions requiring follow up' },
+        { label: 'Check Drug Stock', prompt: 'Is Augmentin in stock in the hospital pharmacy?' }
+      ];
+    }
+    if (userRole === 'PHARMACIST') {
+      return [
+        { label: 'Live Dispense Queue', prompt: 'Show pending prescriptions in live dispense queue' },
+        { label: 'Low-Stock Inventory', prompt: 'Check low stock medicines and vault inventory' },
+        { label: 'Drug Safety Screening', prompt: 'Explain AI clinical drug allergy and interaction checks' },
+        { label: 'Pharmacy Status', prompt: 'Check pharmacy hours, services and inventory summary' }
       ];
     }
     if (userRole === 'RECEPTIONIST') {
       return [
         { label: 'Pending Bookings', prompt: 'List all pending appointment booking requests' },
         { label: 'Queue Status', prompt: 'Check token status for today queue' },
-        { label: 'Doctors On Duty', prompt: 'Which doctors are on duty today?' }
+        { label: 'Doctors On Duty', prompt: 'Which doctors are on duty today?' },
+        { label: 'Pharmacy Hours', prompt: 'What are the hospital pharmacy operating hours and location?' }
       ];
     }
     if (userRole === 'PATIENT') {
       return [
         { label: 'Doctor Timings & Schedule', prompt: 'Which doctors are available and what are their clinic timings?' },
         { label: 'Check Open Slots', prompt: 'Show available appointment slots and open tokens for today and tomorrow' },
+        { label: 'Pharmacy & Medicines', prompt: 'Is the hospital pharmacy open and can I get my medicines?' },
         { label: 'Book Appointment', prompt: 'I want to book an appointment with a specialist doctor' },
         { label: 'My Appointments', prompt: 'When is my next appointment and reminder?' },
         { label: 'Fees & Billing', prompt: 'What are the consultation fees and billing details?' }
@@ -159,6 +170,7 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
     return [
       { label: 'Queue Status', prompt: 'Check live queue status and waiting patients' },
       { label: 'Pending Approvals', prompt: 'List all pending appointment booking requests' },
+      { label: 'Pharmacy Inventory', prompt: 'Check hospital pharmacy stock and inventory summary' },
       { label: 'Audit Vault Summary', prompt: 'Summarize recent security and clinical audit logs' }
     ];
   };
@@ -294,7 +306,7 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
             type="text"
             value={inputText}
             onChange={e => setInputText(e.target.value)}
-            placeholder="Ask anything about appointments, doctors, queue, or billing..."
+            placeholder="Ask about appointments, doctors, pharmacy medicines, queue, or billing..."
             className="flex-1 bg-transparent px-3 py-1.5 text-xs text-[#1F291E] dark:text-[#F6F7F2] placeholder-slate-400 dark:placeholder-[#778572] focus:outline-none"
           />
 

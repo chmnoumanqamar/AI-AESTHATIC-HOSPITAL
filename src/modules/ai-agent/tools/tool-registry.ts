@@ -5,6 +5,7 @@ import { cancelAppointment } from './cancellation.tool';
 import { requestReschedule } from './reschedule.tool';
 import { getPatientClinicalHistory } from './patient-history.tool';
 import { getBasicPaymentStatus } from './basic-billing.tool';
+import { checkPharmacyStock } from './pharmacy-lookup.tool';
 
 export const AI_TOOL_DEFINITIONS = [
   {
@@ -93,6 +94,17 @@ export const AI_TOOL_DEFINITIONS = [
       type: 'object',
       properties: {}
     }
+  },
+  {
+    name: 'checkPharmacyStock',
+    description: 'Searches real-time hospital pharmacy drug inventory, stock quantities, pricing in PKR, dosage forms, and shelf locations.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Medicine name, generic name, or keyword (e.g. Augmentin, Panadol, Botox)' },
+        category: { type: 'string', description: 'Category (e.g. Antibiotics, Cardiology, Analgesics, Aesthetics)' }
+      }
+    }
   }
 ];
 
@@ -104,5 +116,6 @@ export const toolHandlers = {
   cancelAppointment,
   requestReschedule,
   getPatientClinicalHistory,
-  getBasicPaymentStatus
+  getBasicPaymentStatus,
+  checkPharmacyStock
 };

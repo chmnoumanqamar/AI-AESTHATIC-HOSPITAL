@@ -307,6 +307,39 @@ async function runSystemTestSuite() {
   );
   assert(safetyRomanUrdu.cardData?.type === 'SAFETY_DISCLAIMER', 'AI Chatbot: Deflects diagnostic query with safety protocol in Roman Urdu');
 
+  // 9.12: AI Chatbot - Pharmacy & Dispensary Facility Inquiry (Roman Urdu & English)
+  const pharmaInquiry = await aiAgentOrchestrator.processMessage(
+    'Hospital pharmacy khuli hai aur dispensary kahan hai?',
+    [],
+    { userId: newPatientReg.user.id, patientId: newPatientReg.user.profileId!, userRole: 'PATIENT', sessionId: 's-test-03' }
+  );
+  assert(
+    pharmaInquiry.content.includes('Pharmacy') && pharmaInquiry.content.includes('24/7') && pharmaInquiry.cardData?.type === 'PHARMACY_INFO_CARD',
+    'AI Chatbot: Correctly provides 24/7 hospital pharmacy hours and location info'
+  );
+
+  // 9.13: AI Chatbot - Specific Medicine Inventory Stock & Pricing in PKR
+  const medStockCheck = await aiAgentOrchestrator.processMessage(
+    'Augmentin 625mg stock mein available hai aur price kya hai?',
+    [],
+    { userId: newPatientReg.user.id, patientId: newPatientReg.user.profileId!, userRole: 'PATIENT', sessionId: 's-test-04' }
+  );
+  assert(
+    medStockCheck.content.includes('Augmentin') && medStockCheck.content.includes('PKR') && medStockCheck.cardData?.type === 'MEDICINE_INFO_CARD',
+    'AI Chatbot: Accurately checks medicine inventory stock and returns PKR unit pricing'
+  );
+
+  // 9.14: AI Chatbot - Pharmacist Role Live Dispense Queue Overview
+  const pharmacistQueueCheck = await aiAgentOrchestrator.processMessage(
+    'Show pending prescriptions in live dispense queue',
+    [],
+    { userId: 'u-pharma-01', userRole: 'PHARMACIST', sessionId: 's-test-05' }
+  );
+  assert(
+    pharmacistQueueCheck.cardData?.type === 'PHARMACY_QUEUE_CARD',
+    'AI Chatbot: Generates live dispense queue report for Pharmacist staff role'
+  );
+
   console.log('\n========================================================');
   console.log(`TEST SUMMARY: ${passed} PASSED | ${failed} FAILED`);
   console.log('========================================================\n');

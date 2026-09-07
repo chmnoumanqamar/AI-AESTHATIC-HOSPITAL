@@ -47,6 +47,21 @@ export class MedicalSafetyGuard {
       }
     }
 
+    // Operational inquiries about pharmacy facilities, store hours, stock availability or picking up prescriptions are safe
+    const isPharmacyOperational =
+      /\b(pharmacy|medical store|dispensary|dawa ki dukaan|dawai ki dukaan|store)\b/i.test(trimmed) ||
+      /\b(stock|available|price|cost|fees|timing|hours|open|khuli|kahan|where|rack|shelf)\b/i.test(trimmed) ||
+      /\b(augmentin|panadol|botox|juvederm|ciproxin|lisinopril|metoprolol|atorvastatin|retin-a|cevit)\b/i.test(trimmed);
+
+    const isExplicitDiagnostic =
+      /\b(diagnose|diagnosis|what disease|what sickness|what illness|do i have|what is wrong with me|why does my .+ hurt|cure for|treatment for my)\b/i.test(trimmed) ||
+      /\b(prescribe|prescribe karo|dawa batao|dawai batao|dawa do|dawai do|konsi dawa loon|konsi dawai loon)\b/i.test(trimmed) ||
+      /(تشخیص|علاج|نسخہ)/.test(trimmed);
+
+    if (isPharmacyOperational && !isExplicitDiagnostic) {
+      return { isSafe: true };
+    }
+
     // Check diagnostic and prescription triggers
     for (const pattern of this.diagnosticPatterns) {
       if (pattern.test(trimmed)) {

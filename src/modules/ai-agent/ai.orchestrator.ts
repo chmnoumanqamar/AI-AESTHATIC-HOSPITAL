@@ -302,12 +302,16 @@ export class AiAgentOrchestrator {
 
     // 1. Pending Approvals & Booking Requests Intent (Staff & Admin)
     const isPendingApprovalIntent =
-      lower.includes('pending approval') ||
-      lower.includes('pending booking') ||
-      lower.includes('pending appointment') ||
-      lower.includes('approval request') ||
-      lower.includes('list all pending') ||
-      (lower.includes('pending') && (lower.includes('request') || lower.includes('booking') || lower.includes('list') || lower.includes('show') || lower.includes('approv')));
+      !lower.includes('prescription') &&
+      !lower.includes('rx') &&
+      !lower.includes('pharmacy') &&
+      !lower.includes('dispense') &&
+      (lower.includes('pending approval') ||
+       lower.includes('pending booking') ||
+       lower.includes('pending appointment') ||
+       lower.includes('approval request') ||
+       lower.includes('list all pending') ||
+       (lower.includes('pending') && (lower.includes('request') || lower.includes('booking') || lower.includes('list') || lower.includes('show') || lower.includes('approv'))));
 
     if (isPendingApprovalIntent) {
       const pendingList = await appointmentService.getAllAppointments({ status: 'PENDING' });
@@ -347,16 +351,20 @@ export class AiAgentOrchestrator {
       };
     }
 
-    // 2. Live Queue Status & Waiting Patients Intent
+    // 2. Live Queue Status & Waiting Patients Intent (OPD Consultation Queue)
     const isQueueIntent =
-      lower.includes('queue status') ||
-      lower.includes('live queue') ||
-      lower.includes('waiting patient') ||
-      lower.includes('token status') ||
-      lower.includes('next patient') ||
-      lower.includes('next token') ||
-      lower.includes('who is the next patient') ||
-      (lower.includes('queue') && (lower.includes('check') || lower.includes('status') || lower.includes('today') || lower.includes('who') || lower.includes('waiting') || lower.includes('token')));
+      !lower.includes('pharmacy') &&
+      !lower.includes('dispense') &&
+      !lower.includes('prescription') &&
+      context.userRole !== 'PHARMACIST' &&
+      (lower.includes('queue status') ||
+       lower.includes('live queue') ||
+       lower.includes('waiting patient') ||
+       lower.includes('token status') ||
+       lower.includes('next patient') ||
+       lower.includes('next token') ||
+       lower.includes('who is the next patient') ||
+       (lower.includes('queue') && (lower.includes('check') || lower.includes('status') || lower.includes('today') || lower.includes('who') || lower.includes('waiting') || lower.includes('token'))));
 
     if (isQueueIntent) {
       const doctorIdFilter = context.userRole === 'DOCTOR' ? context.userId : undefined;
@@ -1075,8 +1083,24 @@ export class AiAgentOrchestrator {
       };
     }
 
-    // F. Medical History / Prescriptions Intent
-    if (lower.includes('history') || lower.includes('record') || lower.includes('dawai') || lower.includes('prescription') || lower.includes('nuskha')) {
+    // F. Medical History / Past Prescriptions Intent (Patient specific)
+    const isPatientHistoryIntent =
+      !lower.includes('pharmacy') &&
+      !lower.includes('dispense') &&
+      !lower.includes('stock') &&
+      !lower.includes('store') &&
+      context.userRole !== 'PHARMACIST' &&
+      (lower.includes('history') ||
+       lower.includes('medical record') ||
+       lower.includes('my record') ||
+       lower.includes('my prescription') ||
+       lower.includes('past prescription') ||
+       lower.includes('purana nuskha') ||
+       lower.includes('purani dawai') ||
+       (lower.includes('record') && !lower.includes('audit')) ||
+       (lower.includes('nuskha') && !lower.includes('pharmacy')));
+
+    if (isPatientHistoryIntent) {
       if (!context.patientId) {
         const needLogin = lang === 'roman_urdu'
           ? 'Apna medical record dekhne ke liye patient account se login karein.'
@@ -1128,23 +1152,221 @@ export class AiAgentOrchestrator {
       };
     }
 
+    // H. Clinical Pharmacy, Medicines & Dispensary Intent
+    const isPharmacyIntent =
+      context.userRole === 'PHARMACIST' ||
+      lower.includes('pharmacy') ||
+      lower.includes('dispensary') ||
+      lower.includes('medical store') ||
+      lower.includes('chemist') ||
+      lower.includes('dispense') ||
+      lower.includes('prescription') ||
+      lower.includes('prescriptions') ||
+      lower.includes('medicine') ||
+      lower.includes('medicines') ||
+      lower.includes('dawai') ||
+      lower.includes('dawa') ||
+      lower.includes('medication') ||
+      lower.includes('augmentin') ||
+      lower.includes('panadol') ||
+      lower.includes('botox') ||
+      lower.includes('juvederm') ||
+      lower.includes('ciproxin') ||
+      lower.includes('lisinopril') ||
+      lower.includes('metoprolol') ||
+      lower.includes('atorvastatin') ||
+      lower.includes('retin-a') ||
+      lower.includes('cevit') ||
+      lower.includes('فارمیسی') ||
+      lower.includes('دوائی') ||
+      lower.includes('میڈیکل اسٹور') ||
+      lower.includes('دوا');
+
+    if (isPharmacyIntent && !isCancelIntent && !lower.includes('prescription guide')) {
+      // 1. Pharmacist Role View / Staff Inquiries
+      if (context.userRole === 'PHARMACIST' || (lower.includes('dispense queue') || lower.includes('pending rx') || lower.includes('pharmacy queue'))) {
+        const pendingRx = db.dispenseRecords.filter(d => d.status === 'PENDING');
+        const lowStockMeds = db.medicines.filter(m => m.stockQuantity <= m.minStockAlert);
+        const nextRx = pendingRx[0];
+
+        let pharmaStaffText = '';
+        if (lang === 'roman_urdu') {
+          pharmaStaffText = `💊 **Clinical Pharmacy & Dispensary Live Status:**\n\n` +
+            `• **Pending Prescriptions in Queue:** **${pendingRx.length}** Rx\n` +
+            (nextRx ? `• **Next in Line:** Rx for **${nextRx.patientName}** (${nextRx.items.length} items | Dr. ${nextRx.doctorName})\n` : '') +
+            `• **Low-Stock Alert Items:** **${lowStockMeds.length}** medications requiring restock\n` +
+            `• **Vault Status:** 10 active pharmaceutical SKUs securely tracked in PKR\n\n` +
+            `Aap Pharmacy Workspace se direct 'Dispense' click kar ke stock deduct aur receipt generate kar sakte hain.`;
+        } else if (lang === 'urdu') {
+          pharmaStaffText = `💊 **کلینیکل فارمیسی لائیو رپورٹ:**\n\n` +
+            `• **زیرِ التواء نسخہ جات:** **${pendingRx.length}** نسخے\n` +
+            (nextRx ? `• **اگلا نسخہ:** مریض **${nextRx.patientName}** (${nextRx.items.length} ادویات)\n` : '') +
+            `• **کم اسٹاک الرٹس:** **${lowStockMeds.length}** ادویات\n\n` +
+            `تمام ریکارڈز خودکار طریقے سے انوینٹری والٹ اور آڈٹ سسٹم سے منسلک ہیں۔`;
+        } else {
+          pharmaStaffText = `💊 **Clinical Pharmacy & Dispensary Live Status:**\n\n` +
+            `• **Pending Prescriptions in Queue:** **${pendingRx.length}** active orders\n` +
+            (nextRx ? `• **Next in Line:** Rx for **${nextRx.patientName}** (${nextRx.items.length} medications | Attending: Dr. ${nextRx.doctorName})\n` : '') +
+            `• **Low-Stock Triggers:** **${lowStockMeds.length}** medications below safety threshold\n` +
+            `• **Inventory Vault:** Real-time stock tracking with cold-chain batch validation\n\n` +
+            `You can review dosage interactions, deduct inventory, and issue receipts directly from the Pharmacy Workspace.`;
+        }
+
+        return {
+          role: 'assistant',
+          content: pharmaStaffText,
+          cardData: {
+            type: 'PHARMACY_QUEUE_CARD',
+            pendingCount: pendingRx.length,
+            lowStockCount: lowStockMeds.length,
+            nextRx: nextRx ? {
+              patientName: nextRx.patientName,
+              doctorName: nextRx.doctorName,
+              itemsCount: nextRx.items.length,
+              totalAmount: nextRx.totalAmount
+            } : null
+          }
+        };
+      }
+
+      // 2. Specific Medicine Stock Check
+      const specificMedKeywords = ['augmentin', 'panadol', 'botox', 'juvederm', 'ciproxin', 'lisinopril', 'metoprolol', 'atorvastatin', 'retin-a', 'cevit'];
+      const matchedKeyword = specificMedKeywords.find(k => lower.includes(k));
+
+      if (matchedKeyword) {
+        const foundMeds = await toolHandlers.checkPharmacyStock({ query: matchedKeyword });
+        if (foundMeds.length > 0) {
+          const med = foundMeds[0];
+          let medText = '';
+          if (lang === 'roman_urdu') {
+            medText = `💊 **Pharmacy Inventory Check:**\n\n` +
+              `• **Dawai Ka Naam:** **${med.name}** (${med.genericName})\n` +
+              `• **Dastiyabi:** ${med.isAvailable ? `✅ **In Stock** (${med.stockQuantity} units available)` : '❌ Filhal Out of Stock'}\n` +
+              `• **Qeemat:** **PKR ${med.unitPrice.toLocaleString()}** *(Uniform PKR currency)*\n` +
+              `• **Category & Form:** ${med.category} — ${med.form} (${med.strength})\n` +
+              `• **Pharmacy Location:** Hospital Ground Floor (Rack: ${med.shelfLocation})\n` +
+              `• **Prescription:** ${med.requiresPrescription ? '⚠️ Doctor ka nuskha (Rx) darkaar hai' : '✅ Over-the-counter (Bila nuskha dastyab)'}\n\n` +
+              `Aap hamari 24/7 hospital pharmacy counter se yeh dawai hasil kar sakte hain.`;
+          } else if (lang === 'urdu') {
+            medText = `💊 **فارمیسی اسٹاک کی معلومات:**\n\n` +
+              `• **دوا کا نام:** **${med.name}** (${med.genericName})\n` +
+              `• **دستیابی:** ${med.isAvailable ? `✅ دستیاب ہے (${med.stockQuantity} یونٹس)` : '❌ فی الوقت دستیاب نہیں'}\n` +
+              `• **قیمت:** **PKR ${med.unitPrice.toLocaleString()}**\n` +
+              `• **مقام:** گراؤنڈ فلور فارمیسی والٹ (ریک: ${med.shelfLocation})\n` +
+              `• **نسخہ:** ${med.requiresPrescription ? 'ڈاکٹر کا نسخہ درکار ہے' : 'کاؤنٹر پر براہ راست دستیاب'}`;
+          } else {
+            medText = `💊 **Pharmacy Inventory Verification:**\n\n` +
+              `• **Medication:** **${med.name}** (${med.genericName})\n` +
+              `• **Availability:** ${med.isAvailable ? `✅ **In Stock** (${med.stockQuantity} units in vault)` : '❌ Currently Out of Stock'}\n` +
+              `• **Unit Price:** **PKR ${med.unitPrice.toLocaleString()}**\n` +
+              `• **Category & Form:** ${med.category} — ${med.form} ${med.strength} (${med.brand})\n` +
+              `• **Dispensary Rack:** Shelf ${med.shelfLocation}\n` +
+              `• **Dispense Rule:** ${med.requiresPrescription ? 'Requires verified physician prescription (Rx)' : 'Available Over-The-Counter (OTC)'}\n\n` +
+              `Available 24/7 at the Hospital Clinical Pharmacy, Ground Floor East Wing.`;
+          }
+
+          return {
+            role: 'assistant',
+            content: medText,
+            cardData: {
+              type: 'MEDICINE_INFO_CARD',
+              medicine: med
+            }
+          };
+        }
+      }
+
+      // 3. General Pharmacy Location, Timings, & Facility Inquiries
+      let generalPharmaText = '';
+      if (lang === 'roman_urdu') {
+        generalPharmaText = `🏥 **Aesthetic Hospital — 24/7 Clinical Pharmacy & Medical Store:**\n\n` +
+          `• **Oqaat (Timings):** 24 Ghantay (24/7) Khuli Hai — Emergency aur OPD patients dono ke liye.\n` +
+          `• **Location:** Ground Floor, Outpatient Consultation Suites ke bilkul sath.\n` +
+          `• **In-charge:** Chief Clinical Pharmacist **Tariq Mehmood, RPh**.\n` +
+          `• **Khusoosiyat:**\n` +
+          `  - Doctor ke likhte hi nuskha (prescription) digital screen par foran pohanch jata hai.\n` +
+          `  - Automated AI Drug Safety Engine marz ki allergies aur drug interactions pehlay check karta hai.\n` +
+          `  - Over-The-Counter (OTC) skin care, analgesics aur first aid counter dastyab hai.\n` +
+          `  - Tamam bills aur payments **PKR (Pakistani Rupee)** mein printed receipt ke sath process hoti hain (Cash, Card, NFC, Insurance).\n\n` +
+          `Kisi makhsoos dawai ka stock maloom karne ke liye mujhay dawai ka naam likhein (jaise: *"Augmentin"* ya *"Panadol"*).`;
+      } else if (lang === 'urdu') {
+        generalPharmaText = `🏥 **ہسپتال کلینیکل فارمیسی و میڈیکل اسٹور:**\n\n` +
+          `• **اوقات:** 24 گھنٹے (24/7) کھلی ہے — ایمرجنسی اور او پی ڈی مریضوں کے لیے۔\n` +
+          `• **مقام:** گراؤنڈ فلور، او پی ڈی کلینکس کے ساتھ۔\n` +
+          `• **نگران:** چیف فارماسسٹ طارق محمود (RPh)۔\n` +
+          `• **سہولیات:** ڈاکٹر کے نسخے کی فوری فراہمی، ادویات کا تصدیق شدہ والٹ، اور ادویاتی تضاد کی جانچ۔\n` +
+          `• **ادائیگی:** تمام ادویات کی قیمتیں پاکستانی روپے (PKR) میں ہیں۔\n\n` +
+          `کسی بھی دوا کی دستیابی جاننے کے لیے اس کا نام میسج کریں۔`;
+      } else {
+        generalPharmaText = `🏥 **Hospital Clinical Pharmacy & Dispensary (24/7):**\n\n` +
+          `• **Hours of Operation:** Open **24/7** for inpatient, emergency, and outpatient prescription fulfillment.\n` +
+          `• **Location:** Ground Floor, East Clinical Wing (Adjacent to OPD Consultations).\n` +
+          `• **Leadership:** Supervised by Chief Clinical Pharmacist **Tariq Mehmood, RPh**.\n` +
+          `• **Integrated Capabilities:**\n` +
+          `  - Instant digital synchronization with doctor consultation prescriptions.\n` +
+          `  - Automated AI Drug Safety & Allergy Interaction screener.\n` +
+          `  - Over-The-Counter (OTC) medicine, skincare, and wellness counter.\n` +
+          `  - Fully standardized billing in **PKR** with printed receipts (Cash, Card, NFC, Insurance).\n\n` +
+          `To check real-time stock for any medication, simply ask: *"Is Augmentin in stock?"* or *"Do you have Panadol?"*.`;
+      }
+
+      return {
+        role: 'assistant',
+        content: generalPharmaText,
+        cardData: {
+          type: 'PHARMACY_INFO_CARD',
+          operatingHours: '24/7 Emergency & OPD',
+          location: 'Ground Floor, East Clinical Wing',
+          chiefPharmacist: 'Tariq Mehmood, RPh',
+          currency: 'PKR',
+          services: [
+            'Doctor Rx Digital Dispensing',
+            'Over-The-Counter (OTC) Sales',
+            'AI Drug-Drug Allergy Screening',
+            'Cold-Chain Biologics & Aesthetics'
+          ]
+        }
+      };
+    }
+
     // STEP 4: Call Gemini for Natural All-Language Conversational Response
     const systemPrompt = `You are the friendly, professional AI Clinical Assistant for AI Aesthetic Hospital.
 CRITICAL LANGUAGE INSTRUCTION:
 - ALWAYS identify the user's language and reply in the EXACT SAME LANGUAGE and style.
-- If user writes in Roman Urdu (e.g. "kese ho", "hospital kab khulta hai"), respond in natural Roman Urdu.
-- If user writes in Urdu script (اردو), respond in Urdu script.
+- If user writes in Roman Urdu (e.g. "kese ho", "hospital kab khulta hai", "pharmacy khuli hai", "augmentin mil jaye gi"), respond in natural, polite Roman Urdu.
+- If user writes in Urdu script (اردو), respond in natural, polite Urdu script.
 - If user writes in English, respond in English.
 - If in Arabic, Spanish, etc., respond in that exact language.
 
 SAFETY PROTOCOL:
-- Never diagnose symptoms or prescribe medical prescriptions directly.
-- Politely explain that you are an AI assistant and guide patients to book an appointment with our specialist doctors.
+- Never diagnose symptoms or prescribe medical drugs directly to patients.
+- Politely explain that you are an AI assistant and guide patients to book an appointment with our specialist physicians or consult our Chief Pharmacist at the counter.
 
-HOSPITAL CONTEXT:
-- Open 24/7 for emergency and executive clinics.
-- Sequential daily tokens ensure zero wait time confusion.
-- Reception desk confirms bookings.
+HOSPITAL ARCHITECTURE & 5 CORE DEPARTMENTS:
+1. CLINICAL & DOCTOR DECK:
+   - Specialist Physicians:
+     • Dr. Aisha Khan: Lead Interventional Cardiologist (15 yrs experience, Consultation Fee: PKR 2,500).
+     • Dr. Marcus Vance: Board-Certified Dermatologist & Aesthetic Specialist (12 yrs experience, Consultation Fee: PKR 3,000).
+   - Sequential daily tokens ensure zero wait time confusion.
+   - Queue calling, digital consultations, and computerized electronic prescriptions.
+
+2. FRONT-DESK & RECEPTION:
+   - Walk-in check-in, token ticketing, booking authorizations, and Point of Sale (POS) billing in PKR (Cash, Card, NFC, Insurance).
+
+3. CLINICAL PHARMACY & MEDICAL STORE:
+   - In-house 24/7 Clinical Dispensary located on Ground Floor adjacent to OPD.
+   - Supervised by Chief Clinical Pharmacist Tariq Mehmood, RPh.
+   - Direct electronic prescription fulfillment from doctor consultations with zero delay.
+   - Over-The-Counter (OTC) medicine counter open 08:00 AM – 10:00 PM.
+   - Real-time computerized inventory: Antibiotics (Augmentin 625mg, Ciproxin 500mg), Cardiology (Lisinopril 10mg, Metoprolol 50mg, Atorvastatin 20mg), Dermatology & Aesthetics (Retin-A 0.05%, Botox 100U, Juvederm Ultra), Analgesics & Vitamins (Panadol 500mg, Cevit 500mg).
+   - All medicines and products are priced uniformly in PKR with printed itemized receipts.
+   - AI Clinical Safety Engine automatically screens for drug-drug interactions and patient allergies (e.g. Penicillin group contraindications).
+
+4. PATIENT SERVICES & PORTAL:
+   - 24/7 self-service booking, digital medical history access, 48-hour consultation reminder notifications, and WhatsApp AI Concierge.
+
+5. SYSTEM ADMINISTRATION:
+   - Cryptographic immutable SHA-256 audit vault, role-based access control (RBAC), and live drag-and-drop module studio.
 ${upcomingReminders.length > 0 ? `NOTE: The patient has an upcoming appointment on ${upcomingReminders[0].appointmentDate} with Dr. ${upcomingReminders[0].doctorName} (Token #${upcomingReminders[0].tokenNumber}). Warmly mention this reminder if helpful!` : ''}`;
 
     const geminiReply = await geminiClient.generateResponse(
@@ -1182,18 +1404,18 @@ ${upcomingReminders.length > 0 ? `NOTE: The patient has an upcoming appointment 
         : '';
       return {
         role: 'assistant',
-        content: `Assalam-o-Alaikum! Main aap ka AI Clinical Assistant hoon. Main doctors dhoondnay, nayi appointment lene, 48h reminders check karne, ya aap ki purani tareekh aur bills dekhne mein madad kar sakta hoon. Main aap ki kya madad karoon?${reminderNote}`
+        content: `Assalam-o-Alaikum! Main aap ka AI Clinical Assistant hoon. Main doctors dhoondnay, nayi appointment lene, pharmacy dawai ka stock maloom karne, 48h reminders check karne, ya aap ki purani tareekh aur bills dekhne mein madad kar sakta hoon. Main aap ki kya madad karoon?${reminderNote}`
       };
     } else if (lang === 'urdu') {
       return {
         role: 'assistant',
-        content: 'السلام علیکم! میں آپ کا اے آئی کلینیکل اسسٹنٹ ہوں۔ میں ڈاکٹر تلاش کرنے، نئی اپائنٹمنٹ حاصل کرنے، اور آپ کے ریکارڈز کی معلومات میں مدد کر سکتا ہوں۔ میں آپ کی کیا مدد کر سکتا ہوں؟'
+        content: 'السلام علیکم! میں آپ کا اے آئی کلینیکل اسسٹنٹ ہوں۔ میں ڈاکٹر تلاش کرنے، نئی اپائنٹمنٹ، فارمیسی ادویات کی دستیابی، اور آپ کے ہسپتال ریکارڈز میں مدد کر سکتا ہوں۔ میں آپ کی کیا مدد کر سکتا ہوں؟'
       };
     }
 
     return {
       role: 'assistant',
-      content: "Hello! I am your AI Clinical Assistant. I can help you find specialist physicians, request appointments, manage 2-day prior reminders, view medical records, or answer hospital policy inquiries in any language. How may I assist you today?"
+      content: "Hello! I am your AI Clinical Assistant. I can help you find specialist physicians, request appointments, check pharmacy medicine availability, manage 2-day prior reminders, view medical records, or answer hospital policy inquiries in any language. How may I assist you today?"
     };
   }
 }

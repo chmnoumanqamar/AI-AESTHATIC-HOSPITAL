@@ -715,13 +715,23 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   height: 5px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.2);
+  background: rgba(0, 0, 0, 0.03);
   border-radius: 9999px;
 }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(45, 106, 79, 0.35);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(45, 106, 79, 0.6);
+}
+html.dark .custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+}
 html.dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(164, 172, 134, 0.2);
+  background: rgba(164, 172, 134, 0.45);
+}
+html.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(164, 172, 134, 0.7);
 }
 

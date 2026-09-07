@@ -176,6 +176,17 @@ export const AdminModuleStudio: React.FC = () => {
   // Layout View Mode (5-Column Deck vs Wide Grid)
   const [viewMode, setViewMode] = useState<'5col' | 'adaptive'>('5col');
 
+  // Scroll Progress tracker for columns with > 5 mini cards
+  const [scrollProgress, setScrollProgress] = useState<Record<string, number>>({});
+
+  const handleColumnScroll = (e: React.UIEvent<HTMLDivElement>, catKey: string) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    const maxScroll = scrollHeight - clientHeight;
+    if (maxScroll <= 0) return;
+    const pct = Math.min(100, Math.max(15, Math.round((scrollTop / maxScroll) * 100)));
+    setScrollProgress((prev) => ({ ...prev, [catKey]: pct }));
+  };
+
   const fetchHierarchy = async () => {
     if (pages.length === 0) setLoading(true);
     try {
@@ -394,7 +405,7 @@ export const AdminModuleStudio: React.FC = () => {
 
       {/* Dynamic Drag & Drop Board with Zero Text Clamping & No Column Cut-offs */}
       <div
-        className={`grid gap-3 w-full pb-20 pt-1 select-none ${
+        className={`grid gap-3 w-full pb-20 pt-1 select-none items-start ${
           viewMode === '5col'
             ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 min-[1180px]:grid-cols-5'
             : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
@@ -403,6 +414,7 @@ export const AdminModuleStudio: React.FC = () => {
         {CATEGORIES.map((cat) => {
           const categoryPages = pages.filter((p) => p.category === cat.key);
           const isOverThis = dragOverCategory === cat.key;
+          const hasOverflow = categoryPages.length > 5;
 
           return (
             <div
@@ -410,7 +422,7 @@ export const AdminModuleStudio: React.FC = () => {
               onDragOver={(e) => handleDragOver(e, cat.key)}
               onDragLeave={() => handleDragLeave(cat.key)}
               onDrop={(e) => handleDrop(e, cat.key)}
-              className={`w-full rounded-2xl border transition-all duration-200 flex flex-col min-h-[460px] bg-white dark:bg-[#1A2215] shadow-xs ${
+              className={`w-full rounded-2xl border transition-all duration-200 flex flex-col bg-white dark:bg-[#1A2215] shadow-xs ${
                 isOverThis
                   ? `border-2 border-dashed ${cat.theme.dropZone} shadow-lg scale-[1.01]`
                   : cat.theme.border
@@ -428,15 +440,45 @@ export const AdminModuleStudio: React.FC = () => {
                     {cat.subtitle}
                   </p>
                 </div>
-                <span
-                  className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full font-mono shrink-0 ${cat.theme.badge}`}
-                >
-                  {categoryPages.length}
-                </span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span
+                    className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full font-mono ${cat.theme.badge}`}
+                  >
+                    {categoryPages.length}
+                  </span>
+                  {hasOverflow && (
+                    <span
+                      className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60"
+                      title="Scroll down inside this box to view remaining cards"
+                    >
+                      5 visible
+                    </span>
+                  )}
+                </div>
               </div>
 
-              {/* Draggable Pages Container - No internal clipping scrollbar */}
-              <div className="p-2.5 flex-1 space-y-2.5">
+              {/* Automatic Progress Bar - Appears whenever column has > 5 mini cards */}
+              {hasOverflow && (
+                <div className="w-full bg-slate-100 dark:bg-[#202C1B] h-1.5 overflow-hidden shrink-0 border-b border-slate-200/50 dark:border-[#2D3925]">
+                  <div
+                    className="h-full bg-emerald-500 dark:bg-[#528357] transition-all duration-150 rounded-full"
+                    style={{
+                      width: `${scrollProgress[cat.key] || Math.min(100, Math.round((5 / categoryPages.length) * 100))}%`,
+                    }}
+                    title={`Scroll Progress: ${scrollProgress[cat.key] || Math.round((5 / categoryPages.length) * 100)}%`}
+                  />
+                </div>
+              )}
+
+              {/* Draggable Pages Container - Shows max 5 mini cards, with automatic scrollbar when > 5 */}
+              <div
+                onScroll={(e) => handleColumnScroll(e, cat.key)}
+                className={`p-2.5 flex-1 space-y-2.5 ${
+                  hasOverflow
+                    ? 'max-h-[575px] overflow-y-auto custom-scrollbar pr-1.5'
+                    : ''
+                }`}
+              >
                 {categoryPages.map((page) => {
                   const Icon = ICON_MAP[page.id] || FileText;
                   const isBeingDragged = draggedItem?.id === page.id;
@@ -508,6 +550,19 @@ export const AdminModuleStudio: React.FC = () => {
                   </div>
                 )}
               </div>
+
+              {/* Column Footer Indicator if > 5 cards */}
+              {hasOverflow && (
+                <div className="px-3 py-1.5 border-t border-slate-100 dark:border-[#25321E] bg-slate-50/70 dark:bg-[#161E12]/80 flex items-center justify-between text-[10px] text-slate-500 dark:text-[#A4AC86] rounded-b-2xl shrink-0">
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Scroll to view +{categoryPages.length - 5} more</span>
+                  </span>
+                  <span className="font-mono font-bold text-[9.5px] text-emerald-600 dark:text-emerald-400">
+                    {scrollProgress[cat.key] || Math.round((5 / categoryPages.length) * 100)}%
+                  </span>
+                </div>
+              )}
             </div>
           );
         })}

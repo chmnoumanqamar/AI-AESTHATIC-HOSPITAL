@@ -333,7 +333,11 @@ html.dark body {
 html.dark [style*="background-color: rgb(255, 255, 255)"],
 html.dark [style*="background-color: #FFFFFF"],
 html.dark [style*="background-color: #ffffff"],
-html.dark .bg-white {
+html.dark .bg-white,
+html.dark .bg-white\/95,
+html.dark .bg-white\/90,
+html.dark .bg-white\/80,
+html.dark .bg-white\/75 {
   background-color: #242E1C !important;
 }
 

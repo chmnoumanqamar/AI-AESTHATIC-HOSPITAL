@@ -97,13 +97,34 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
     visibleModules = ALL_HOSPITAL_MODULES.filter(m => defaultIds.includes(m.id));
   }
 
-  // Group modules by category for clean structure
-  const categories: { key: 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN'; label: string; items: ModuleNavDef[] }[] = [
-    { key: 'CLINICAL' as const, label: 'Clinical Deck', items: visibleModules.filter(m => m.category === 'CLINICAL') },
-    { key: 'RECEPTION' as const, label: 'Front-Desk & Reception', items: visibleModules.filter(m => m.category === 'RECEPTION') },
-    { key: 'PATIENT' as const, label: 'Patient Services', items: visibleModules.filter(m => m.category === 'PATIENT') },
-    { key: 'ADMIN' as const, label: 'System Administration', items: visibleModules.filter(m => m.category === 'ADMIN') },
-  ].filter(cat => cat.items.length > 0);
+  // Map role to its primary domain category
+  const roleToCategoryKey: Record<string, 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN'> = {
+    ADMIN: 'ADMIN',
+    DOCTOR: 'CLINICAL',
+    RECEPTIONIST: 'RECEPTION',
+    PATIENT: 'PATIENT',
+  };
+
+  const primaryCategory = roleToCategoryKey[currentRole] || 'ADMIN';
+
+  // Category display order: Current role's own department is ALWAYS placed at the TOP
+  const orderedCategoryKeys: ('CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN')[] = [
+    primaryCategory,
+    ...(['ADMIN', 'CLINICAL', 'RECEPTION', 'PATIENT'] as const).filter(k => k !== primaryCategory)
+  ];
+
+  const categoryLabels: Record<'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN', string> = {
+    ADMIN: 'System Administration',
+    CLINICAL: 'Clinical Deck',
+    RECEPTION: 'Front-Desk & Reception',
+    PATIENT: 'Patient Services',
+  };
+
+  const categories = orderedCategoryKeys.map(key => ({
+    key,
+    label: categoryLabels[key],
+    items: visibleModules.filter(m => m.category === key)
+  })).filter(cat => cat.items.length > 0);
 
   const hasMultipleCategories = categories.length > 1;
 

@@ -320,7 +320,7 @@ export const AdminModuleStudio: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12">
+    <div className="space-y-4 animate-fade-in pb-2">
       {/* Header Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-[#2F3E29]">
         <div>
@@ -403,9 +403,9 @@ export const AdminModuleStudio: React.FC = () => {
         </div>
       </div>
 
-      {/* Dynamic Drag & Drop Board with Zero Text Clamping & No Column Cut-offs */}
+      {/* Dynamic Drag & Drop Board - Uniform Equal Height Across All 5 Columns */}
       <div
-        className={`grid gap-3 w-full pb-20 pt-1 select-none items-start ${
+        className={`grid gap-3 w-full pb-2 pt-1 select-none ${
           viewMode === '5col'
             ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 min-[1180px]:grid-cols-5'
             : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
@@ -422,7 +422,7 @@ export const AdminModuleStudio: React.FC = () => {
               onDragOver={(e) => handleDragOver(e, cat.key)}
               onDragLeave={() => handleDragLeave(cat.key)}
               onDrop={(e) => handleDrop(e, cat.key)}
-              className={`w-full rounded-2xl border transition-all duration-200 flex flex-col bg-white dark:bg-[#1A2215] shadow-xs ${
+              className={`w-full h-[600px] rounded-2xl border transition-all duration-200 flex flex-col bg-white dark:bg-[#1A2215] shadow-xs overflow-hidden ${
                 isOverThis
                   ? `border-2 border-dashed ${cat.theme.dropZone} shadow-lg scale-[1.01]`
                   : cat.theme.border
@@ -430,7 +430,7 @@ export const AdminModuleStudio: React.FC = () => {
             >
               {/* Department Column Header */}
               <div
-                className={`p-3.5 rounded-t-2xl border-b border-slate-100 dark:border-[#2F3E29] ${cat.theme.headerBg} flex items-start justify-between gap-1.5`}
+                className={`p-3.5 rounded-t-2xl border-b border-slate-100 dark:border-[#2F3E29] ${cat.theme.headerBg} flex items-start justify-between gap-1.5 shrink-0`}
               >
                 <div className="min-w-0 flex-1">
                   <h3 className={`font-bold text-xs sm:text-sm leading-tight truncate ${cat.theme.text}`} title={cat.title}>
@@ -470,14 +470,10 @@ export const AdminModuleStudio: React.FC = () => {
                 </div>
               )}
 
-              {/* Draggable Pages Container - Shows max 5 mini cards, with automatic scrollbar when > 5 */}
+              {/* Draggable Pages Container - Uniform flex-1 with min-h-0 so all columns align equally */}
               <div
                 onScroll={(e) => handleColumnScroll(e, cat.key)}
-                className={`p-2.5 flex-1 space-y-2.5 ${
-                  hasOverflow
-                    ? 'max-h-[575px] overflow-y-auto custom-scrollbar pr-1.5'
-                    : ''
-                }`}
+                className="p-2 sm:p-2.5 flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-2.5 flex flex-col"
               >
                 {categoryPages.map((page) => {
                   const Icon = ICON_MAP[page.id] || FileText;
@@ -488,7 +484,7 @@ export const AdminModuleStudio: React.FC = () => {
                       key={page.id}
                       draggable={true}
                       onDragStart={(e) => handleDragStart(e, page)}
-                      className={`p-3 rounded-2xl border bg-white dark:bg-[#1E2718] border-slate-200/90 dark:border-[#38482E] shadow-2xs hover:shadow-md transition-all select-none cursor-grab active:cursor-grabbing group hover:border-[#2D6A4F] dark:hover:border-[#528357] hover:-translate-y-0.5 ${
+                      className={`p-3 rounded-2xl border bg-white dark:bg-[#1E2718] border-slate-200/90 dark:border-[#38482E] shadow-2xs hover:shadow-md transition-all select-none cursor-grab active:cursor-grabbing group hover:border-[#2D6A4F] dark:hover:border-[#528357] hover:-translate-y-0.5 shrink-0 ${
                         isBeingDragged ? 'opacity-40 scale-95 border-dashed border-[#2D6A4F]' : ''
                       }`}
                     >
@@ -542,27 +538,40 @@ export const AdminModuleStudio: React.FC = () => {
                   );
                 })}
 
-                {categoryPages.length === 0 && (
-                  <div className="h-32 flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 dark:border-[#333D29] text-center p-3">
-                    <p className="text-xs text-slate-400 dark:text-[#A4AC86]">
-                      Drop pages here to assign to this department.
+                {/* Drop Target Helper when column has fewer cards */}
+                {categoryPages.length < 5 && (
+                  <div className="flex-1 min-h-[50px] flex items-center justify-center rounded-xl border border-dashed border-slate-200/60 dark:border-[#2D3925]/60 text-center p-2 mt-1">
+                    <p className="text-[10px] text-slate-400 dark:text-[#6D7762]">
+                      + Drop pages here
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* Column Footer Indicator if > 5 cards */}
-              {hasOverflow && (
-                <div className="px-3 py-1.5 border-t border-slate-100 dark:border-[#25321E] bg-slate-50/70 dark:bg-[#161E12]/80 flex items-center justify-between text-[10px] text-slate-500 dark:text-[#A4AC86] rounded-b-2xl shrink-0">
-                  <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>Scroll to view +{categoryPages.length - 5} more</span>
-                  </span>
-                  <span className="font-mono font-bold text-[9.5px] text-emerald-600 dark:text-emerald-400">
-                    {scrollProgress[cat.key] || Math.round((5 / categoryPages.length) * 100)}%
-                  </span>
-                </div>
-              )}
+              {/* Column Footer - Uniform across all columns so bottom alignment is 100% equal */}
+              <div className="px-3 py-1.5 border-t border-slate-100 dark:border-[#25321E] bg-slate-50/70 dark:bg-[#161E12]/80 flex items-center justify-between text-[10px] text-slate-500 dark:text-[#A4AC86] shrink-0 h-8">
+                {hasOverflow ? (
+                  <>
+                    <span className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>Scroll for +{categoryPages.length - 5} more</span>
+                    </span>
+                    <span className="font-mono font-bold text-[9.5px] text-emerald-600 dark:text-emerald-400">
+                      {scrollProgress[cat.key] || Math.round((5 / categoryPages.length) * 100)}%
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex items-center gap-1 text-slate-400 dark:text-[#7A866E]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-[#4A5543]" />
+                      <span>{categoryPages.length} pages assigned</span>
+                    </span>
+                    <span className="text-[9.5px] font-semibold text-slate-400 dark:text-[#7A866E]">
+                      All visible
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
           );
         })}

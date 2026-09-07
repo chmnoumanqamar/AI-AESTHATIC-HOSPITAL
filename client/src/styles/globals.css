@@ -686,3 +686,42 @@ html.dark .bg-slate-900\/50 {
   background-color: rgba(26, 34, 21, 0.75) !important;
 }
 
+/* ==========================================================================
+   SLEEK MODERN SCROLLBARS (Eliminates bulky 17px native Windows scrollbars)
+   ========================================================================== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.25);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.45);
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: rgba(164, 172, 134, 0.25);
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(164, 172, 134, 0.45);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.2);
+  border-radius: 9999px;
+}
+html.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(164, 172, 134, 0.2);
+}
+

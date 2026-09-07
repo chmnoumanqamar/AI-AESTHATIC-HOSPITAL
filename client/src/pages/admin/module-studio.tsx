@@ -26,7 +26,9 @@ import {
   ShoppingCart,
   ShieldAlert,
   Truck,
-  ArrowRight
+  ArrowRight,
+  LayoutGrid,
+  Columns3
 } from 'lucide-react';
 import { api } from '../../services/api';
 
@@ -170,6 +172,9 @@ export const AdminModuleStudio: React.FC = () => {
     targetCategory: 'ADMIN' | 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'PHARMACY';
     targetCategoryTitle: string;
   } | null>(null);
+
+  // Layout View Mode (5-Column Deck vs Wide Grid)
+  const [viewMode, setViewMode] = useState<'5col' | 'adaptive'>('5col');
 
   const fetchHierarchy = async () => {
     if (pages.length === 0) setLoading(true);
@@ -317,7 +322,35 @@ export const AdminModuleStudio: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center flex-wrap gap-2.5">
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#202C1B] p-1 rounded-xl border border-slate-200 dark:border-[#38482E]">
+            <button
+              onClick={() => setViewMode('5col')}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                viewMode === '5col'
+                  ? 'bg-white dark:bg-[#2D6A4F] text-slate-900 dark:text-white shadow-xs font-bold'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-[#A4AC86]'
+              }`}
+              title="View all 5 departments side-by-side"
+            >
+              <Columns3 className="w-3.5 h-3.5" />
+              <span>5-Col Studio</span>
+            </button>
+            <button
+              onClick={() => setViewMode('adaptive')}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                viewMode === 'adaptive'
+                  ? 'bg-white dark:bg-[#2D6A4F] text-slate-900 dark:text-white shadow-xs font-bold'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-[#A4AC86]'
+              }`}
+              title="Wide multi-column grid"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Wide Grid</span>
+            </button>
+          </div>
+
           <button
             onClick={fetchHierarchy}
             disabled={loading}
@@ -359,8 +392,14 @@ export const AdminModuleStudio: React.FC = () => {
         </div>
       </div>
 
-      {/* 5-Column Drag & Drop Board with Comfortable Widths & No Text Clamping */}
-      <div className="flex gap-4.5 overflow-x-auto pb-6 pt-1 select-none scrollbar-thin">
+      {/* Dynamic Drag & Drop Board with Zero Text Clamping & No Column Cut-offs */}
+      <div
+        className={`grid gap-3 w-full pb-20 pt-1 select-none ${
+          viewMode === '5col'
+            ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 min-[1180px]:grid-cols-5'
+            : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+        }`}
+      >
         {CATEGORIES.map((cat) => {
           const categoryPages = pages.filter((p) => p.category === cat.key);
           const isOverThis = dragOverCategory === cat.key;
@@ -371,7 +410,7 @@ export const AdminModuleStudio: React.FC = () => {
               onDragOver={(e) => handleDragOver(e, cat.key)}
               onDragLeave={() => handleDragLeave(cat.key)}
               onDrop={(e) => handleDrop(e, cat.key)}
-              className={`w-[290px] sm:w-[310px] min-w-[280px] shrink-0 rounded-2xl border transition-all duration-200 flex flex-col min-h-[580px] bg-white dark:bg-[#1A2215] shadow-xs ${
+              className={`w-full rounded-2xl border transition-all duration-200 flex flex-col min-h-[460px] bg-white dark:bg-[#1A2215] shadow-xs ${
                 isOverThis
                   ? `border-2 border-dashed ${cat.theme.dropZone} shadow-lg scale-[1.01]`
                   : cat.theme.border
@@ -379,25 +418,25 @@ export const AdminModuleStudio: React.FC = () => {
             >
               {/* Department Column Header */}
               <div
-                className={`p-4 rounded-t-2xl border-b border-slate-100 dark:border-[#2F3E29] ${cat.theme.headerBg} flex items-start justify-between gap-2`}
+                className={`p-3.5 rounded-t-2xl border-b border-slate-100 dark:border-[#2F3E29] ${cat.theme.headerBg} flex items-start justify-between gap-1.5`}
               >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className={`font-bold text-sm ${cat.theme.text}`}>{cat.title}</h3>
-                  </div>
-                  <p className="text-[11px] text-slate-500 dark:text-[#A4AC86] mt-0.5 leading-snug">
+                <div className="min-w-0 flex-1">
+                  <h3 className={`font-bold text-xs sm:text-sm leading-tight truncate ${cat.theme.text}`} title={cat.title}>
+                    {cat.title}
+                  </h3>
+                  <p className="text-[10.5px] text-slate-500 dark:text-[#A4AC86] mt-0.5 leading-tight line-clamp-1" title={cat.subtitle}>
                     {cat.subtitle}
                   </p>
                 </div>
                 <span
-                  className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full font-mono shrink-0 ${cat.theme.badge}`}
+                  className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full font-mono shrink-0 ${cat.theme.badge}`}
                 >
                   {categoryPages.length}
                 </span>
               </div>
 
-              {/* Draggable Pages Container */}
-              <div className="p-3 flex-1 space-y-3 overflow-y-auto max-h-[660px] custom-scrollbar">
+              {/* Draggable Pages Container - No internal clipping scrollbar */}
+              <div className="p-2.5 flex-1 space-y-2.5">
                 {categoryPages.map((page) => {
                   const Icon = ICON_MAP[page.id] || FileText;
                   const isBeingDragged = draggedItem?.id === page.id;
@@ -407,51 +446,62 @@ export const AdminModuleStudio: React.FC = () => {
                       key={page.id}
                       draggable={true}
                       onDragStart={(e) => handleDragStart(e, page)}
-                      className={`p-3.5 rounded-2xl border bg-white dark:bg-[#1E2718] border-slate-200/90 dark:border-[#38482E] shadow-2xs hover:shadow-md transition-all select-none cursor-grab active:cursor-grabbing group hover:border-[#2D6A4F] dark:hover:border-[#528357] hover:-translate-y-0.5 ${
+                      className={`p-3 rounded-2xl border bg-white dark:bg-[#1E2718] border-slate-200/90 dark:border-[#38482E] shadow-2xs hover:shadow-md transition-all select-none cursor-grab active:cursor-grabbing group hover:border-[#2D6A4F] dark:hover:border-[#528357] hover:-translate-y-0.5 ${
                         isBeingDragged ? 'opacity-40 scale-95 border-dashed border-[#2D6A4F]' : ''
                       }`}
                     >
-                      <div className="flex items-start gap-2.5">
-                        {/* Drag Handle Gripper */}
-                        <div className="mt-1 text-slate-300 dark:text-[#4A5543] group-hover:text-slate-600 dark:group-hover:text-[#A4AC86] transition-colors shrink-0">
-                          <GripVertical className="w-4 h-4" />
-                        </div>
-
-                        {/* Page Icon */}
-                        <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-[#25331E] flex items-center justify-center text-slate-700 dark:text-[#C2C5AA] shrink-0 border border-slate-200/60 dark:border-[#333D29] group-hover:bg-emerald-50 dark:group-hover:bg-emerald-950/40 transition-colors">
-                          <Icon className="w-4 h-4 text-[#2D6A4F] dark:text-[#74C69D]" />
-                        </div>
-
-                        {/* Page Details */}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-xs text-slate-900 dark:text-white leading-snug break-words">
-                            {page.label}
-                          </h4>
-
-                          {page.description && (
-                            <p className="text-[11px] text-slate-500 dark:text-[#A4AC86] mt-1.5 leading-relaxed break-words">
-                              {page.description}
-                            </p>
-                          )}
-
-                          <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-[#2B3824] flex items-center justify-between gap-2">
-                            <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-[#25331E] border border-slate-200/60 dark:border-[#333D29] max-w-[150px]">
-                              <span className="font-mono text-[9.5px] text-slate-500 dark:text-[#A4AC86] truncate" title={`Page ID: ${page.id}`}>
-                                {page.id}
-                              </span>
-                            </div>
-                            <span className="text-[10px] text-emerald-700 dark:text-[#74C69D] font-bold opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0">
-                              Drag <ArrowRight className="w-2.5 h-2.5" />
-                            </span>
+                      {/* Top Row: Icon + Grip on left, ID on right */}
+                      <div className="flex items-center justify-between gap-1.5 mb-2">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-7 h-7 rounded-xl bg-slate-100 dark:bg-[#25331E] flex items-center justify-center text-slate-700 dark:text-[#C2C5AA] shrink-0 border border-slate-200/60 dark:border-[#333D29] group-hover:bg-emerald-50 dark:group-hover:bg-emerald-950/40 transition-colors">
+                            <Icon className="w-3.5 h-3.5 text-[#2D6A4F] dark:text-[#74C69D]" />
+                          </div>
+                          <div className="text-slate-300 dark:text-[#4A5543] group-hover:text-slate-600 dark:group-hover:text-[#A4AC86] transition-colors shrink-0">
+                            <GripVertical className="w-3.5 h-3.5" />
                           </div>
                         </div>
+
+                        {/* ID Badge */}
+                        <span
+                          className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-[#25331E] border border-slate-200/60 dark:border-[#333D29] text-slate-500 dark:text-[#A4AC86] truncate max-w-[105px]"
+                          title={`Page ID: ${page.id}`}
+                        >
+                          {page.id}
+                        </span>
+                      </div>
+
+                      {/* Page Title: Spans 100% width, wraps cleanly */}
+                      <h4 className="font-bold text-xs text-slate-900 dark:text-white leading-snug break-words">
+                        {page.label}
+                      </h4>
+
+                      {/* Page Description: Spans 100% width, 2-line clamp */}
+                      {page.description && (
+                        <p
+                          className="text-[11px] text-slate-500 dark:text-[#A4AC86] mt-1 leading-snug line-clamp-2"
+                          title={page.description}
+                        >
+                          {page.description}
+                        </p>
+                      )}
+
+                      {/* Card Footer: Status on left, Drag hint on right */}
+                      <div className="mt-2.5 pt-1.5 border-t border-slate-100 dark:border-[#2B3824] flex items-center justify-between text-[10px]">
+                        <span className="inline-flex items-center gap-1 text-[9.5px] text-slate-400 dark:text-[#7A866E]">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          <span>Active</span>
+                        </span>
+                        <span className="text-[10px] text-emerald-700 dark:text-[#74C69D] font-bold opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 shrink-0">
+                          <span>Drag to move</span>
+                          <ArrowRight className="w-2.5 h-2.5" />
+                        </span>
                       </div>
                     </div>
                   );
                 })}
 
                 {categoryPages.length === 0 && (
-                  <div className="h-32 flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 dark:border-[#333D29] text-center p-4">
+                  <div className="h-32 flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 dark:border-[#333D29] text-center p-3">
                     <p className="text-xs text-slate-400 dark:text-[#A4AC86]">
                       Drop pages here to assign to this department.
                     </p>
@@ -462,6 +512,7 @@ export const AdminModuleStudio: React.FC = () => {
           );
         })}
       </div>
+
 
       {/* Confirmation Modal on Page Move */}
       {pendingMove && (

@@ -51,7 +51,7 @@ export const CommandDeckShell: React.FC<CommandDeckShellProps> = ({
         />
 
         {/* Main Workspace */}
-        <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full relative">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-6 max-w-[1720px] mx-auto w-full relative pb-28">
           {children}
         </div>
       </div>

@@ -75,7 +75,14 @@ export const App: React.FC = () => {
   );
   const [isInitializing, setIsInitializing] = useState(true);
 
-  function getInitialTabForRole(role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT') {
+  function getInitialTabForRole(role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT', allowedModules?: string[]) {
+    if (allowedModules && Array.isArray(allowedModules) && allowedModules.length > 0) {
+      const defaultRoleTab = role === 'DOCTOR' ? 'doctor_queue' : role === 'RECEPTIONIST' ? 'recep_desk' : role === 'PATIENT' ? 'patient_portal' : 'admin_users';
+      if (allowedModules.includes(defaultRoleTab)) {
+        return defaultRoleTab;
+      }
+      return allowedModules[0];
+    }
     if (role === 'DOCTOR') return 'doctor_queue';
     if (role === 'RECEPTIONIST') return 'recep_desk';
     if (role === 'PATIENT') return 'patient_portal';
@@ -83,8 +90,8 @@ export const App: React.FC = () => {
     return 'doctor_queue';
   }
 
-  const setDefaultTabForRole = (role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT') => {
-    setCurrentTab(getInitialTabForRole(role));
+  const setDefaultTabForRole = (role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT', allowedModules?: string[]) => {
+    setCurrentTab(getInitialTabForRole(role, allowedModules));
   };
 
   const syncUrlForRole = (role: string) => {
@@ -115,7 +122,7 @@ export const App: React.FC = () => {
         if (isMounted && user) {
           setCurrentUser(user);
           setCurrentRole(user.role);
-          setDefaultTabForRole(user.role);
+          setDefaultTabForRole(user.role, user.allowedModules);
           syncUrlForRole(user.role);
         }
       } catch (err) {
@@ -141,7 +148,7 @@ export const App: React.FC = () => {
     setAuthToken(token);
     setCurrentUser(user);
     setCurrentRole(user.role);
-    setDefaultTabForRole(user.role);
+    setDefaultTabForRole(user.role, user.allowedModules);
     syncUrlForRole(user.role);
   };
 
@@ -199,8 +206,8 @@ export const App: React.FC = () => {
       onLogout={handleLogout}
       isolatedPort={isolatedKey}
     >
-      {/* Dynamic View Switcher based on role & active tab */}
-      {currentRole === 'DOCTOR' && (
+      {/* Universal Dynamic View Switcher: decpouled from role so Admin & cross-permitted users can render any view */}
+      {currentTab.startsWith('doctor_') && (
         <DoctorDashboard
           currentUser={currentUser}
           currentTab={currentTab}
@@ -208,14 +215,14 @@ export const App: React.FC = () => {
         />
       )}
 
-      {currentRole === 'RECEPTIONIST' && (
+      {currentTab.startsWith('recep_') && (
         <ReceptionistCommandCenter
           currentTab={currentTab}
           onSelectTab={tab => setCurrentTab(tab)}
         />
       )}
 
-      {currentRole === 'PATIENT' && (
+      {currentTab.startsWith('patient_') && (
         <PatientDashboard
           currentUser={currentUser}
           currentTab={currentTab}
@@ -223,12 +230,12 @@ export const App: React.FC = () => {
         />
       )}
 
-      {currentRole === 'ADMIN' && (
+      {currentTab.startsWith('admin_') && (
         <>
           {currentTab === 'admin_users' && <AdminUserAccessView />}
           {currentTab === 'admin_audit' && <AdminAuditVault />}
           {currentTab === 'admin_queue' && <AdminQueueMonitor />}
-          {currentTab === 'admin_reports' && <ReportsAnalyticsDashboard userRole="ADMIN" />}
+          {currentTab === 'admin_reports' && <ReportsAnalyticsDashboard userRole={currentRole === 'RECEPTIONIST' ? 'RECEPTIONIST' : 'ADMIN'} />}
           {currentTab === 'admin_database' && <AdminDatabaseMaintenance />}
           {currentTab === 'admin_config' && <AdminConfigView />}
           {currentTab === 'admin_ledger' && <AdminHospitalLedger />}

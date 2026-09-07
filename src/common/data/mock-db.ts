@@ -11,9 +11,53 @@ export interface DbUser {
   isBlocked?: boolean;
   blockedReason?: string;
   blockedAt?: string;
+  allowedModules?: string[]; // Fully flexible dynamic module permissions granted by Admin
   createdAt: string;
   updatedAt: string;
 }
+
+export interface HospitalModuleDef {
+  id: string;
+  label: string;
+  category: 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN';
+  categoryLabel: string;
+  description: string;
+}
+
+export const HOSPITAL_MODULES: HospitalModuleDef[] = [
+  // Clinical / Doctor
+  { id: 'doctor_queue', label: "Today's Clinical Queue", category: 'CLINICAL', categoryLabel: 'Clinical & Doctor Deck', description: 'Live waiting queue, calling next patients & triage status' },
+  { id: 'doctor_consultation', label: 'Consultations & Rx Workspace', category: 'CLINICAL', categoryLabel: 'Clinical & Doctor Deck', description: 'Clinical encounter notes, digital prescriptions & lab investigations' },
+  { id: 'doctor_tokens', label: 'Token Allocation Matrix', category: 'CLINICAL', categoryLabel: 'Clinical & Doctor Deck', description: 'Doctor capacity limits, token slot reservation & release' },
+
+  // Front-Desk / Reception
+  { id: 'recep_desk', label: 'Queue & Patient Check-In', category: 'RECEPTION', categoryLabel: 'Front-Desk & Reception', description: 'Walk-in patient check-in, token issuance & arrival tracking' },
+  { id: 'recep_approvals', label: 'Pending Bookings Approval', category: 'RECEPTION', categoryLabel: 'Front-Desk & Reception', description: 'Authorize or decline online/WhatsApp appointment requests' },
+  { id: 'recep_pos', label: 'Front-Desk Billing POS', category: 'RECEPTION', categoryLabel: 'Front-Desk & Reception', description: 'Point of sale, consultation fee collection & invoice printing' },
+  { id: 'recep_reports', label: 'Front-Desk Analytics', category: 'RECEPTION', categoryLabel: 'Front-Desk & Reception', description: 'Daily patient throughput, check-in stats & front-desk ledger' },
+
+  // Patient Services
+  { id: 'patient_portal', label: 'My Appointments & Tokens', category: 'PATIENT', categoryLabel: 'Patient Services', description: 'View active sequential tokens, appointment dates & reschedule/cancel' },
+  { id: 'patient_booking', label: 'Book Appointment Suite', category: 'PATIENT', categoryLabel: 'Patient Services', description: '3-step appointment booking wizard for self or family members' },
+  { id: 'patient_history', label: 'Medical Records & Prescriptions', category: 'PATIENT', categoryLabel: 'Patient Services', description: 'Clinical diagnosis history, digital prescriptions & notification preferences' },
+  { id: 'patient_billing', label: 'Billing & Invoices Ledger', category: 'PATIENT', categoryLabel: 'Patient Services', description: 'Consultation charges ledger, payment records & outstanding balance' },
+
+  // System Administration
+  { id: 'admin_users', label: 'User Access & Permissions', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Staff account provisioning, blocking/unblocking & granular module access' },
+  { id: 'admin_audit', label: 'Compliance Audit Vault', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Immutable HIPAA & clinical compliance audit ledger' },
+  { id: 'admin_queue', label: 'Live System Queue Monitor', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Hospital-wide real-time queue overview & token tracking' },
+  { id: 'admin_reports', label: 'Executive Analytics & BI', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Hospital financial summaries, doctor efficiency & patient statistics' },
+  { id: 'admin_database', label: 'Database Clear & Maintenance', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Database schema diagnostics, queue cleanup & test purge' },
+  { id: 'admin_config', label: 'System Policies & Rules', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Hospital operation hours, daily limits & cancellation rules' },
+  { id: 'admin_ledger', label: 'Hospital Financial Ledger', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Hospital balance sheet, total collections & transaction log' },
+];
+
+export const ROLE_DEFAULT_MODULES: Record<string, string[]> = {
+  DOCTOR: ['doctor_queue', 'doctor_consultation', 'doctor_tokens'],
+  RECEPTIONIST: ['recep_desk', 'recep_approvals', 'recep_pos', 'recep_reports'],
+  PATIENT: ['patient_portal', 'patient_booking', 'patient_history', 'patient_billing'],
+  ADMIN: HOSPITAL_MODULES.map(m => m.id),
+};
 
 export interface DbPatient {
   id: string;

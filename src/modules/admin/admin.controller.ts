@@ -57,6 +57,27 @@ export class AdminController {
     }
   }
 
+  async updateUserPermissions(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { userId } = req.params;
+      const allowedModules = req.body.allowedModules;
+      if (!Array.isArray(allowedModules)) {
+        res.status(400).json({ status: 'ERROR', message: 'allowedModules must be an array of module strings.' });
+        return;
+      }
+      const adminActorId = req.user?.userId || 'u-admin-01';
+
+      const result = await adminService.updateUserPermissions(userId, allowedModules, adminActorId);
+      res.json({
+        status: 'SUCCESS',
+        message: 'Granular module permissions updated successfully',
+        data: result
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async createUser(req: Request, res: Response, next: NextFunction) {
     try {
       const parsed = CreateUserSchema.parse(req.body);

@@ -27,6 +27,7 @@ export class AdminService {
         isBlocked: Boolean(u.isBlocked),
         blockedReason: u.blockedReason || null,
         blockedAt: u.blockedAt || null,
+        allowedModules: u.allowedModules || [],
         createdAt: u.createdAt,
         name: displayName,
         profile
@@ -128,6 +129,41 @@ export class AdminService {
     });
 
     return user;
+  }
+
+  async updateUserPermissions(userId: string, allowedModules: string[], adminActorId: string = 'admin') {
+    const user = db.users.find(u => u.id === userId);
+    if (!user) {
+      throw AppError.notFound('User not found');
+    }
+
+    const previousModules = user.allowedModules || [];
+    user.allowedModules = Array.isArray(allowedModules) ? allowedModules : [];
+    user.updatedAt = new Date().toISOString();
+
+    recordAuditLog({
+      actorId: adminActorId,
+      actorType: 'ADMIN',
+      action: 'UPDATE_USER_PERMISSIONS',
+      resourceType: 'UserAccess',
+      resourceId: user.id,
+      previousState: { allowedModules: previousModules },
+      newState: { allowedModules: user.allowedModules },
+      metadata: { 
+        targetPhone: user.phone,
+        targetName: user.name,
+        targetRole: user.role,
+        modulesCount: user.allowedModules.length
+      }
+    });
+
+    return {
+      id: user.id,
+      phone: user.phone,
+      role: user.role,
+      name: user.name,
+      allowedModules: user.allowedModules
+    };
   }
 
   async createUser(input: CreateUserInput, adminActorId: string = 'admin') {

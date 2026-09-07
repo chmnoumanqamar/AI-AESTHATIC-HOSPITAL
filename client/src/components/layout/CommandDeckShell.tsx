@@ -38,6 +38,7 @@ export const CommandDeckShell: React.FC<CommandDeckShellProps> = ({
         isExpanded={isRailExpanded}
         onToggleExpand={() => setIsRailExpanded(!isRailExpanded)}
         onLogout={onLogout}
+        currentUser={currentUser}
       />
 
       {/* Main Workspace Area */}

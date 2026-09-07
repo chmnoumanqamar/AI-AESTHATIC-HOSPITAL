@@ -9,6 +9,7 @@ export interface JwtAuthPayload {
   email?: string;
   phone: string;
   profileId?: string; // patientId, doctorId, or receptionistId
+  allowedModules?: string[];
 }
 
 declare global {
@@ -37,7 +38,10 @@ export const authMiddleware = (req: Request, _res: Response, next: NextFunction)
       throw AppError.forbidden(`Your access has been suspended by the Administrator. Reason: ${user.blockedReason || 'Administrative security lock'}`);
     }
 
-    req.user = decoded;
+    req.user = {
+      ...decoded,
+      allowedModules: user?.allowedModules
+    };
     next();
   } catch (err: any) {
     if (err instanceof AppError) throw err;

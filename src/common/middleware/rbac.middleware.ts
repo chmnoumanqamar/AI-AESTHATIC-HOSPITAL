@@ -9,13 +9,34 @@ export const requireRoles = (...allowedRoles: UserRole[]) => {
       throw AppError.unauthorized();
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
-      throw AppError.forbidden(
-        `Role [${req.user.role}] is not authorized to access this resource. Required: [${allowedRoles.join(', ')}]`
-      );
+    // Invariant: System Administrator has supreme universal access across all modules
+    if (req.user.role === 'ADMIN') {
+      return next();
     }
 
-    next();
+    // Direct role match
+    if (allowedRoles.includes(req.user.role)) {
+      return next();
+    }
+
+    // Dynamic granular module-based permission bypass:
+    // If user was granted specific modules that match the required role domain, allow access
+    const userModules = req.user.allowedModules || [];
+    const hasGrantedModule = allowedRoles.some(role => {
+      if (role === 'DOCTOR' && userModules.some(m => m.startsWith('doctor_'))) return true;
+      if (role === 'RECEPTIONIST' && userModules.some(m => m.startsWith('recep_'))) return true;
+      if (role === 'PATIENT' && userModules.some(m => m.startsWith('patient_'))) return true;
+      if (role === 'ADMIN' && userModules.some(m => m.startsWith('admin_'))) return true;
+      return false;
+    });
+
+    if (hasGrantedModule) {
+      return next();
+    }
+
+    throw AppError.forbidden(
+      `Access Denied: Your account role [${req.user.role}] does not have authorization for this clinical module. Required: [${allowedRoles.join(', ')}]`
+    );
   };
 };
 

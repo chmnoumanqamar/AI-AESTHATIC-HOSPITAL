@@ -19,7 +19,9 @@ import {
   User,
   Lock,
   Eye,
-  EyeOff
+  EyeOff,
+  Sliders,
+  KeyRound
 } from 'lucide-react';
 import { api } from '../../services/api';
 
@@ -32,9 +34,64 @@ export interface HospitalUser {
   isBlocked: boolean;
   blockedReason?: string | null;
   blockedAt?: string | null;
+  allowedModules?: string[];
   createdAt: string;
   profile?: any;
 }
+
+export const PERMISSION_MODULE_GROUPS = [
+  {
+    category: 'CLINICAL',
+    title: 'Clinical & Doctor Deck',
+    modules: [
+      { id: 'doctor_queue', name: "Today's Clinical Queue", desc: 'Live waiting queue, calling next patients & triage status' },
+      { id: 'doctor_consultation', name: 'Consultations & Rx', desc: 'Clinical encounter notes, digital prescriptions & lab tests' },
+      { id: 'doctor_tokens', name: 'Token Matrix', desc: 'Doctor capacity limits, token slot reservation & release' },
+    ]
+  },
+  {
+    category: 'RECEPTION',
+    title: 'Front-Desk & Reception',
+    modules: [
+      { id: 'recep_desk', name: 'Queue & Check-In', desc: 'Walk-in patient check-in, token issuance & arrival tracking' },
+      { id: 'recep_approvals', name: 'Pending Bookings', desc: 'Authorize or decline online/WhatsApp appointment requests' },
+      { id: 'recep_pos', name: 'Front-Desk POS', desc: 'Point of sale, consultation fee collection & invoice printing' },
+      { id: 'recep_reports', name: 'Front-Desk Analytics', desc: 'Daily patient throughput, check-in stats & front-desk ledger' },
+    ]
+  },
+  {
+    category: 'PATIENT',
+    title: 'Patient Services',
+    modules: [
+      { id: 'patient_portal', name: 'My Appointments & Tokens', desc: 'Active tokens, upcoming visits & reschedule/cancellation' },
+      { id: 'patient_booking', name: 'Book Appointment Suite', desc: 'Appointment booking wizard for self or family members' },
+      { id: 'patient_history', name: 'Medical Records & Rx', desc: 'Diagnosis history, digital prescriptions & notification preferences' },
+      { id: 'patient_billing', name: 'Billing & Invoices', desc: 'Consultation charges ledger, payment records & balance' },
+    ]
+  },
+  {
+    category: 'ADMIN',
+    title: 'System Administration',
+    modules: [
+      { id: 'admin_users', name: 'User Access Control', desc: 'Staff account provisioning, blocking & module access' },
+      { id: 'admin_audit', name: 'Compliance Audit Vault', desc: 'Immutable HIPAA & clinical compliance audit ledger' },
+      { id: 'admin_queue', name: 'Live Queue Monitor', desc: 'Hospital-wide real-time queue overview & token tracking' },
+      { id: 'admin_reports', name: 'Executive Analytics & BI', desc: 'Financial summaries, doctor efficiency & patient statistics' },
+      { id: 'admin_database', name: 'Database Clear & Reset', desc: 'Database schema diagnostics, queue cleanup & test purge' },
+      { id: 'admin_config', name: 'System Policies & Rules', desc: 'Hospital operation hours, daily limits & cancellation rules' },
+      { id: 'admin_ledger', name: 'Hospital Financial Ledger', desc: 'Hospital balance sheet, total collections & transaction log' },
+    ]
+  }
+];
+
+export const ALL_MODULE_IDS = PERMISSION_MODULE_GROUPS.flatMap(g => g.modules.map(m => m.id));
+
+export const ROLE_DEFAULT_PERMS: Record<string, string[]> = {
+  DOCTOR: ['doctor_queue', 'doctor_consultation', 'doctor_tokens'],
+  RECEPTIONIST: ['recep_desk', 'recep_approvals', 'recep_pos', 'recep_reports'],
+  PATIENT: ['patient_portal', 'patient_booking', 'patient_history', 'patient_billing'],
+  ADMIN: ALL_MODULE_IDS,
+};
 
 export const AdminUserAccessView: React.FC = () => {
   const [users, setUsers] = useState<HospitalUser[]>([]);
@@ -48,6 +105,12 @@ export const AdminUserAccessView: React.FC = () => {
   const [blockingTargetUser, setBlockingTargetUser] = useState<HospitalUser | null>(null);
   const [blockReason, setBlockReason] = useState('Administrative compliance review');
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Granular Permissions Modal State
+  const [permissionTargetUser, setPermissionTargetUser] = useState<HospitalUser | null>(null);
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
+  const [savingPermissions, setSavingPermissions] = useState(false);
+  const [permissionsSuccessMsg, setPermissionsSuccessMsg] = useState<string | null>(null);
 
   // New User Form State
   const [newUser, setNewUser] = useState({
@@ -129,6 +192,57 @@ export const AdminUserAccessView: React.FC = () => {
       await fetchUsers();
     } catch (err: any) {
       alert(err.response?.data?.error?.message || 'Failed to update role');
+    }
+  };
+
+  const handleOpenPermissions = (user: HospitalUser) => {
+    setPermissionTargetUser(user);
+    if (user.allowedModules && Array.isArray(user.allowedModules)) {
+      setSelectedModules([...user.allowedModules]);
+    } else {
+      setSelectedModules([...(ROLE_DEFAULT_PERMS[user.role] || [])]);
+    }
+    setPermissionsSuccessMsg(null);
+  };
+
+  const handleToggleModule = (moduleId: string) => {
+    setSelectedModules(prev =>
+      prev.includes(moduleId) ? prev.filter(id => id !== moduleId) : [...prev, moduleId]
+    );
+  };
+
+  const handleSelectAllModules = () => {
+    setSelectedModules([...ALL_MODULE_IDS]);
+  };
+
+  const handleResetToRoleDefaults = () => {
+    if (!permissionTargetUser) return;
+    setSelectedModules([...(ROLE_DEFAULT_PERMS[permissionTargetUser.role] || [])]);
+  };
+
+  const handleClearAllModules = () => {
+    setSelectedModules([]);
+  };
+
+  const handleSavePermissions = async () => {
+    if (!permissionTargetUser) return;
+    setSavingPermissions(true);
+    try {
+      await api.patch(`/admin/users/${permissionTargetUser.id}/permissions`, {
+        allowedModules: selectedModules
+      });
+      setUsers(prev =>
+        prev.map(u => (u.id === permissionTargetUser.id ? { ...u, allowedModules: selectedModules } : u))
+      );
+      setPermissionsSuccessMsg('Permissions updated and applied successfully!');
+      setTimeout(() => {
+        setPermissionTargetUser(null);
+        setPermissionsSuccessMsg(null);
+      }, 700);
+    } catch (err: any) {
+      alert(err.response?.data?.error?.message || 'Failed to update user permissions');
+    } finally {
+      setSavingPermissions(false);
     }
   };
 
@@ -295,6 +409,7 @@ export const AdminUserAccessView: React.FC = () => {
                 <th className="py-3 px-5">User Name & Identity</th>
                 <th className="py-3 px-5">Contact Details</th>
                 <th className="py-3 px-5">Assigned Role</th>
+                <th className="py-3 px-5">Module Permissions</th>
                 <th className="py-3 px-5">Access Status</th>
                 <th className="py-3 px-5 text-right">Access Controls</th>
               </tr>
@@ -378,6 +493,25 @@ export const AdminUserAccessView: React.FC = () => {
                       </select>
                     </td>
 
+                    {/* Module Permissions */}
+                    <td className="py-3.5 px-5">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenPermissions(user)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 dark:bg-[#203622] dark:hover:bg-[#2A482D] text-emerald-800 dark:text-[#74C69D] border border-emerald-200 dark:border-[#2D6A4F] transition-all cursor-pointer shadow-2xs"
+                        title="Configure Granular Module Permissions"
+                      >
+                        <Sliders className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span>
+                          {user.allowedModules && user.allowedModules.length > 0
+                            ? `${user.allowedModules.length} Modules`
+                            : user.role === 'ADMIN'
+                            ? 'All 18 Modules'
+                            : 'Role Default'}
+                        </span>
+                      </button>
+                    </td>
+
                     {/* Status Badge */}
                     <td className="py-3.5 px-5">
                       {user.isBlocked ? (
@@ -430,7 +564,7 @@ export const AdminUserAccessView: React.FC = () => {
 
               {users.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-400 text-sm font-medium">
+                  <td colSpan={6} className="py-12 text-center text-slate-400 text-sm font-medium">
                     No matching users found for this filter query.
                   </td>
                 </tr>
@@ -701,6 +835,184 @@ export const AdminUserAccessView: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Granular Module Permissions */}
+      {permissionTargetUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs animate-fade-in">
+          <div className="w-full max-w-3xl max-h-[90vh] bg-white dark:bg-[#1A2215] border border-slate-200 dark:border-[#2F3E29] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-200 dark:border-[#2F3E29] flex items-center justify-between shrink-0 bg-slate-50/60 dark:bg-[#161E12]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-700 dark:text-emerald-400 shrink-0">
+                  <Sliders className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                      Granular Module Permissions
+                    </h3>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase bg-slate-200 dark:bg-[#202C1B] text-slate-700 dark:text-[#A4AC86]">
+                      {permissionTargetUser.role}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-[#A4AC86] mt-0.5">
+                    Assign any single module or multi-role combination to <span className="font-semibold text-slate-800 dark:text-white">{permissionTargetUser.name}</span> ({permissionTargetUser.phone})
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setPermissionTargetUser(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#202C1B] transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Quick Actions & Module Counter Toolbar */}
+            <div className="px-5 py-3 border-b border-slate-200 dark:border-[#2F3E29] flex flex-wrap items-center justify-between gap-3 bg-slate-50/40 dark:bg-[#131A10]">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-slate-500 dark:text-[#A4AC86]">Active Scope:</span>
+                <span className="font-bold font-mono px-2.5 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-2xs">
+                  {selectedModules.length} of {ALL_MODULE_IDS.length} Modules Granted
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSelectAllModules}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-[#202C1B] border border-slate-200 dark:border-[#38482E] text-slate-700 dark:text-[#C2C5AA] hover:bg-slate-100 dark:hover:bg-[#2A3924] transition-colors cursor-pointer"
+                >
+                  Grant All (18)
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResetToRoleDefaults}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-[#202C1B] border border-slate-200 dark:border-[#38482E] text-slate-700 dark:text-[#C2C5AA] hover:bg-slate-100 dark:hover:bg-[#2A3924] transition-colors cursor-pointer"
+                >
+                  Reset to Role Defaults
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearAllModules}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-[#202C1B] border border-slate-200 dark:border-[#38482E] text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                >
+                  Clear All
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Module Selector Grid */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-5 custom-scrollbar">
+              {permissionsSuccessMsg && (
+                <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs font-bold flex items-center gap-2 animate-fade-in">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{permissionsSuccessMsg}</span>
+                </div>
+              )}
+
+              {PERMISSION_MODULE_GROUPS.map(group => {
+                const groupSelectedCount = group.modules.filter(m => selectedModules.includes(m.id)).length;
+                const isAllGroupSelected = groupSelectedCount === group.modules.length;
+
+                return (
+                  <div key={group.category} className="space-y-2.5">
+                    <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-[#2F3E29]">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-extrabold uppercase tracking-wider text-[#1B4332] dark:text-[#74C69D]">
+                          {group.title}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          ({groupSelectedCount}/{group.modules.length} active)
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isAllGroupSelected) {
+                            setSelectedModules(prev => prev.filter(id => !group.modules.some(m => m.id === id)));
+                          } else {
+                            const groupIds = group.modules.map(m => m.id);
+                            setSelectedModules(prev => Array.from(new Set([...prev, ...groupIds])));
+                          }
+                        }}
+                        className="text-[11px] font-semibold text-sky-600 dark:text-sky-400 hover:underline cursor-pointer"
+                      >
+                        {isAllGroupSelected ? 'Deselect Category' : 'Select All in Category'}
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {group.modules.map(module => {
+                        const isChecked = selectedModules.includes(module.id);
+                        return (
+                          <div
+                            key={module.id}
+                            onClick={() => handleToggleModule(module.id)}
+                            className={`p-3 rounded-xl border transition-all cursor-pointer select-none flex items-start gap-3 ${
+                              isChecked
+                                ? 'bg-[#E8F3EB] dark:bg-[#203622] border-[#2D6A4F] dark:border-[#406343] shadow-xs ring-1 ring-[#2D6A4F]/20'
+                                : 'bg-white dark:bg-[#192215] border-slate-200 dark:border-[#2F3E29] hover:border-slate-300 dark:hover:border-[#38482E]'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {}} // handled by parent onClick
+                              className="mt-0.5 rounded border-slate-300 text-[#2D6A4F] focus:ring-[#2D6A4F] cursor-pointer"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center justify-between">
+                                <span>{module.name}</span>
+                                <span className="text-[10px] font-mono text-slate-400 dark:text-[#A4AC86]">
+                                  {module.id}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-500 dark:text-[#A4AC86] mt-0.5 leading-snug">
+                                {module.desc}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-200 dark:border-[#2F3E29] flex items-center justify-end gap-2.5 shrink-0 bg-slate-50/60 dark:bg-[#161E12]">
+              <button
+                type="button"
+                onClick={() => setPermissionTargetUser(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] hover:bg-slate-100 dark:hover:bg-[#202C1B] border border-slate-200 dark:border-[#38482E] transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={savingPermissions}
+                onClick={handleSavePermissions}
+                className="clinical-button-primary px-5 py-2 text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                {savingPermissions ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Applying Permissions...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+                    <span>Apply & Save Permissions</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

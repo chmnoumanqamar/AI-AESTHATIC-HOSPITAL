@@ -12,6 +12,7 @@ router.use(requireRoles('ADMIN'));
 router.get('/users', (req, res, next) => adminController.getUsers(req, res, next));
 router.patch('/users/:userId/access', (req, res, next) => adminController.updateUserAccess(req, res, next));
 router.patch('/users/:userId/role', (req, res, next) => adminController.updateUserRole(req, res, next));
+router.patch('/users/:userId/permissions', (req, res, next) => adminController.updateUserPermissions(req, res, next));
 router.post('/users', (req, res, next) => adminController.createUser(req, res, next));
 
 // Database Maintenance & Purge

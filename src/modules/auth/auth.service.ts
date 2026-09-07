@@ -53,7 +53,8 @@ export class AuthService {
       role: user.role,
       phone: user.phone,
       email: user.email,
-      profileId
+      profileId,
+      allowedModules: user.allowedModules
     };
 
     const token = jwt.sign(tokenPayload, ENV.JWT_SECRET, {
@@ -69,7 +70,8 @@ export class AuthService {
         name: user.name || profileData?.name || profileData?.fullName || (user.role === 'ADMIN' ? 'Root Administrator' : 'Staff Member'),
         role: user.role,
         profileId,
-        profile: profileData
+        profile: profileData,
+        allowedModules: user.allowedModules
       }
     };
   }
@@ -205,7 +207,8 @@ export class AuthService {
       name: user.name || profileData?.name || profileData?.fullName || (user.role === 'ADMIN' ? 'Root Administrator' : 'Staff Member'),
       role: user.role,
       profileId,
-      profile: profileData
+      profile: profileData,
+      allowedModules: user.allowedModules
     };
   }
 

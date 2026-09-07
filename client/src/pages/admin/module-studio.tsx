@@ -411,7 +411,7 @@ export const AdminModuleStudio: React.FC = () => {
 
       {/* Dynamic Drag & Drop Board - Uniform Equal Height Across All 5 Columns */}
       <div
-        className={`grid gap-3 w-full pb-2 pt-1 select-none ${
+        className={`grid gap-3 w-full pb-2 pt-1 select-none items-start ${
           viewMode === '5col'
             ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 min-[1180px]:grid-cols-5'
             : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
@@ -430,13 +430,13 @@ export const AdminModuleStudio: React.FC = () => {
               onDrop={(e) => handleDrop(e, cat.key)}
               className={`w-full h-[600px] rounded-2xl border transition-all duration-200 flex flex-col bg-white dark:bg-[#1A2215] shadow-xs overflow-hidden ${
                 isOverThis
-                  ? `border-2 border-dashed ${cat.theme.dropZone} shadow-lg scale-[1.01]`
+                  ? `border-2 border-dashed ${cat.theme.dropZone} shadow-lg ring-2 ring-emerald-500/50`
                   : cat.theme.border
               }`}
             >
-              {/* Department Column Header */}
+              {/* Department Column Header - Uniform min-h-[76px] for razor-sharp alignment */}
               <div
-                className={`p-3.5 rounded-t-2xl ${cat.theme.headerBg} flex items-start justify-between gap-2 shrink-0`}
+                className={`p-3.5 rounded-t-2xl ${cat.theme.headerBg} flex items-start justify-between gap-2 shrink-0 min-h-[76px]`}
               >
                 <div className="min-w-0 flex-1">
                   <h3 className={`font-extrabold text-xs sm:text-[13px] leading-tight break-words ${cat.theme.text}`} title={cat.title}>

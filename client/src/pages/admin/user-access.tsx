@@ -74,6 +74,7 @@ export const PERMISSION_MODULE_GROUPS = [
     title: 'System Administration',
     modules: [
       { id: 'admin_users', name: 'User Access Control', desc: 'Staff account provisioning, blocking & module access' },
+      { id: 'admin_studio', name: 'Module & Page Studio', desc: 'Interactive drag-and-drop workspace to reassign and structure hospital pages across modules' },
       { id: 'admin_audit', name: 'Compliance Audit Vault', desc: 'Immutable HIPAA & clinical compliance audit ledger' },
       { id: 'admin_queue', name: 'Live Queue Monitor', desc: 'Hospital-wide real-time queue overview & token tracking' },
       { id: 'admin_reports', name: 'Executive Analytics & BI', desc: 'Financial summaries, doctor efficiency & patient statistics' },

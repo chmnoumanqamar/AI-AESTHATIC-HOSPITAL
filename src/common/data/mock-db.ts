@@ -44,6 +44,7 @@ export const HOSPITAL_MODULES: HospitalModuleDef[] = [
 
   // System Administration
   { id: 'admin_users', label: 'User Access & Permissions', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Staff account provisioning, blocking/unblocking & granular module access' },
+  { id: 'admin_studio', label: 'Module & Page Studio', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Interactive drag-and-drop workspace to reassign and structure hospital pages across modules' },
   { id: 'admin_audit', label: 'Compliance Audit Vault', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Immutable HIPAA & clinical compliance audit ledger' },
   { id: 'admin_queue', label: 'Live System Queue Monitor', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Hospital-wide real-time queue overview & token tracking' },
   { id: 'admin_reports', label: 'Executive Analytics & BI', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Hospital financial summaries, doctor efficiency & patient statistics' },
@@ -257,6 +258,7 @@ class InMemoryHospitalDatabase {
   doctorPatientRelationships: DbDoctorPatientRelationship[] = [];
   payments: DbPayment[] = [];
   notificationLogs: DbNotificationLog[] = [];
+  moduleHierarchy: HospitalModuleDef[] = [...HOSPITAL_MODULES];
   systemSettings: DbSystemSettings = {
     whatsappBotEnabled: true,
     hospitalWhatsAppNumber: '+92 300 7654321',
@@ -269,6 +271,31 @@ class InMemoryHospitalDatabase {
 
   constructor() {
     this.seedDefaultData();
+  }
+
+  getModuleHierarchy(): HospitalModuleDef[] {
+    return this.moduleHierarchy;
+  }
+
+  movePageModule(pageId: string, targetCategory: 'ADMIN' | 'CLINICAL' | 'RECEPTION' | 'PATIENT') {
+    const page = this.moduleHierarchy.find(m => m.id === pageId);
+    if (!page) {
+      throw new Error(`Page with ID ${pageId} not found`);
+    }
+    const categoryLabels: Record<'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN', string> = {
+      ADMIN: 'System Administration',
+      CLINICAL: 'Clinical & Doctor Deck',
+      RECEPTION: 'Front-Desk & Reception',
+      PATIENT: 'Patient Services',
+    };
+    page.category = targetCategory;
+    page.categoryLabel = categoryLabels[targetCategory] || targetCategory;
+    return page;
+  }
+
+  resetModuleHierarchy() {
+    this.moduleHierarchy = HOSPITAL_MODULES.map(m => ({ ...m }));
+    return this.moduleHierarchy;
   }
 
   private seedDefaultData() {

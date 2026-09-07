@@ -166,6 +166,59 @@ export class AdminService {
     };
   }
 
+  async getModuleHierarchy() {
+    return db.getModuleHierarchy();
+  }
+
+  async movePageModule(pageId: string, targetCategory: 'ADMIN' | 'CLINICAL' | 'RECEPTION' | 'PATIENT', adminActorId: string = 'admin') {
+    const validCategories = ['ADMIN', 'CLINICAL', 'RECEPTION', 'PATIENT'];
+    if (!validCategories.includes(targetCategory)) {
+      throw AppError.badRequest(`Invalid target department: ${targetCategory}`);
+    }
+
+    const previousPage = db.getModuleHierarchy().find(m => m.id === pageId);
+    if (!previousPage) {
+      throw AppError.notFound(`Page with ID ${pageId} does not exist`);
+    }
+
+    const previousCategory = previousPage.category;
+    const updatedPage = db.movePageModule(pageId, targetCategory);
+
+    recordAuditLog({
+      actorId: adminActorId,
+      actorType: 'ADMIN',
+      action: 'MOVE_PAGE_MODULE',
+      resourceType: 'ModuleHierarchy',
+      resourceId: pageId,
+      previousState: { category: previousCategory },
+      newState: { category: targetCategory },
+      metadata: {
+        pageId,
+        pageTitle: updatedPage.label,
+        sourceDepartment: previousCategory,
+        targetDepartment: targetCategory
+      }
+    });
+
+    return {
+      movedPage: updatedPage,
+      hierarchy: db.getModuleHierarchy()
+    };
+  }
+
+  async resetModuleHierarchy(adminActorId: string = 'admin') {
+    const hierarchy = db.resetModuleHierarchy();
+    recordAuditLog({
+      actorId: adminActorId,
+      actorType: 'ADMIN',
+      action: 'RESET_MODULE_HIERARCHY',
+      resourceType: 'ModuleHierarchy',
+      resourceId: 'ALL',
+      metadata: { restoredCount: hierarchy.length }
+    });
+    return hierarchy;
+  }
+
   async createUser(input: CreateUserInput, adminActorId: string = 'admin') {
     const existing = db.users.find(
       u => u.phone === input.phone || (input.email && u.email?.toLowerCase() === input.email.toLowerCase())

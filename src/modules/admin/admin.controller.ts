@@ -121,6 +121,53 @@ export class AdminController {
       next(err);
     }
   }
+
+  async getModuleHierarchy(req: Request, res: Response, next: NextFunction) {
+    try {
+      const hierarchy = await adminService.getModuleHierarchy();
+      res.json({
+        status: 'SUCCESS',
+        data: hierarchy
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async movePageModule(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { pageId, targetCategory } = req.body;
+      if (!pageId || !targetCategory) {
+        return res.status(400).json({
+          status: 'ERROR',
+          message: 'pageId and targetCategory are required'
+        });
+      }
+      const adminActorId = req.user?.userId || 'u-admin-01';
+      const result = await adminService.movePageModule(pageId, targetCategory, adminActorId);
+      res.json({
+        status: 'SUCCESS',
+        message: `Page successfully moved to ${targetCategory}`,
+        data: result
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async resetModuleHierarchy(req: Request, res: Response, next: NextFunction) {
+    try {
+      const adminActorId = req.user?.userId || 'u-admin-01';
+      const hierarchy = await adminService.resetModuleHierarchy(adminActorId);
+      res.json({
+        status: 'SUCCESS',
+        message: 'Module hierarchy reset to system defaults',
+        data: hierarchy
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const adminController = new AdminController();

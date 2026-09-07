@@ -9,6 +9,7 @@ import { AdminUserAccessView } from './pages/admin/user-access';
 import { AdminQueueMonitor } from './pages/admin/queue-monitor';
 import { AdminHospitalLedger } from './pages/admin/ledger';
 import { AdminDatabaseMaintenance } from './pages/admin/database-maintenance';
+import { AdminModuleStudio } from './pages/admin/module-studio';
 import { ReportsAnalyticsDashboard } from './components/reports/ReportsAnalyticsDashboard';
 import { LoginView } from './pages/auth/login';
 import { api } from './services/api';
@@ -233,6 +234,7 @@ export const App: React.FC = () => {
       {currentTab.startsWith('admin_') && (
         <>
           {currentTab === 'admin_users' && <AdminUserAccessView />}
+          {currentTab === 'admin_studio' && <AdminModuleStudio />}
           {currentTab === 'admin_audit' && <AdminAuditVault />}
           {currentTab === 'admin_queue' && <AdminQueueMonitor />}
           {currentTab === 'admin_reports' && <ReportsAnalyticsDashboard userRole={currentRole === 'RECEPTIONIST' ? 'RECEPTIONIST' : 'ADMIN'} />}

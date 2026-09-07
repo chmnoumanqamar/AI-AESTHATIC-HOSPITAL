@@ -61,6 +61,25 @@ export const ALL_HOSPITAL_MODULES: ModuleNavDef[] = [
   { id: 'admin_ledger', label: 'Hospital Ledger', category: 'ADMIN', categoryLabel: 'System Administration', icon: CreditCard },
 ];
 
+// Read cached dynamic hierarchy from localStorage to eliminate flicker and sync instantly
+export const getStoredHierarchy = (): ModuleNavDef[] => {
+  try {
+    const raw = localStorage.getItem('hospital_dynamic_hierarchy');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return ALL_HOSPITAL_MODULES.map(staticDef => {
+          const matched = parsed.find((p: any) => p.id === staticDef.id);
+          return matched ? { ...staticDef, category: matched.category, categoryLabel: matched.categoryLabel } : staticDef;
+        });
+      }
+    }
+  } catch (e) {
+    // Ignore error
+  }
+  return ALL_HOSPITAL_MODULES;
+};
+
 export const ROLE_DEFAULT_IDS: Record<string, string[]> = {
   DOCTOR: ['doctor_queue', 'doctor_consultation', 'doctor_tokens'],
   RECEPTIONIST: ['recep_desk', 'recep_approvals', 'recep_pos', 'recep_reports'],
@@ -88,7 +107,7 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
   currentUser
 }) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [modulesRegistry, setModulesRegistry] = useState<ModuleNavDef[]>(ALL_HOSPITAL_MODULES);
+  const [modulesRegistry, setModulesRegistry] = useState<ModuleNavDef[]>(getStoredHierarchy);
 
   // Drag & Drop State in Sidebar
   const [draggedSidebarItem, setDraggedSidebarItem] = useState<ModuleNavDef | null>(null);
@@ -100,16 +119,22 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
     targetCategoryLabel: string;
   } | null>(null);
 
-  // Sync with backend dynamic hierarchy
+  // Sync with backend dynamic hierarchy & cross-tab localStorage
   useEffect(() => {
+    const applyHierarchy = (data: any[]) => {
+      if (!Array.isArray(data)) return;
+      setModulesRegistry(prev => prev.map(m => {
+        const found = data.find((d: any) => d.id === m.id);
+        return found ? { ...m, category: found.category, categoryLabel: found.categoryLabel } : m;
+      }));
+    };
+
     const fetchDynamicHierarchy = async () => {
       try {
         const res = await api.get('/admin/hierarchy');
         if (res.data?.data && Array.isArray(res.data.data)) {
-          setModulesRegistry(prev => prev.map(m => {
-            const found = res.data.data.find((d: any) => d.id === m.id);
-            return found ? { ...m, category: found.category, categoryLabel: found.categoryLabel } : m;
-          }));
+          applyHierarchy(res.data.data);
+          localStorage.setItem('hospital_dynamic_hierarchy', JSON.stringify(res.data.data));
         }
       } catch (err) {
         // Fallback to static defaults
@@ -120,16 +145,39 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
 
     const handleUpdate = (e: any) => {
       if (e.detail && Array.isArray(e.detail)) {
-        setModulesRegistry(prev => prev.map(m => {
-          const found = e.detail.find((d: any) => d.id === m.id);
-          return found ? { ...m, category: found.category, categoryLabel: found.categoryLabel } : m;
-        }));
+        applyHierarchy(e.detail);
+        localStorage.setItem('hospital_dynamic_hierarchy', JSON.stringify(e.detail));
+      }
+    };
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'hospital_dynamic_hierarchy' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          applyHierarchy(parsed);
+        } catch (err) {
+          // ignore
+        }
       }
     };
 
     window.addEventListener('hospital_hierarchy_updated', handleUpdate);
-    return () => window.removeEventListener('hospital_hierarchy_updated', handleUpdate);
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('hospital_hierarchy_updated', handleUpdate);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
+
+  // Map role to its primary domain category
+  const roleToCategoryKey: Record<string, 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN'> = {
+    ADMIN: 'ADMIN',
+    DOCTOR: 'CLINICAL',
+    RECEPTIONIST: 'RECEPTION',
+    PATIENT: 'PATIENT',
+  };
+
+  const primaryCategory = roleToCategoryKey[currentRole] || 'ADMIN';
 
   // Compute active modules based on permissions
   let visibleModules: ModuleNavDef[] = [];
@@ -141,20 +189,11 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
     // User has custom granular permissions assigned by Admin
     visibleModules = modulesRegistry.filter(m => currentUser.allowedModules.includes(m.id));
   } else {
-    // Fallback to role defaults
-    const defaultIds = ROLE_DEFAULT_IDS[currentRole] || [];
-    visibleModules = modulesRegistry.filter(m => defaultIds.includes(m.id));
+    // Dynamic role department membership:
+    // Any page whose category matches this role's department is automatically visible!
+    // When a page is moved into or out of this department, it dynamically reflects in real-time!
+    visibleModules = modulesRegistry.filter(m => m.category === primaryCategory);
   }
-
-  // Map role to its primary domain category
-  const roleToCategoryKey: Record<string, 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN'> = {
-    ADMIN: 'ADMIN',
-    DOCTOR: 'CLINICAL',
-    RECEPTIONIST: 'RECEPTION',
-    PATIENT: 'PATIENT',
-  };
-
-  const primaryCategory = roleToCategoryKey[currentRole] || 'ADMIN';
 
   // Category display order: Current role's own department is ALWAYS placed at the TOP
   const orderedCategoryKeys: ('CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN')[] = [
@@ -223,6 +262,7 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
       });
 
       const updatedHierarchy = res.data.data.hierarchy;
+      localStorage.setItem('hospital_dynamic_hierarchy', JSON.stringify(updatedHierarchy));
       setModulesRegistry(prev => prev.map(m => {
         const found = updatedHierarchy.find((d: any) => d.id === m.id);
         return found ? { ...m, category: found.category, categoryLabel: found.categoryLabel } : m;

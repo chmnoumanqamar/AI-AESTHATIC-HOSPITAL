@@ -24,7 +24,7 @@ export interface HospitalModuleDef {
   description: string;
 }
 
-export const HOSPITAL_MODULES: HospitalModuleDef[] = [
+export const ORIGINAL_HOSPITAL_MODULES: readonly HospitalModuleDef[] = [
   // Clinical / Doctor
   { id: 'doctor_queue', label: "Today's Clinical Queue", category: 'CLINICAL', categoryLabel: 'Clinical & Doctor Deck', description: 'Live waiting queue, calling next patients & triage status' },
   { id: 'doctor_consultation', label: 'Consultations & Rx Workspace', category: 'CLINICAL', categoryLabel: 'Clinical & Doctor Deck', description: 'Clinical encounter notes, digital prescriptions & lab investigations' },
@@ -52,6 +52,8 @@ export const HOSPITAL_MODULES: HospitalModuleDef[] = [
   { id: 'admin_config', label: 'System Policies & Rules', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Hospital operation hours, daily limits & cancellation rules' },
   { id: 'admin_ledger', label: 'Hospital Financial Ledger', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Hospital balance sheet, total collections & transaction log' },
 ];
+
+export const HOSPITAL_MODULES: HospitalModuleDef[] = ORIGINAL_HOSPITAL_MODULES.map(m => ({ ...m }));
 
 export const ROLE_DEFAULT_MODULES: Record<string, string[]> = {
   DOCTOR: ['doctor_queue', 'doctor_consultation', 'doctor_tokens'],
@@ -258,7 +260,7 @@ class InMemoryHospitalDatabase {
   doctorPatientRelationships: DbDoctorPatientRelationship[] = [];
   payments: DbPayment[] = [];
   notificationLogs: DbNotificationLog[] = [];
-  moduleHierarchy: HospitalModuleDef[] = [...HOSPITAL_MODULES];
+  moduleHierarchy: HospitalModuleDef[] = ORIGINAL_HOSPITAL_MODULES.map(m => ({ ...m }));
   systemSettings: DbSystemSettings = {
     whatsappBotEnabled: true,
     hospitalWhatsAppNumber: '+92 300 7654321',
@@ -294,7 +296,7 @@ class InMemoryHospitalDatabase {
   }
 
   resetModuleHierarchy() {
-    this.moduleHierarchy = HOSPITAL_MODULES.map(m => ({ ...m }));
+    this.moduleHierarchy = ORIGINAL_HOSPITAL_MODULES.map(m => ({ ...m }));
     return this.moduleHierarchy;
   }
 

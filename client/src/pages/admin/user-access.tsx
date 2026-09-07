@@ -39,53 +39,39 @@ export interface HospitalUser {
   profile?: any;
 }
 
-export const PERMISSION_MODULE_GROUPS = [
-  {
-    category: 'CLINICAL',
-    title: 'Clinical & Doctor Deck',
-    modules: [
-      { id: 'doctor_queue', name: "Today's Clinical Queue", desc: 'Live waiting queue, calling next patients & triage status' },
-      { id: 'doctor_consultation', name: 'Consultations & Rx', desc: 'Clinical encounter notes, digital prescriptions & lab tests' },
-      { id: 'doctor_tokens', name: 'Token Matrix', desc: 'Doctor capacity limits, token slot reservation & release' },
-    ]
-  },
-  {
-    category: 'RECEPTION',
-    title: 'Front-Desk & Reception',
-    modules: [
-      { id: 'recep_desk', name: 'Queue & Check-In', desc: 'Walk-in patient check-in, token issuance & arrival tracking' },
-      { id: 'recep_approvals', name: 'Pending Bookings', desc: 'Authorize or decline online/WhatsApp appointment requests' },
-      { id: 'recep_pos', name: 'Front-Desk POS', desc: 'Point of sale, consultation fee collection & invoice printing' },
-      { id: 'recep_reports', name: 'Front-Desk Analytics', desc: 'Daily patient throughput, check-in stats & front-desk ledger' },
-    ]
-  },
-  {
-    category: 'PATIENT',
-    title: 'Patient Services',
-    modules: [
-      { id: 'patient_portal', name: 'My Appointments & Tokens', desc: 'Active tokens, upcoming visits & reschedule/cancellation' },
-      { id: 'patient_booking', name: 'Book Appointment Suite', desc: 'Appointment booking wizard for self or family members' },
-      { id: 'patient_history', name: 'Medical Records & Rx', desc: 'Diagnosis history, digital prescriptions & notification preferences' },
-      { id: 'patient_billing', name: 'Billing & Invoices', desc: 'Consultation charges ledger, payment records & balance' },
-    ]
-  },
-  {
-    category: 'ADMIN',
-    title: 'System Administration',
-    modules: [
-      { id: 'admin_users', name: 'User Access Control', desc: 'Staff account provisioning, blocking & module access' },
-      { id: 'admin_studio', name: 'Module & Page Studio', desc: 'Interactive drag-and-drop workspace to reassign and structure hospital pages across modules' },
-      { id: 'admin_audit', name: 'Compliance Audit Vault', desc: 'Immutable HIPAA & clinical compliance audit ledger' },
-      { id: 'admin_queue', name: 'Live Queue Monitor', desc: 'Hospital-wide real-time queue overview & token tracking' },
-      { id: 'admin_reports', name: 'Executive Analytics & BI', desc: 'Financial summaries, doctor efficiency & patient statistics' },
-      { id: 'admin_database', name: 'Database Clear & Reset', desc: 'Database schema diagnostics, queue cleanup & test purge' },
-      { id: 'admin_config', name: 'System Policies & Rules', desc: 'Hospital operation hours, daily limits & cancellation rules' },
-      { id: 'admin_ledger', name: 'Hospital Financial Ledger', desc: 'Hospital balance sheet, total collections & transaction log' },
-    ]
-  }
+export interface ModuleCatalogItem {
+  id: string;
+  name: string;
+  desc: string;
+  defaultCategory: 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN';
+}
+
+export const ALL_HOSPITAL_PAGE_ITEMS: ModuleCatalogItem[] = [
+  { id: 'doctor_queue', name: "Today's Clinical Queue", desc: 'Live waiting queue, calling next patients & triage status', defaultCategory: 'CLINICAL' },
+  { id: 'doctor_consultation', name: 'Consultations & Rx', desc: 'Clinical encounter notes, digital prescriptions & lab tests', defaultCategory: 'CLINICAL' },
+  { id: 'doctor_tokens', name: 'Token Matrix', desc: 'Doctor capacity limits, token slot reservation & release', defaultCategory: 'CLINICAL' },
+
+  { id: 'recep_desk', name: 'Queue & Check-In', desc: 'Walk-in patient check-in, token issuance & arrival tracking', defaultCategory: 'RECEPTION' },
+  { id: 'recep_approvals', name: 'Pending Bookings', desc: 'Authorize or decline online/WhatsApp appointment requests', defaultCategory: 'RECEPTION' },
+  { id: 'recep_pos', name: 'Front-Desk POS', desc: 'Point of sale, consultation fee collection & invoice printing', defaultCategory: 'RECEPTION' },
+  { id: 'recep_reports', name: 'Front-Desk Analytics', desc: 'Daily patient throughput, check-in stats & front-desk ledger', defaultCategory: 'RECEPTION' },
+
+  { id: 'patient_portal', name: 'My Appointments & Tokens', desc: 'Active tokens, upcoming visits & reschedule/cancellation', defaultCategory: 'PATIENT' },
+  { id: 'patient_booking', name: 'Book Appointment Suite', desc: 'Appointment booking wizard for self or family members', defaultCategory: 'PATIENT' },
+  { id: 'patient_history', name: 'Medical Records & Rx', desc: 'Diagnosis history, digital prescriptions & notification preferences', defaultCategory: 'PATIENT' },
+  { id: 'patient_billing', name: 'Billing & Invoices', desc: 'Consultation charges ledger, payment records & balance', defaultCategory: 'PATIENT' },
+
+  { id: 'admin_users', name: 'User Access Control', desc: 'Staff account provisioning, blocking & module access', defaultCategory: 'ADMIN' },
+  { id: 'admin_studio', name: 'Module & Page Studio', desc: 'Interactive drag-and-drop workspace to reassign and structure hospital pages across modules', defaultCategory: 'ADMIN' },
+  { id: 'admin_audit', name: 'Compliance Audit Vault', desc: 'Immutable HIPAA & clinical compliance audit ledger', defaultCategory: 'ADMIN' },
+  { id: 'admin_queue', name: 'Live Queue Monitor', desc: 'Hospital-wide real-time queue overview & token tracking', defaultCategory: 'ADMIN' },
+  { id: 'admin_reports', name: 'Executive Analytics & BI', desc: 'Financial summaries, doctor efficiency & patient statistics', defaultCategory: 'ADMIN' },
+  { id: 'admin_database', name: 'Database Clear & Reset', desc: 'Database schema diagnostics, queue cleanup & test purge', defaultCategory: 'ADMIN' },
+  { id: 'admin_config', name: 'System Policies & Rules', desc: 'Hospital operation hours, daily limits & cancellation rules', defaultCategory: 'ADMIN' },
+  { id: 'admin_ledger', name: 'Hospital Financial Ledger', desc: 'Hospital balance sheet, total collections & transaction log', defaultCategory: 'ADMIN' },
 ];
 
-export const ALL_MODULE_IDS = PERMISSION_MODULE_GROUPS.flatMap(g => g.modules.map(m => m.id));
+export const ALL_MODULE_IDS = ALL_HOSPITAL_PAGE_ITEMS.map(m => m.id);
 
 export const ROLE_DEFAULT_PERMS: Record<string, string[]> = {
   DOCTOR: ['doctor_queue', 'doctor_consultation', 'doctor_tokens'],
@@ -196,12 +182,97 @@ export const AdminUserAccessView: React.FC = () => {
     }
   };
 
+  const [categoryMap, setCategoryMap] = useState<Record<string, 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN'>>(() => {
+    try {
+      const raw = localStorage.getItem('hospital_dynamic_hierarchy');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          const map: Record<string, any> = {};
+          parsed.forEach((p: any) => { map[p.id] = p.category; });
+          return map;
+        }
+      }
+    } catch (e) {}
+    const defaultMap: Record<string, any> = {};
+    ALL_HOSPITAL_PAGE_ITEMS.forEach(p => { defaultMap[p.id] = p.defaultCategory; });
+    return defaultMap;
+  });
+
+  useEffect(() => {
+    const handleHierarchySync = (e: any) => {
+      const list = e.detail;
+      if (Array.isArray(list)) {
+        const map: Record<string, any> = {};
+        list.forEach((p: any) => { map[p.id] = p.category; });
+        setCategoryMap(map);
+      }
+    };
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'hospital_dynamic_hierarchy' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            const map: Record<string, any> = {};
+            parsed.forEach((p: any) => { map[p.id] = p.category; });
+            setCategoryMap(map);
+          }
+        } catch (err) {}
+      }
+    };
+
+    window.addEventListener('hospital_hierarchy_updated', handleHierarchySync);
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('hospital_hierarchy_updated', handleHierarchySync);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  const permissionGroups = [
+    {
+      category: 'CLINICAL',
+      title: 'Clinical & Doctor Deck',
+      modules: ALL_HOSPITAL_PAGE_ITEMS.filter(m => (categoryMap[m.id] || m.defaultCategory) === 'CLINICAL')
+    },
+    {
+      category: 'RECEPTION',
+      title: 'Front-Desk & Reception',
+      modules: ALL_HOSPITAL_PAGE_ITEMS.filter(m => (categoryMap[m.id] || m.defaultCategory) === 'RECEPTION')
+    },
+    {
+      category: 'PATIENT',
+      title: 'Patient Services',
+      modules: ALL_HOSPITAL_PAGE_ITEMS.filter(m => (categoryMap[m.id] || m.defaultCategory) === 'PATIENT')
+    },
+    {
+      category: 'ADMIN',
+      title: 'System Administration',
+      modules: ALL_HOSPITAL_PAGE_ITEMS.filter(m => (categoryMap[m.id] || m.defaultCategory) === 'ADMIN')
+    },
+  ].filter(g => g.modules.length > 0);
+
+  const getRoleDefaultPerms = (role: string) => {
+    if (role === 'ADMIN') return ALL_MODULE_IDS;
+    const catMap: Record<string, string> = {
+      DOCTOR: 'CLINICAL',
+      RECEPTIONIST: 'RECEPTION',
+      PATIENT: 'PATIENT',
+    };
+    const targetCat = catMap[role];
+    if (!targetCat) return [];
+    return ALL_HOSPITAL_PAGE_ITEMS
+      .filter(m => (categoryMap[m.id] || m.defaultCategory) === targetCat)
+      .map(m => m.id);
+  };
+
   const handleOpenPermissions = (user: HospitalUser) => {
     setPermissionTargetUser(user);
     if (user.allowedModules && Array.isArray(user.allowedModules)) {
       setSelectedModules([...user.allowedModules]);
     } else {
-      setSelectedModules([...(ROLE_DEFAULT_PERMS[user.role] || [])]);
+      setSelectedModules(getRoleDefaultPerms(user.role));
     }
     setPermissionsSuccessMsg(null);
   };
@@ -218,7 +289,7 @@ export const AdminUserAccessView: React.FC = () => {
 
   const handleResetToRoleDefaults = () => {
     if (!permissionTargetUser) return;
-    setSelectedModules([...(ROLE_DEFAULT_PERMS[permissionTargetUser.role] || [])]);
+    setSelectedModules(getRoleDefaultPerms(permissionTargetUser.role));
   };
 
   const handleClearAllModules = () => {
@@ -888,7 +959,7 @@ export const AdminUserAccessView: React.FC = () => {
                   onClick={handleSelectAllModules}
                   className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-[#202C1B] border border-slate-200 dark:border-[#38482E] text-slate-700 dark:text-[#C2C5AA] hover:bg-slate-100 dark:hover:bg-[#2A3924] transition-colors cursor-pointer"
                 >
-                  Grant All (18)
+                  Grant All ({ALL_MODULE_IDS.length})
                 </button>
                 <button
                   type="button"
@@ -916,7 +987,7 @@ export const AdminUserAccessView: React.FC = () => {
                 </div>
               )}
 
-              {PERMISSION_MODULE_GROUPS.map(group => {
+              {permissionGroups.map(group => {
                 const groupSelectedCount = group.modules.filter(m => selectedModules.includes(m.id)).length;
                 const isAllGroupSelected = groupSelectedCount === group.modules.length;
 

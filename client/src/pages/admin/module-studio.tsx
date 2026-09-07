@@ -122,8 +122,17 @@ const CATEGORIES: {
 ];
 
 export const AdminModuleStudio: React.FC = () => {
-  const [pages, setPages] = useState<PageHierarchyItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [pages, setPages] = useState<PageHierarchyItem[]>(() => {
+    try {
+      const raw = localStorage.getItem('hospital_dynamic_hierarchy');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return [];
+  });
+  const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -139,10 +148,13 @@ export const AdminModuleStudio: React.FC = () => {
   } | null>(null);
 
   const fetchHierarchy = async () => {
-    setLoading(true);
+    if (pages.length === 0) setLoading(true);
     try {
       const res = await api.get('/admin/hierarchy');
-      setPages(res.data.data);
+      if (res.data?.data && Array.isArray(res.data.data)) {
+        setPages(res.data.data);
+        localStorage.setItem('hospital_dynamic_hierarchy', JSON.stringify(res.data.data));
+      }
     } catch (err) {
       console.error('Failed to load module hierarchy:', err);
     } finally {
@@ -152,6 +164,18 @@ export const AdminModuleStudio: React.FC = () => {
 
   useEffect(() => {
     fetchHierarchy();
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'hospital_dynamic_hierarchy' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setPages(parsed);
+        } catch (err) {}
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const handleDragStart = (e: React.DragEvent, item: PageHierarchyItem) => {
@@ -206,9 +230,10 @@ export const AdminModuleStudio: React.FC = () => {
         targetCategory: pendingMove.targetCategory,
       });
 
-      // Update local state
+      // Update local state & localStorage
       const updatedHierarchy: PageHierarchyItem[] = res.data.data.hierarchy;
       setPages(updatedHierarchy);
+      localStorage.setItem('hospital_dynamic_hierarchy', JSON.stringify(updatedHierarchy));
 
       // Broadcast event so sidebar rail updates instantly
       window.dispatchEvent(
@@ -239,6 +264,7 @@ export const AdminModuleStudio: React.FC = () => {
     try {
       const res = await api.post('/admin/hierarchy/reset');
       setPages(res.data.data);
+      localStorage.setItem('hospital_dynamic_hierarchy', JSON.stringify(res.data.data));
       window.dispatchEvent(
         new CustomEvent('hospital_hierarchy_updated', {
           detail: res.data.data,

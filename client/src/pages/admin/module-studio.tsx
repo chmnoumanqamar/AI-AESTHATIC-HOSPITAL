@@ -76,6 +76,7 @@ const CATEGORIES: {
     bg: string;
     headerBg: string;
     text: string;
+    subtitleText: string;
     badge: string;
     dropZone: string;
   };
@@ -85,11 +86,12 @@ const CATEGORIES: {
     title: 'System Administration',
     subtitle: 'Security, governance, audit & system policies',
     theme: {
-      border: 'border-emerald-200 dark:border-[#2D6A4F]/60',
-      bg: 'bg-emerald-50/20 dark:bg-[#1A2518]/50',
-      headerBg: 'bg-emerald-100/50 dark:bg-[#203622]',
-      text: 'text-emerald-900 dark:text-[#74C69D]',
-      badge: 'bg-emerald-100 text-emerald-800 dark:bg-[#2D6A4F] dark:text-emerald-100',
+      border: 'border-emerald-300 dark:border-emerald-800/60',
+      bg: 'bg-emerald-50/30 dark:bg-[#1A2518]/50',
+      headerBg: 'bg-[#DCFCE7] dark:bg-[#1B3624] border-b border-emerald-200 dark:border-emerald-900/60',
+      text: 'text-emerald-950 dark:text-white',
+      subtitleText: 'text-emerald-800/90 dark:text-emerald-200/80',
+      badge: 'bg-emerald-700 text-white dark:bg-emerald-500 dark:text-slate-950 font-black',
       dropZone: 'border-emerald-500 bg-emerald-50 dark:bg-[#203622]/80',
     },
   },
@@ -98,11 +100,12 @@ const CATEGORIES: {
     title: 'Clinical & Doctor Deck',
     subtitle: 'Queue calling, consultations, prescriptions & triage',
     theme: {
-      border: 'border-sky-200 dark:border-sky-900/60',
-      bg: 'bg-sky-50/20 dark:bg-sky-950/20',
-      headerBg: 'bg-sky-100/50 dark:bg-sky-950/50',
-      text: 'text-sky-900 dark:text-sky-300',
-      badge: 'bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200',
+      border: 'border-sky-300 dark:border-sky-800/60',
+      bg: 'bg-sky-50/30 dark:bg-sky-950/20',
+      headerBg: 'bg-[#E0F2FE] dark:bg-[#152B3C] border-b border-sky-200 dark:border-sky-900/60',
+      text: 'text-sky-950 dark:text-white',
+      subtitleText: 'text-sky-800/90 dark:text-sky-200/80',
+      badge: 'bg-sky-700 text-white dark:bg-sky-400 dark:text-slate-950 font-black',
       dropZone: 'border-sky-500 bg-sky-50 dark:bg-sky-950/60',
     },
   },
@@ -111,11 +114,12 @@ const CATEGORIES: {
     title: 'Front-Desk & Reception',
     subtitle: 'Walk-in check-in, booking authorizations & POS billing',
     theme: {
-      border: 'border-purple-200 dark:border-purple-900/60',
-      bg: 'bg-purple-50/20 dark:bg-purple-950/20',
-      headerBg: 'bg-purple-100/50 dark:bg-purple-950/50',
-      text: 'text-purple-900 dark:text-purple-300',
-      badge: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+      border: 'border-purple-300 dark:border-purple-800/60',
+      bg: 'bg-purple-50/30 dark:bg-purple-950/20',
+      headerBg: 'bg-[#F3E8FF] dark:bg-[#2E1A3C] border-b border-purple-200 dark:border-purple-900/60',
+      text: 'text-purple-950 dark:text-white',
+      subtitleText: 'text-purple-800/90 dark:text-purple-200/80',
+      badge: 'bg-purple-700 text-white dark:bg-purple-400 dark:text-slate-950 font-black',
       dropZone: 'border-purple-500 bg-purple-50 dark:bg-purple-950/60',
     },
   },
@@ -124,11 +128,12 @@ const CATEGORIES: {
     title: 'Patient Services',
     subtitle: 'Self-service booking, digital records & invoice receipts',
     theme: {
-      border: 'border-amber-200 dark:border-amber-900/60',
-      bg: 'bg-amber-50/20 dark:bg-amber-950/20',
-      headerBg: 'bg-amber-100/50 dark:bg-amber-950/50',
-      text: 'text-amber-900 dark:text-amber-300',
-      badge: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+      border: 'border-amber-300 dark:border-amber-800/60',
+      bg: 'bg-amber-50/30 dark:bg-amber-950/20',
+      headerBg: 'bg-[#FEF3C7] dark:bg-[#3D2812] border-b border-amber-200 dark:border-amber-900/60',
+      text: 'text-amber-950 dark:text-white',
+      subtitleText: 'text-amber-800/90 dark:text-amber-200/80',
+      badge: 'bg-amber-700 text-white dark:bg-amber-400 dark:text-slate-950 font-black',
       dropZone: 'border-amber-500 bg-amber-50 dark:bg-amber-950/60',
     },
   },
@@ -137,11 +142,12 @@ const CATEGORIES: {
     title: 'Pharmacy & Medical Store',
     subtitle: 'Rx fulfillment, vault inventory & POS counter',
     theme: {
-      border: 'border-teal-200 dark:border-teal-900/60',
-      bg: 'bg-teal-50/20 dark:bg-teal-950/20',
-      headerBg: 'bg-teal-100/50 dark:bg-teal-950/50',
-      text: 'text-teal-900 dark:text-teal-300',
-      badge: 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200',
+      border: 'border-teal-300 dark:border-teal-800/60',
+      bg: 'bg-teal-50/30 dark:bg-teal-950/20',
+      headerBg: 'bg-[#CCFBF1] dark:bg-[#13352E] border-b border-teal-200 dark:border-teal-900/60',
+      text: 'text-teal-950 dark:text-white',
+      subtitleText: 'text-teal-800/90 dark:text-teal-200/80',
+      badge: 'bg-teal-700 text-white dark:bg-teal-400 dark:text-slate-950 font-black',
       dropZone: 'border-teal-500 bg-teal-50 dark:bg-teal-950/60',
     },
   },
@@ -430,31 +436,22 @@ export const AdminModuleStudio: React.FC = () => {
             >
               {/* Department Column Header */}
               <div
-                className={`p-3.5 rounded-t-2xl border-b border-slate-100 dark:border-[#2F3E29] ${cat.theme.headerBg} flex items-start justify-between gap-1.5 shrink-0`}
+                className={`p-3.5 rounded-t-2xl ${cat.theme.headerBg} flex items-start justify-between gap-2 shrink-0`}
               >
                 <div className="min-w-0 flex-1">
-                  <h3 className={`font-bold text-xs sm:text-sm leading-tight truncate ${cat.theme.text}`} title={cat.title}>
+                  <h3 className={`font-extrabold text-xs sm:text-[13px] leading-tight break-words ${cat.theme.text}`} title={cat.title}>
                     {cat.title}
                   </h3>
-                  <p className="text-[10.5px] text-slate-500 dark:text-[#A4AC86] mt-0.5 leading-tight line-clamp-1" title={cat.subtitle}>
+                  <p className={`text-[10.5px] mt-0.5 leading-tight line-clamp-1 ${cat.theme.subtitleText}`} title={cat.subtitle}>
                     {cat.subtitle}
                   </p>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span
-                    className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full font-mono ${cat.theme.badge}`}
-                  >
-                    {categoryPages.length}
-                  </span>
-                  {hasOverflow && (
-                    <span
-                      className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60"
-                      title="Scroll down inside this box to view remaining cards"
-                    >
-                      5 visible
-                    </span>
-                  )}
-                </div>
+                <span
+                  className={`text-[11px] font-black px-2 py-0.5 rounded-full font-mono shrink-0 shadow-xs ${cat.theme.badge}`}
+                  title={`${categoryPages.length} active pages`}
+                >
+                  {categoryPages.length}
+                </span>
               </div>
 
               {/* Automatic Progress Bar - Appears whenever column has > 5 mini cards */}

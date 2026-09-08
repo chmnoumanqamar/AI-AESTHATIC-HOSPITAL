@@ -1,0 +1,653 @@
+{
+  "users": [
+    {
+      "id": "u-chnmnx-01",
+      "username": "chnmnx",
+      "name": "CH Nouman Qamar",
+      "phone": "+923000000099",
+      "email": "chnmnx@hospital.com",
+      "passwordHash": "$2a$08$K9URkGZIcWorMCXboMxYK.PzyihqIQwhPHD48R80LKYxz.1Nfnroq",
+      "role": "DOCTOR",
+      "gender": "Male",
+      "dateOfBirth": "1992-05-20",
+      "cnic": "35201-7654321-9",
+      "bloodGroup": "B+",
+      "department": "Cardiology & Internal Medicine",
+      "specialization": "Cardiology & Internal Medicine",
+      "licenseNumber": "PMDC-99210-C",
+      "qualifications": [
+        "MBBS",
+        "FCPS",
+        "Clinical Operations Lead"
+      ],
+      "experienceYears": 10,
+      "consultationFee": 2500,
+      "allowedModules": [
+        "doctor_queue",
+        "doctor_consultation",
+        "doctor_tokens",
+        "recep_desk",
+        "recep_approvals",
+        "recep_pos",
+        "recep_reports",
+        "patient_portal",
+        "patient_booking",
+        "patient_history",
+        "patient_billing",
+        "pharma_queue",
+        "pharma_inventory",
+        "pharma_pos",
+        "pharma_safety",
+        "pharma_procurement",
+        "admin_users",
+        "admin_studio",
+        "admin_audit",
+        "admin_queue",
+        "admin_reports",
+        "admin_database",
+        "admin_config",
+        "admin_ledger"
+      ],
+      "isDemo": false,
+      "createdAt": "2026-09-08T10:19:10.378Z",
+      "updatedAt": "2026-09-08T10:19:10.378Z"
+    },
+    {
+      "id": "u-admin-01",
+      "username": "admin",
+      "name": "Root Administrator",
+      "phone": "+15550000001",
+      "email": "admin@hospital.com",
+      "passwordHash": "$2a$08$K9URkGZIcWorMCXboMxYK.oQur8Ea/YvNPWr7MZ4Gh/R/2eV4p0xC",
+      "role": "ADMIN",
+      "gender": "Male",
+      "department": "Executive Administration & IT",
+      "isDemo": true,
+      "createdAt": "2026-09-08T10:19:10.378Z",
+      "updatedAt": "2026-09-08T10:19:10.378Z"
+    },
+    {
+      "id": "u-doc-01",
+      "username": "dr_aisha",
+      "name": "Dr. Aisha Khan",
+      "phone": "+15550000002",
+      "email": "dr.aisha@hospital.com",
+      "passwordHash": "$2a$08$K9URkGZIcWorMCXboMxYK.oQur8Ea/YvNPWr7MZ4Gh/R/2eV4p0xC",
+      "role": "DOCTOR",
+      "gender": "Female",
+      "dateOfBirth": "1982-06-15",
+      "cnic": "35201-1122334-5",
+      "bloodGroup": "B+",
+      "department": "Cardiology",
+      "licenseNumber": "PMDC-48921-C",
+      "qualifications": [
+        "MBBS (King Edward)",
+        "FCPS (Cardiology)",
+        "Fellowship (USA)"
+      ],
+      "experienceYears": 15,
+      "consultationFee": 2500,
+      "isDemo": true,
+      "createdAt": "2026-09-08T10:19:10.378Z",
+      "updatedAt": "2026-09-08T10:19:10.378Z"
+    },
+    {
+      "id": "u-doc-02",
+      "username": "dr_marcus",
+      "name": "Dr. Marcus Vance",
+      "phone": "+15550000003",
+      "email": "dr.marcus@hospital.com",
+      "passwordHash": "$2a$08$K9URkGZIcWorMCXboMxYK.oQur8Ea/YvNPWr7MZ4Gh/R/2eV4p0xC",
+      "role": "DOCTOR",
+      "gender": "Male",
+      "dateOfBirth": "1985-03-22",
+      "cnic": "35201-9988112-7",
+      "bloodGroup": "O+",
+      "department": "Aesthetics & Dermatology",
+      "licenseNumber": "PMDC-77312-D",
+      "qualifications": [
+        "MD (Johns Hopkins)",
+        "Aesthetic Surgery Diplomate"
+      ],
+      "experienceYears": 12,
+      "consultationFee": 3000,
+      "isDemo": true,
+      "createdAt": "2026-09-08T10:19:10.378Z",
+      "updatedAt": "2026-09-08T10:19:10.378Z"
+    },
+    {
+      "id": "u-recep-01",
+      "username": "sarah_desk",
+      "name": "Sarah Jenkins",
+      "phone": "+15550000004",
+      "email": "receptionist@hospital.com",
+      "passwordHash": "$2a$08$K9URkGZIcWorMCXboMxYK.oQur8Ea/YvNPWr7MZ4Gh/R/2eV4p0xC",
+      "role": "RECEPTIONIST",
+      "gender": "Female",
+      "dateOfBirth": "1996-08-14",
+      "cnic": "35201-5544332-1",
+      "department": "Patient Front-Desk",
+      "deskNumber": "OPD Counter 1",
+      "shift": "Morning Shift (08:00 - 16:00)",
+      "isDemo": true,
+      "createdAt": "2026-09-08T10:19:10.378Z",
+      "updatedAt": "2026-09-08T10:19:10.378Z"
+    },
+    {
+      "id": "u-pharma-01",
+      "username": "tariq_pharma",
+      "name": "Tariq Mehmood, RPh",
+      "phone": "+15550000040",
+      "email": "pharmacy@hospital.com",
+      "passwordHash": "$2a$08$K9URkGZIcWorMCXboMxYK.oQur8Ea/YvNPWr7MZ4Gh/R/2eV4p0xC",
+      "role": "PHARMACIST",
+      "gender": "Male",
+      "dateOfBirth": "1984-12-05",
+      "cnic": "35201-3322119-8",
+      "department": "Central Pharmacy & Dispensary",
+      "licenseNumber": "RPh-PK-98124",
+      "experienceYears": 14,
+      "isDemo": true,
+      "createdAt": "2026-09-08T10:19:10.378Z",
+      "updatedAt": "2026-09-08T10:19:10.378Z"
+    },
+    {
+      "id": "u-0baa8b07",
+      "username": "drzeeshan1788862917817",
+      "name": "Dr. Zeeshan Ali",
+      "phone": "+155500000491",
+      "email": "dr.zeeshan.1788862917817@hospital.com",
+      "passwordHash": "$2a$08$1bKQIhO4IOZg7oY2VLDgauvikMKK7mOUykGM18K5ILVOGmRCRrK3a",
+      "role": "DOCTOR",
+      "department": "Neurology",
+      "isBlocked": false,
+      "isDemo": false,
+      "createdAt": "2026-09-08T10:21:57.840Z",
+      "updatedAt": "2026-09-08T10:21:57.840Z"
+    },
+    {
+      "id": "u-d89a1e56",
+      "username": "drtariq1788862917842",
+      "name": "Dr. Tariq Mahmood",
+      "phone": "+155500000134",
+      "email": "dr.tariq.1788862917842@hospital.com",
+      "passwordHash": "$2a$08$Coqw2FNJCFSvedP3S8MdCe/sky9ISwpnxvp9hAwixuIy0A3f.p25y",
+      "role": "DOCTOR",
+      "department": "Orthopedics",
+      "isBlocked": false,
+      "isDemo": false,
+      "createdAt": "2026-09-08T10:21:57.865Z",
+      "updatedAt": "2026-09-08T10:21:57.865Z"
+    },
+    {
+      "id": "u-8a44b411",
+      "username": "noumanrecep",
+      "name": "Nouman",
+      "phone": "+923001122334",
+      "email": "nouman.recep@hospital.com",
+      "passwordHash": "$2a$08$vqdCiASs7X6nXOawWzSr0eAyy97ETrxcYKEY8B0gjEUmq257xtNtm",
+      "role": "RECEPTIONIST",
+      "isBlocked": false,
+      "isDemo": false,
+      "createdAt": "2026-09-08T10:21:57.942Z",
+      "updatedAt": "2026-09-08T10:21:57.942Z"
+    },
+    {
+      "id": "u-0e763523",
+      "username": "drsalman",
+      "name": "Dr. Salman Ahmed",
+      "phone": "+923005566778",
+      "email": "dr.salman@hospital.com",
+      "passwordHash": "$2a$08$oGrco6lyP/8dN594ChX.5.KF2Kzut.l/LIX9IOSE8bCatmZ7hTwPW",
+      "role": "DOCTOR",
+      "department": "Neurology",
+      "isBlocked": false,
+      "isDemo": false,
+      "createdAt": "2026-09-08T10:21:57.965Z",
+      "updatedAt": "2026-09-08T10:21:57.965Z"
+    },
+    {
+      "id": "u-8f690ce3",
+      "username": "usmanpharma",
+      "name": "Pharmacist Usman",
+      "phone": "+923009988776",
+      "email": "usman.pharma@hospital.com",
+      "passwordHash": "$2a$08$Soa6VUSRBWwwhvQEkqrwOOybr6ju.0r5W2PKjH7KUOJuVzACxxmEm",
+      "role": "PHARMACIST",
+      "isBlocked": false,
+      "isDemo": false,
+      "createdAt": "2026-09-08T10:21:57.987Z",
+      "updatedAt": "2026-09-08T10:21:57.987Z"
+    },
+    {
+      "id": "u-e2989175",
+      "username": "zainabpatient",
+      "name": "Zainab Bibi",
+      "phone": "+923112233445",
+      "email": "zainab.patient@hospital.com",
+      "passwordHash": "$2a$08$DcCpYzO4zbM9Vstb92QnBeIMWlWO93ojsP9usKShxatWhFzc98vB6",
+      "role": "PATIENT",
+      "isBlocked": false,
+      "isDemo": false,
+      "createdAt": "2026-09-08T10:21:58.009Z",
+      "updatedAt": "2026-09-08T10:21:58.009Z"
+    },
+    {
+      "id": "u-6c666564",
+      "username": "dr_zubair",
+      "name": "Dr. Zubair Qureshi",
+      "phone": "+923004455667",
+      "email": "zubair@hospital.com",
+      "passwordHash": "$2a$08$TbuwJanaMvgFmJq816kWkuXee0UyAQbxt31bKEU/LTADBJRrSTDQ2",
+      "role": "DOCTOR",
+      "gender": "Male",
+      "dateOfBirth": "1980-04-15",
+      "cnic": "35201-9988112-9",
+      "bloodGroup": "O+",
+      "address": "Suite 401, Doctors Plaza, Lahore",
+      "emergencyContact": "Mrs. Zubair",
+      "emergencyPhone": "+923004455668",
+      "department": "Cardiology",
+      "licenseNumber": "PMDC-98124-C",
+      "qualifications": [
+        "MBBS",
+        "FCPS",
+        "MRCP"
+      ],
+      "experienceYears": 16,
+      "consultationFee": 3000,
+      "isBlocked": false,
+      "isDemo": false,
+      "createdAt": "2026-09-08T10:21:58.032Z",
+      "updatedAt": "2026-09-08T10:21:58.032Z"
+    }
+  ],
+  "patients": [
+    {
+      "id": "pat-49cdad",
+      "userId": "u-e2989175",
+      "fullName": "Zainab Bibi",
+      "cnic": "1788862918009",
+      "gender": "Not Specified",
+      "dateOfBirth": "1995-01-01",
+      "address": "Registered by Hospital Administration",
+      "emergencyContact": "+923112233445",
+      "hasWhatsApp": true,
+      "primaryNotificationChannel": "SMS",
+      "createdAt": "2026-09-08T10:21:58.009Z"
+    }
+  ],
+  "doctors": [
+    {
+      "id": "doc-chnmnx",
+      "userId": "u-chnmnx-01",
+      "name": "CH Nouman Qamar",
+      "specialization": "Cardiology & Internal Medicine",
+      "biography": "Chief Clinical Operations Lead and Senior Consultant.",
+      "qualifications": [
+        "MBBS",
+        "FCPS",
+        "Clinical Operations Lead"
+      ],
+      "experienceYears": 10,
+      "languages": [
+        "English",
+        "Urdu",
+        "Punjabi"
+      ],
+      "consultationFee": 2500,
+      "followUpFee": 1500,
+      "dailyPatientLimit": 100,
+      "createdAt": "2026-09-08T10:19:10.378Z"
+    },
+    {
+      "id": "doc-01",
+      "userId": "u-doc-01",
+      "name": "Dr. Aisha Khan",
+      "specialization": "Cardiology & Internal Medicine",
+      "biography": "Board certified specialist in cardiovascular interventions and preventive cardiology with over 15 years clinical experience.",
+      "qualifications": [
+        "MBBS (King Edward)",
+        "FCPS (Cardiology)",
+        "Fellowship in Interventional Cardiology (USA)"
+      ],
+      "experienceYears": 15,
+      "languages": [
+        "English",
+        "Urdu",
+        "Punjabi"
+      ],
+      "consultationFee": 2500,
+      "followUpFee": 1500,
+      "dailyPatientLimit": 100,
+      "createdAt": "2026-09-08T10:19:10.378Z"
+    },
+    {
+      "id": "doc-02",
+      "userId": "u-doc-02",
+      "name": "Dr. Marcus Vance",
+      "specialization": "Dermatology & Aesthetic Medicine",
+      "biography": "Specialist in clinical dermatology, laser aesthetics, and advanced skin barrier restoration.",
+      "qualifications": [
+        "MD (Johns Hopkins)",
+        "Board Certified Dermatologist",
+        "Aesthetic Surgery Diplomate"
+      ],
+      "experienceYears": 12,
+      "languages": [
+        "English",
+        "Spanish"
+      ],
+      "consultationFee": 3000,
+      "followUpFee": 2000,
+      "dailyPatientLimit": 80,
+      "createdAt": "2026-09-08T10:19:10.378Z"
+    },
+    {
+      "id": "doc-432460",
+      "userId": "u-0baa8b07",
+      "name": "Dr. Zeeshan Ali",
+      "specialization": "Neurology",
+      "biography": "Certified medical practitioner (MBBS).",
+      "qualifications": [
+        "MBBS",
+        "FCPS"
+      ],
+      "experienceYears": 5,
+      "languages": [
+        "English",
+        "Urdu"
+      ],
+      "consultationFee": 1500,
+      "followUpFee": 1050,
+      "dailyPatientLimit": 100,
+      "createdAt": "2026-09-08T10:21:57.840Z"
+    },
+    {
+      "id": "doc-640fd6",
+      "userId": "u-d89a1e56",
+      "name": "Dr. Tariq Mahmood",
+      "specialization": "Orthopedics",
+      "biography": "Certified medical practitioner (MBBS).",
+      "qualifications": [
+        "MBBS",
+        "FCPS"
+      ],
+      "experienceYears": 5,
+      "languages": [
+        "English",
+        "Urdu"
+      ],
+      "consultationFee": 1500,
+      "followUpFee": 1050,
+      "dailyPatientLimit": 100,
+      "createdAt": "2026-09-08T10:21:57.865Z"
+    },
+    {
+      "id": "doc-6ce5c0",
+      "userId": "u-0e763523",
+      "name": "Dr. Salman Ahmed",
+      "specialization": "Neurology",
+      "biography": "Certified medical practitioner (MBBS).",
+      "qualifications": [
+        "MBBS",
+        "FCPS"
+      ],
+      "experienceYears": 5,
+      "languages": [
+        "English",
+        "Urdu"
+      ],
+      "consultationFee": 1500,
+      "followUpFee": 1050,
+      "dailyPatientLimit": 100,
+      "createdAt": "2026-09-08T10:21:57.965Z"
+    },
+    {
+      "id": "doc-cd5f5e",
+      "userId": "u-6c666564",
+      "name": "Dr. Zubair Qureshi",
+      "specialization": "Interventional Cardiology",
+      "biography": "Certified medical practitioner (MBBS, FCPS, MRCP).",
+      "qualifications": [
+        "MBBS",
+        "FCPS",
+        "MRCP"
+      ],
+      "experienceYears": 16,
+      "languages": [
+        "English",
+        "Urdu"
+      ],
+      "consultationFee": 3000,
+      "followUpFee": 2100,
+      "dailyPatientLimit": 100,
+      "createdAt": "2026-09-08T10:21:58.032Z"
+    }
+  ],
+  "receptionists": [
+    {
+      "id": "recep-01",
+      "userId": "u-recep-01",
+      "name": "Sarah Jenkins",
+      "createdAt": "2026-09-08T10:19:10.378Z"
+    },
+    {
+      "id": "rec-1d780f",
+      "userId": "u-8a44b411",
+      "name": "Nouman",
+      "createdAt": "2026-09-08T10:21:57.942Z"
+    }
+  ],
+  "appointments": [
+    {
+      "id": "dfde1ba6-751d-415d-8778-1778a88b3862",
+      "patientId": "pat-49cdad",
+      "doctorId": "doc-6ce5c0",
+      "serviceId": "srv-01",
+      "appointmentDate": "2026-09-08",
+      "tokenId": "ab7d7623-3262-45b7-a6d7-d839f5923b35",
+      "status": "CONFIRMED",
+      "bookingSource": "RECEPTIONIST",
+      "chiefComplaint": "Severe migraine headache",
+      "createdAt": "2026-09-08T10:21:58.011Z",
+      "updatedAt": "2026-09-08T10:21:58.011Z",
+      "approvedByReceptionistId": "u-8a44b411"
+    }
+  ],
+  "dailyTokens": [
+    {
+      "id": "ab7d7623-3262-45b7-a6d7-d839f5923b35",
+      "doctorId": "doc-6ce5c0",
+      "date": "2026-09-08",
+      "tokenNumber": 1,
+      "status": "ACTIVE",
+      "createdAt": "2026-09-08T10:21:58.011Z"
+    }
+  ],
+  "queueEntries": [
+    {
+      "id": "6d60656e-ac3e-4ff7-9617-1ed0432e95b7",
+      "appointmentId": "dfde1ba6-751d-415d-8778-1778a88b3862",
+      "queueStatus": "WAITING",
+      "createdAt": "2026-09-08T10:21:58.011Z",
+      "checkInTime": "2026-09-08T10:21:58.011Z"
+    }
+  ],
+  "clinicalRecords": [],
+  "prescriptions": [],
+  "prescriptionVersions": [],
+  "dispenseRecords": [],
+  "pharmacySales": [],
+  "moduleHierarchy": [
+    {
+      "id": "doctor_queue",
+      "label": "Today's Clinical Queue",
+      "category": "CLINICAL",
+      "categoryLabel": "Clinical & Doctor Deck",
+      "description": "Live waiting queue, calling next patients & triage status"
+    },
+    {
+      "id": "doctor_consultation",
+      "label": "Consultations & Rx Workspace",
+      "category": "CLINICAL",
+      "categoryLabel": "Clinical & Doctor Deck",
+      "description": "Clinical encounter notes, digital prescriptions & lab investigations"
+    },
+    {
+      "id": "doctor_tokens",
+      "label": "Token Allocation Matrix",
+      "category": "CLINICAL",
+      "categoryLabel": "Clinical & Doctor Deck",
+      "description": "Doctor capacity limits, token slot reservation & release"
+    },
+    {
+      "id": "recep_desk",
+      "label": "Queue & Patient Check-In",
+      "category": "RECEPTION",
+      "categoryLabel": "Front-Desk & Reception",
+      "description": "Walk-in patient check-in, token issuance & arrival tracking"
+    },
+    {
+      "id": "recep_approvals",
+      "label": "Pending Bookings Approval",
+      "category": "RECEPTION",
+      "categoryLabel": "Front-Desk & Reception",
+      "description": "Authorize or decline online/WhatsApp appointment requests"
+    },
+    {
+      "id": "recep_pos",
+      "label": "Front-Desk Billing POS",
+      "category": "RECEPTION",
+      "categoryLabel": "Front-Desk & Reception",
+      "description": "Point of sale, consultation fee collection & invoice printing"
+    },
+    {
+      "id": "recep_reports",
+      "label": "Front-Desk Analytics",
+      "category": "RECEPTION",
+      "categoryLabel": "Front-Desk & Reception",
+      "description": "Daily patient throughput, check-in stats & front-desk ledger"
+    },
+    {
+      "id": "patient_portal",
+      "label": "My Appointments & Tokens",
+      "category": "PATIENT",
+      "categoryLabel": "Patient Services",
+      "description": "View active sequential tokens, appointment dates & reschedule/cancel"
+    },
+    {
+      "id": "patient_booking",
+      "label": "Book Appointment Suite",
+      "category": "PATIENT",
+      "categoryLabel": "Patient Services",
+      "description": "3-step appointment booking wizard for self or family members"
+    },
+    {
+      "id": "patient_history",
+      "label": "Medical Records & Prescriptions",
+      "category": "PATIENT",
+      "categoryLabel": "Patient Services",
+      "description": "Clinical diagnosis history, digital prescriptions & notification preferences"
+    },
+    {
+      "id": "patient_billing",
+      "label": "Billing & Invoices Ledger",
+      "category": "PATIENT",
+      "categoryLabel": "Patient Services",
+      "description": "Consultation charges ledger, payment records & outstanding balance"
+    },
+    {
+      "id": "pharma_queue",
+      "label": "Live Dispense Queue & Rx",
+      "category": "PHARMACY",
+      "categoryLabel": "Pharmacy & Medical Store",
+      "description": "Real-time fulfillment of doctor digital prescriptions & dispense logging"
+    },
+    {
+      "id": "pharma_inventory",
+      "label": "Drug Inventory Vault",
+      "category": "PHARMACY",
+      "categoryLabel": "Pharmacy & Medical Store",
+      "description": "Medicine stock tracking, batch numbers, shelf locations & near-expiry alerts"
+    },
+    {
+      "id": "pharma_pos",
+      "label": "Pharmacy POS & OTC Billing",
+      "category": "PHARMACY",
+      "categoryLabel": "Pharmacy & Medical Store",
+      "description": "Point-of-sale terminal for walk-in OTC medicine purchases & invoice printing"
+    },
+    {
+      "id": "pharma_safety",
+      "label": "Drug Safety & AI Interactions",
+      "category": "PHARMACY",
+      "categoryLabel": "Pharmacy & Medical Store",
+      "description": "Contraindication analysis, drug-drug interactions & allergy cross-screening"
+    },
+    {
+      "id": "pharma_procurement",
+      "label": "Suppliers & Procurement",
+      "category": "PHARMACY",
+      "categoryLabel": "Pharmacy & Medical Store",
+      "description": "Pharmaceutical distributor purchase orders, stock replenishment & receiving"
+    },
+    {
+      "id": "admin_users",
+      "label": "User Access & Permissions",
+      "category": "ADMIN",
+      "categoryLabel": "System Administration",
+      "description": "Staff account provisioning, blocking/unblocking & granular module access"
+    },
+    {
+      "id": "admin_studio",
+      "label": "Module & Page Studio",
+      "category": "ADMIN",
+      "categoryLabel": "System Administration",
+      "description": "Interactive drag-and-drop workspace to reassign and structure hospital pages across modules"
+    },
+    {
+      "id": "admin_audit",
+      "label": "Compliance Audit Vault",
+      "category": "ADMIN",
+      "categoryLabel": "System Administration",
+      "description": "Immutable HIPAA & clinical compliance audit ledger"
+    },
+    {
+      "id": "admin_queue",
+      "label": "Live System Queue Monitor",
+      "category": "ADMIN",
+      "categoryLabel": "System Administration",
+      "description": "Hospital-wide real-time queue overview & token tracking"
+    },
+    {
+      "id": "admin_reports",
+      "label": "Executive Analytics & BI",
+      "category": "ADMIN",
+      "categoryLabel": "System Administration",
+      "description": "Hospital financial summaries, doctor efficiency & patient statistics"
+    },
+    {
+      "id": "admin_database",
+      "label": "Database Clear & Maintenance",
+      "category": "ADMIN",
+      "categoryLabel": "System Administration",
+      "description": "Database schema diagnostics, queue cleanup & test purge"
+    },
+    {
+      "id": "admin_config",
+      "label": "System Policies & Rules",
+      "category": "ADMIN",
+      "categoryLabel": "System Administration",
+      "description": "Hospital operation hours, daily limits & cancellation rules"
+    },
+    {
+      "id": "admin_ledger",
+      "label": "Hospital Financial Ledger",
+      "category": "ADMIN",
+      "categoryLabel": "System Administration",
+      "description": "Hospital balance sheet, total collections & transaction log"
+    }
+  ],
+  "savedAt": "2026-09-08T10:21:58.032Z"
+}

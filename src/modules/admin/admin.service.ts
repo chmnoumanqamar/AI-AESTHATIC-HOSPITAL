@@ -115,6 +115,8 @@ export class AdminService {
       }
     });
 
+    db.saveToDisk();
+
     return {
       id: user.id,
       phone: user.phone,
@@ -146,6 +148,8 @@ export class AdminService {
       metadata: { targetPhone: user.phone }
     });
 
+    db.saveToDisk();
+
     return user;
   }
 
@@ -174,6 +178,8 @@ export class AdminService {
         modulesCount: user.allowedModules.length
       }
     });
+
+    db.saveToDisk();
 
     return {
       id: user.id,
@@ -364,6 +370,8 @@ export class AdminService {
       },
       metadata: { role: input.role, username: newUser.username }
     });
+
+    db.saveToDisk();
 
     return {
       id: newUser.id,

@@ -1,5 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
+import fs from 'fs';
+import path from 'path';
 
 export interface DbUser {
   id: string;
@@ -17,6 +19,7 @@ export interface DbUser {
   emergencyContact?: string;
   emergencyPhone?: string;
   department?: string;
+  specialization?: string;
   licenseNumber?: string;
   qualifications?: string[];
   experienceYears?: number;
@@ -429,8 +432,149 @@ class InMemoryHospitalDatabase {
     updatedAt: new Date().toISOString()
   };
 
+  getStorageFilePath(): string {
+    const rootDataDir = path.join(process.cwd(), 'src', 'common', 'data');
+    const rootStorePath = path.join(rootDataDir, 'hospital_persistent_store.json');
+    if (fs.existsSync(rootStorePath)) return rootStorePath;
+
+    const localStorePath = path.join(__dirname, 'hospital_persistent_store.json');
+    if (fs.existsSync(localStorePath)) return localStorePath;
+
+    if (fs.existsSync(rootDataDir)) return rootStorePath;
+    return localStorePath;
+  }
+
   constructor() {
     this.seedDefaultData();
+    this.loadFromDisk();
+    if (!fs.existsSync(this.getStorageFilePath())) {
+      this.saveToDisk();
+    }
+  }
+
+  loadFromDisk() {
+    try {
+      const targetPath = this.getStorageFilePath();
+      if (fs.existsSync(targetPath)) {
+        const raw = fs.readFileSync(targetPath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (parsed.users && Array.isArray(parsed.users)) {
+          for (const u of parsed.users) {
+            const idx = this.users.findIndex(existing => existing.id === u.id || (u.username && existing.username === u.username));
+            if (idx >= 0) {
+              this.users[idx] = { ...this.users[idx], ...u };
+            } else {
+              this.users.push(u);
+            }
+          }
+        }
+        if (parsed.doctors && Array.isArray(parsed.doctors)) {
+          for (const d of parsed.doctors) {
+            const idx = this.doctors.findIndex(existing => existing.id === d.id);
+            if (idx >= 0) {
+              this.doctors[idx] = { ...this.doctors[idx], ...d };
+            } else {
+              this.doctors.push(d);
+            }
+          }
+        }
+        if (parsed.patients && Array.isArray(parsed.patients)) {
+          for (const p of parsed.patients) {
+            const idx = this.patients.findIndex(existing => existing.id === p.id);
+            if (idx >= 0) {
+              this.patients[idx] = { ...this.patients[idx], ...p };
+            } else {
+              this.patients.push(p);
+            }
+          }
+        }
+        if (parsed.receptionists && Array.isArray(parsed.receptionists)) {
+          for (const r of parsed.receptionists) {
+            const idx = this.receptionists.findIndex(existing => existing.id === r.id);
+            if (idx >= 0) {
+              this.receptionists[idx] = { ...this.receptionists[idx], ...r };
+            } else {
+              this.receptionists.push(r);
+            }
+          }
+        }
+        if (parsed.appointments && Array.isArray(parsed.appointments)) {
+          for (const a of parsed.appointments) {
+            if (!this.appointments.some(existing => existing.id === a.id)) {
+              this.appointments.push(a);
+            }
+          }
+        }
+        if (parsed.dailyTokens && Array.isArray(parsed.dailyTokens)) {
+          for (const t of parsed.dailyTokens) {
+            if (!this.dailyTokens.some(existing => existing.id === t.id)) {
+              this.dailyTokens.push(t);
+            }
+          }
+        }
+        if (parsed.queueEntries && Array.isArray(parsed.queueEntries)) {
+          for (const q of parsed.queueEntries) {
+            const idx = this.queueEntries.findIndex(existing => existing.id === q.id);
+            if (idx >= 0) {
+              this.queueEntries[idx] = q;
+            } else {
+              this.queueEntries.push(q);
+            }
+          }
+        }
+        if (parsed.clinicalRecords && Array.isArray(parsed.clinicalRecords)) {
+          for (const c of parsed.clinicalRecords) {
+            if (!this.clinicalRecords.some(existing => existing.id === c.id)) {
+              this.clinicalRecords.push(c);
+            }
+          }
+        }
+        if (parsed.prescriptions && Array.isArray(parsed.prescriptions)) {
+          for (const p of parsed.prescriptions) {
+            if (!this.prescriptions.some(existing => existing.id === p.id)) {
+              this.prescriptions.push(p);
+            }
+          }
+        }
+        if (parsed.prescriptionVersions && Array.isArray(parsed.prescriptionVersions)) {
+          for (const pv of parsed.prescriptionVersions) {
+            if (!this.prescriptionVersions.some(existing => existing.id === pv.id)) {
+              this.prescriptionVersions.push(pv);
+            }
+          }
+        }
+        if (parsed.moduleHierarchy && Array.isArray(parsed.moduleHierarchy)) {
+          this.moduleHierarchy = parsed.moduleHierarchy;
+        }
+      }
+    } catch {
+      // Safe fallback on read failure
+    }
+  }
+
+  saveToDisk() {
+    try {
+      const payload = {
+        users: this.users,
+        patients: this.patients,
+        doctors: this.doctors,
+        receptionists: this.receptionists,
+        appointments: this.appointments,
+        dailyTokens: this.dailyTokens,
+        queueEntries: this.queueEntries,
+        clinicalRecords: this.clinicalRecords,
+        prescriptions: this.prescriptions,
+        prescriptionVersions: this.prescriptionVersions,
+        dispenseRecords: this.dispenseRecords,
+        pharmacySales: this.pharmacySales,
+        moduleHierarchy: this.moduleHierarchy,
+        savedAt: new Date().toISOString()
+      };
+      const targetPath = this.getStorageFilePath();
+      fs.writeFileSync(targetPath, JSON.stringify(payload, null, 2), 'utf-8');
+    } catch {
+      // Safe fallback on write failure (e.g. read-only serverless filesystem)
+    }
   }
 
   getModuleHierarchy(): HospitalModuleDef[] {
@@ -451,11 +595,13 @@ class InMemoryHospitalDatabase {
     };
     page.category = targetCategory;
     page.categoryLabel = categoryLabels[targetCategory] || targetCategory;
+    this.saveToDisk();
     return page;
   }
 
   resetModuleHierarchy() {
     this.moduleHierarchy = ORIGINAL_HOSPITAL_MODULES.map(m => ({ ...m }));
+    this.saveToDisk();
     return this.moduleHierarchy;
   }
 
@@ -463,6 +609,48 @@ class InMemoryHospitalDatabase {
     const salt = bcrypt.genSaltSync(8);
     const defaultPasswordHash = bcrypt.hashSync('Password123!', salt);
     const today = new Date().toISOString().split('T')[0];
+
+    // 0. User chnmnx (Custom Doctor / Admin Profile with full multi-module access)
+    const chnmnxPasswordHash = bcrypt.hashSync('1234567', salt);
+    const chnmnxUser: DbUser = {
+      id: 'u-chnmnx-01',
+      username: 'chnmnx',
+      name: 'CH Nouman Qamar',
+      phone: '+923000000099',
+      email: 'chnmnx@hospital.com',
+      passwordHash: chnmnxPasswordHash,
+      role: 'DOCTOR',
+      gender: 'Male',
+      dateOfBirth: '1992-05-20',
+      cnic: '35201-7654321-9',
+      bloodGroup: 'B+',
+      department: 'Cardiology & Internal Medicine',
+      specialization: 'Cardiology & Internal Medicine',
+      licenseNumber: 'PMDC-99210-C',
+      qualifications: ['MBBS', 'FCPS', 'Clinical Operations Lead'],
+      experienceYears: 10,
+      consultationFee: 2500,
+      allowedModules: ORIGINAL_HOSPITAL_MODULES.map(m => m.id),
+      isDemo: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    const chnmnxDoctor: DbDoctor = {
+      id: 'doc-chnmnx',
+      userId: 'u-chnmnx-01',
+      name: 'CH Nouman Qamar',
+      specialization: 'Cardiology & Internal Medicine',
+      biography: 'Chief Clinical Operations Lead and Senior Consultant.',
+      qualifications: ['MBBS', 'FCPS', 'Clinical Operations Lead'],
+      experienceYears: 10,
+      languages: ['English', 'Urdu', 'Punjabi'],
+      consultationFee: 2500.00,
+      followUpFee: 1500.00,
+      dailyPatientLimit: 100,
+      createdAt: new Date().toISOString()
+    };
+    this.users.push(chnmnxUser);
+    this.doctors.push(chnmnxDoctor);
 
     // 1. Admin User
     const adminUser: DbUser = {
@@ -1589,6 +1777,7 @@ class InMemoryHospitalDatabase {
     this.users = this.users.filter(u => u.role !== 'PATIENT');
 
     // Return purge summary
+    this.saveToDisk();
     return {
       purged: {
         patients: statsBefore.patients,
@@ -1634,6 +1823,7 @@ class InMemoryHospitalDatabase {
     this.procurementOrders = [];
 
     this.seedDefaultData();
+    this.saveToDisk();
     return this.getDatabaseStats();
   }
 }

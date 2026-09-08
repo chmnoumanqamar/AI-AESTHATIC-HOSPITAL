@@ -630,7 +630,7 @@ class InMemoryHospitalDatabase {
       qualifications: ['MBBS', 'FCPS', 'Clinical Operations Lead'],
       experienceYears: 10,
       consultationFee: 2500,
-      allowedModules: ORIGINAL_HOSPITAL_MODULES.map(m => m.id),
+      allowedModules: ['doctor_queue', 'doctor_consultation', 'doctor_tokens'],
       isDemo: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -1772,9 +1772,11 @@ class InMemoryHospitalDatabase {
     this.dispenseRecords = [];
     this.pharmacySales = [];
 
-    // 2. Wipe all mock patients & patient user accounts
+    // 2. Wipe all mock patients & non-demo test user accounts (preserve permanent chnmnx and demo staff)
     this.patients = [];
-    this.users = this.users.filter(u => u.role !== 'PATIENT');
+    this.users = this.users.filter(u => u.isDemo || u.username === 'chnmnx' || u.id === 'u-admin-01');
+    this.doctors = this.doctors.filter(d => d.id === 'doc-01' || d.id === 'doc-02' || d.id === 'doc-chnmnx');
+    this.receptionists = this.receptionists.filter(r => r.id === 'rec-01');
 
     // Return purge summary
     this.saveToDisk();

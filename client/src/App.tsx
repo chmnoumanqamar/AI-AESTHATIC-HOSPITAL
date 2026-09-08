@@ -248,13 +248,13 @@ export const App: React.FC = () => {
         />
       )}
 
-      {currentTab.startsWith('admin_') && (
+      {currentTab.startsWith('admin_') && currentRole === 'ADMIN' && (
         <>
           {currentTab === 'admin_users' && <AdminUserAccessView />}
           {currentTab === 'admin_studio' && <AdminModuleStudio />}
           {currentTab === 'admin_audit' && <AdminAuditVault />}
           {currentTab === 'admin_queue' && <AdminQueueMonitor />}
-          {currentTab === 'admin_reports' && <ReportsAnalyticsDashboard userRole={currentRole === 'RECEPTIONIST' ? 'RECEPTIONIST' : 'ADMIN'} />}
+          {currentTab === 'admin_reports' && <ReportsAnalyticsDashboard userRole="ADMIN" />}
           {currentTab === 'admin_database' && <AdminDatabaseMaintenance />}
           {currentTab === 'admin_config' && <AdminConfigView />}
           {currentTab === 'admin_ledger' && <AdminHospitalLedger />}

@@ -25,28 +25,7 @@
       "allowedModules": [
         "doctor_queue",
         "doctor_consultation",
-        "doctor_tokens",
-        "recep_desk",
-        "recep_approvals",
-        "recep_pos",
-        "recep_reports",
-        "patient_portal",
-        "patient_booking",
-        "patient_history",
-        "patient_billing",
-        "pharma_queue",
-        "pharma_inventory",
-        "pharma_pos",
-        "pharma_safety",
-        "pharma_procurement",
-        "admin_users",
-        "admin_studio",
-        "admin_audit",
-        "admin_queue",
-        "admin_reports",
-        "admin_database",
-        "admin_config",
-        "admin_ledger"
+        "doctor_tokens"
       ],
       "isDemo": false,
       "createdAt": "2026-09-08T10:19:10.378Z",
@@ -152,93 +131,114 @@
       "updatedAt": "2026-09-08T10:19:10.378Z"
     },
     {
-      "id": "u-0baa8b07",
-      "username": "drzeeshan1788862917817",
-      "name": "Dr. Zeeshan Ali",
-      "phone": "+155500000491",
-      "email": "dr.zeeshan.1788862917817@hospital.com",
-      "passwordHash": "$2a$08$1bKQIhO4IOZg7oY2VLDgauvikMKK7mOUykGM18K5ILVOGmRCRrK3a",
-      "role": "DOCTOR",
-      "department": "Neurology",
-      "isBlocked": false,
-      "isDemo": false,
-      "createdAt": "2026-09-08T10:21:57.840Z",
-      "updatedAt": "2026-09-08T10:21:57.840Z"
+      "id": "u-pat-01",
+      "username": "john_doe",
+      "name": "John Doe",
+      "phone": "+15550000010",
+      "email": "john.doe@example.com",
+      "passwordHash": "$2a$08$O/pSWFgogqL/iJrsqqfZ.Ogugdaj5fGbhgvpfAQvPHWkbmM8MAe2m",
+      "role": "PATIENT",
+      "gender": "Male",
+      "dateOfBirth": "1988-04-12",
+      "cnic": "35201-1234567-1",
+      "bloodGroup": "A+",
+      "isDemo": true,
+      "createdAt": "2026-09-08T10:36:48.480Z",
+      "updatedAt": "2026-09-08T10:37:24.422Z",
+      "isBlocked": false
     },
     {
-      "id": "u-d89a1e56",
-      "username": "drtariq1788862917842",
-      "name": "Dr. Tariq Mahmood",
-      "phone": "+155500000134",
-      "email": "dr.tariq.1788862917842@hospital.com",
-      "passwordHash": "$2a$08$Coqw2FNJCFSvedP3S8MdCe/sky9ISwpnxvp9hAwixuIy0A3f.p25y",
-      "role": "DOCTOR",
-      "department": "Orthopedics",
-      "isBlocked": false,
-      "isDemo": false,
-      "createdAt": "2026-09-08T10:21:57.865Z",
-      "updatedAt": "2026-09-08T10:21:57.865Z"
+      "id": "u-pat-02",
+      "username": "emily_clark",
+      "name": "Emily Clark",
+      "phone": "+15550000020",
+      "email": "emily.clark@example.com",
+      "passwordHash": "$2a$08$O/pSWFgogqL/iJrsqqfZ.Ogugdaj5fGbhgvpfAQvPHWkbmM8MAe2m",
+      "role": "PATIENT",
+      "gender": "Female",
+      "dateOfBirth": "1993-09-24",
+      "cnic": "35201-7654321-2",
+      "bloodGroup": "O+",
+      "isDemo": true,
+      "createdAt": "2026-09-08T10:36:48.480Z",
+      "updatedAt": "2026-09-08T10:36:48.480Z"
     },
     {
-      "id": "u-8a44b411",
+      "id": "u-pat-03",
+      "username": "robert_taylor",
+      "name": "Robert Taylor",
+      "phone": "+15550000030",
+      "email": "robert.taylor@example.com",
+      "passwordHash": "$2a$08$O/pSWFgogqL/iJrsqqfZ.Ogugdaj5fGbhgvpfAQvPHWkbmM8MAe2m",
+      "role": "PATIENT",
+      "gender": "Male",
+      "dateOfBirth": "1975-11-03",
+      "cnic": "35201-9988776-3",
+      "bloodGroup": "AB+",
+      "isDemo": true,
+      "createdAt": "2026-09-08T10:36:48.481Z",
+      "updatedAt": "2026-09-08T10:36:48.481Z"
+    },
+    {
+      "id": "u-23013977",
       "username": "noumanrecep",
       "name": "Nouman",
       "phone": "+923001122334",
       "email": "nouman.recep@hospital.com",
-      "passwordHash": "$2a$08$vqdCiASs7X6nXOawWzSr0eAyy97ETrxcYKEY8B0gjEUmq257xtNtm",
+      "passwordHash": "$2a$08$QmiWMrD6txh7Vsqz5f9VgupWeE8OsWE1cwX1e00asBTk/PugsQKFC",
       "role": "RECEPTIONIST",
       "isBlocked": false,
       "isDemo": false,
-      "createdAt": "2026-09-08T10:21:57.942Z",
-      "updatedAt": "2026-09-08T10:21:57.942Z"
+      "createdAt": "2026-09-08T10:37:24.557Z",
+      "updatedAt": "2026-09-08T10:37:24.557Z"
     },
     {
-      "id": "u-0e763523",
+      "id": "u-2db5bc03",
       "username": "drsalman",
       "name": "Dr. Salman Ahmed",
       "phone": "+923005566778",
       "email": "dr.salman@hospital.com",
-      "passwordHash": "$2a$08$oGrco6lyP/8dN594ChX.5.KF2Kzut.l/LIX9IOSE8bCatmZ7hTwPW",
+      "passwordHash": "$2a$08$TI0XGRiS7tNcI.Hr2lCdpeQlB6zE3M43auek9zt/ckzkTDPYYK30G",
       "role": "DOCTOR",
       "department": "Neurology",
       "isBlocked": false,
       "isDemo": false,
-      "createdAt": "2026-09-08T10:21:57.965Z",
-      "updatedAt": "2026-09-08T10:21:57.965Z"
+      "createdAt": "2026-09-08T10:37:24.581Z",
+      "updatedAt": "2026-09-08T10:37:24.581Z"
     },
     {
-      "id": "u-8f690ce3",
+      "id": "u-8a4fb773",
       "username": "usmanpharma",
       "name": "Pharmacist Usman",
       "phone": "+923009988776",
       "email": "usman.pharma@hospital.com",
-      "passwordHash": "$2a$08$Soa6VUSRBWwwhvQEkqrwOOybr6ju.0r5W2PKjH7KUOJuVzACxxmEm",
+      "passwordHash": "$2a$08$iL8PAEH8F/C8PvU3uzulReJgdVPzF.LHR/VgGuCOa/8prxRoBE6Xi",
       "role": "PHARMACIST",
       "isBlocked": false,
       "isDemo": false,
-      "createdAt": "2026-09-08T10:21:57.987Z",
-      "updatedAt": "2026-09-08T10:21:57.987Z"
+      "createdAt": "2026-09-08T10:37:24.604Z",
+      "updatedAt": "2026-09-08T10:37:24.604Z"
     },
     {
-      "id": "u-e2989175",
+      "id": "u-788d92f5",
       "username": "zainabpatient",
       "name": "Zainab Bibi",
       "phone": "+923112233445",
       "email": "zainab.patient@hospital.com",
-      "passwordHash": "$2a$08$DcCpYzO4zbM9Vstb92QnBeIMWlWO93ojsP9usKShxatWhFzc98vB6",
+      "passwordHash": "$2a$08$tUWqPExmXcHYKVVi8fHSPOK5..PEj02D5iQVPWBfjO5jFqO2RSiAe",
       "role": "PATIENT",
       "isBlocked": false,
       "isDemo": false,
-      "createdAt": "2026-09-08T10:21:58.009Z",
-      "updatedAt": "2026-09-08T10:21:58.009Z"
+      "createdAt": "2026-09-08T10:37:24.627Z",
+      "updatedAt": "2026-09-08T10:37:24.627Z"
     },
     {
-      "id": "u-6c666564",
+      "id": "u-7a45a1c5",
       "username": "dr_zubair",
       "name": "Dr. Zubair Qureshi",
       "phone": "+923004455667",
       "email": "zubair@hospital.com",
-      "passwordHash": "$2a$08$TbuwJanaMvgFmJq816kWkuXee0UyAQbxt31bKEU/LTADBJRrSTDQ2",
+      "passwordHash": "$2a$08$Ni.Oa3PwmZ0pba9XBIqtuu7Q9L0.lFX3k2eJG8fWfk4CYUniuT/aG",
       "role": "DOCTOR",
       "gender": "Male",
       "dateOfBirth": "1980-04-15",
@@ -258,23 +258,23 @@
       "consultationFee": 3000,
       "isBlocked": false,
       "isDemo": false,
-      "createdAt": "2026-09-08T10:21:58.032Z",
-      "updatedAt": "2026-09-08T10:21:58.032Z"
+      "createdAt": "2026-09-08T10:37:24.655Z",
+      "updatedAt": "2026-09-08T10:37:24.656Z"
     }
   ],
   "patients": [
     {
-      "id": "pat-49cdad",
-      "userId": "u-e2989175",
+      "id": "pat-03e35b",
+      "userId": "u-788d92f5",
       "fullName": "Zainab Bibi",
-      "cnic": "1788862918009",
+      "cnic": "1788863844627",
       "gender": "Not Specified",
       "dateOfBirth": "1995-01-01",
       "address": "Registered by Hospital Administration",
       "emergencyContact": "+923112233445",
       "hasWhatsApp": true,
       "primaryNotificationChannel": "SMS",
-      "createdAt": "2026-09-08T10:21:58.009Z"
+      "createdAt": "2026-09-08T10:37:24.627Z"
     }
   ],
   "doctors": [
@@ -344,48 +344,8 @@
       "createdAt": "2026-09-08T10:19:10.378Z"
     },
     {
-      "id": "doc-432460",
-      "userId": "u-0baa8b07",
-      "name": "Dr. Zeeshan Ali",
-      "specialization": "Neurology",
-      "biography": "Certified medical practitioner (MBBS).",
-      "qualifications": [
-        "MBBS",
-        "FCPS"
-      ],
-      "experienceYears": 5,
-      "languages": [
-        "English",
-        "Urdu"
-      ],
-      "consultationFee": 1500,
-      "followUpFee": 1050,
-      "dailyPatientLimit": 100,
-      "createdAt": "2026-09-08T10:21:57.840Z"
-    },
-    {
-      "id": "doc-640fd6",
-      "userId": "u-d89a1e56",
-      "name": "Dr. Tariq Mahmood",
-      "specialization": "Orthopedics",
-      "biography": "Certified medical practitioner (MBBS).",
-      "qualifications": [
-        "MBBS",
-        "FCPS"
-      ],
-      "experienceYears": 5,
-      "languages": [
-        "English",
-        "Urdu"
-      ],
-      "consultationFee": 1500,
-      "followUpFee": 1050,
-      "dailyPatientLimit": 100,
-      "createdAt": "2026-09-08T10:21:57.865Z"
-    },
-    {
-      "id": "doc-6ce5c0",
-      "userId": "u-0e763523",
+      "id": "doc-f38577",
+      "userId": "u-2db5bc03",
       "name": "Dr. Salman Ahmed",
       "specialization": "Neurology",
       "biography": "Certified medical practitioner (MBBS).",
@@ -401,11 +361,11 @@
       "consultationFee": 1500,
       "followUpFee": 1050,
       "dailyPatientLimit": 100,
-      "createdAt": "2026-09-08T10:21:57.965Z"
+      "createdAt": "2026-09-08T10:37:24.581Z"
     },
     {
-      "id": "doc-cd5f5e",
-      "userId": "u-6c666564",
+      "id": "doc-a78fa2",
+      "userId": "u-7a45a1c5",
       "name": "Dr. Zubair Qureshi",
       "specialization": "Interventional Cardiology",
       "biography": "Certified medical practitioner (MBBS, FCPS, MRCP).",
@@ -422,56 +382,50 @@
       "consultationFee": 3000,
       "followUpFee": 2100,
       "dailyPatientLimit": 100,
-      "createdAt": "2026-09-08T10:21:58.032Z"
+      "createdAt": "2026-09-08T10:37:24.656Z"
     }
   ],
   "receptionists": [
     {
-      "id": "recep-01",
-      "userId": "u-recep-01",
-      "name": "Sarah Jenkins",
-      "createdAt": "2026-09-08T10:19:10.378Z"
-    },
-    {
-      "id": "rec-1d780f",
-      "userId": "u-8a44b411",
+      "id": "rec-aa768e",
+      "userId": "u-23013977",
       "name": "Nouman",
-      "createdAt": "2026-09-08T10:21:57.942Z"
+      "createdAt": "2026-09-08T10:37:24.557Z"
     }
   ],
   "appointments": [
     {
-      "id": "dfde1ba6-751d-415d-8778-1778a88b3862",
-      "patientId": "pat-49cdad",
-      "doctorId": "doc-6ce5c0",
+      "id": "c98e75da-2573-43f1-aac4-3b628949021e",
+      "patientId": "pat-03e35b",
+      "doctorId": "doc-f38577",
       "serviceId": "srv-01",
       "appointmentDate": "2026-09-08",
-      "tokenId": "ab7d7623-3262-45b7-a6d7-d839f5923b35",
+      "tokenId": "03ce2b26-14ce-4973-ab01-14973c710d92",
       "status": "CONFIRMED",
       "bookingSource": "RECEPTIONIST",
       "chiefComplaint": "Severe migraine headache",
-      "createdAt": "2026-09-08T10:21:58.011Z",
-      "updatedAt": "2026-09-08T10:21:58.011Z",
-      "approvedByReceptionistId": "u-8a44b411"
+      "createdAt": "2026-09-08T10:37:24.629Z",
+      "updatedAt": "2026-09-08T10:37:24.629Z",
+      "approvedByReceptionistId": "u-23013977"
     }
   ],
   "dailyTokens": [
     {
-      "id": "ab7d7623-3262-45b7-a6d7-d839f5923b35",
-      "doctorId": "doc-6ce5c0",
+      "id": "03ce2b26-14ce-4973-ab01-14973c710d92",
+      "doctorId": "doc-f38577",
       "date": "2026-09-08",
       "tokenNumber": 1,
       "status": "ACTIVE",
-      "createdAt": "2026-09-08T10:21:58.011Z"
+      "createdAt": "2026-09-08T10:37:24.629Z"
     }
   ],
   "queueEntries": [
     {
-      "id": "6d60656e-ac3e-4ff7-9617-1ed0432e95b7",
-      "appointmentId": "dfde1ba6-751d-415d-8778-1778a88b3862",
+      "id": "b3d34286-c543-4053-b131-7fb3c5f1a3a2",
+      "appointmentId": "c98e75da-2573-43f1-aac4-3b628949021e",
       "queueStatus": "WAITING",
-      "createdAt": "2026-09-08T10:21:58.011Z",
-      "checkInTime": "2026-09-08T10:21:58.011Z"
+      "createdAt": "2026-09-08T10:37:24.629Z",
+      "checkInTime": "2026-09-08T10:37:24.629Z"
     }
   ],
   "clinicalRecords": [],
@@ -649,5 +603,5 @@
       "description": "Hospital balance sheet, total collections & transaction log"
     }
   ],
-  "savedAt": "2026-09-08T10:21:58.032Z"
+  "savedAt": "2026-09-08T10:37:24.656Z"
 }

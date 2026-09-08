@@ -200,20 +200,21 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
     // Admin sees ALL modules across all domains
     visibleModules = modulesRegistry;
   } else if (currentUser?.allowedModules && Array.isArray(currentUser.allowedModules) && currentUser.allowedModules.length > 0) {
-    // User has custom granular permissions assigned by Admin
-    visibleModules = modulesRegistry.filter(m => currentUser.allowedModules.includes(m.id));
+    // User has custom granular permissions assigned by Admin.
+    // STRICT SECURITY ENFORCEMENT: System Administration modules (ADMIN category) are STRICTLY reserved for ADMIN role!
+    // Doctors, Receptionists, Patients, and Pharmacists can never access or see System Administration in their sidebar.
+    visibleModules = modulesRegistry.filter(m => currentUser.allowedModules.includes(m.id) && m.category !== 'ADMIN');
   } else {
     // Dynamic role department membership:
     // Any page whose category matches this role's department is automatically visible!
     // When a page is moved into or out of this department, it dynamically reflects in real-time!
-    visibleModules = modulesRegistry.filter(m => m.category === primaryCategory);
+    visibleModules = modulesRegistry.filter(m => m.category === primaryCategory && m.category !== 'ADMIN');
   }
 
   // Category display order: Current role's own department is ALWAYS placed at the TOP
-  const orderedCategoryKeys: ('CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN' | 'PHARMACY')[] = [
-    primaryCategory,
-    ...(['ADMIN', 'CLINICAL', 'RECEPTION', 'PATIENT', 'PHARMACY'] as const).filter(k => k !== primaryCategory)
-  ];
+  const orderedCategoryKeys: ('CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN' | 'PHARMACY')[] = currentRole === 'ADMIN'
+    ? ['ADMIN', 'CLINICAL', 'RECEPTION', 'PATIENT', 'PHARMACY']
+    : [primaryCategory, ...(['CLINICAL', 'RECEPTION', 'PATIENT', 'PHARMACY'] as const).filter(k => k !== primaryCategory)];
 
   const categoryLabels: Record<'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN' | 'PHARMACY', string> = {
     ADMIN: 'System Administration',
@@ -227,7 +228,7 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
     key,
     label: categoryLabels[key],
     items: visibleModules.filter(m => m.category === key)
-  })).filter(cat => cat.items.length > 0);
+  })).filter(cat => cat.items.length > 0 && (currentRole === 'ADMIN' || cat.key !== 'ADMIN'));
 
   const hasMultipleCategories = categories.length > 1;
 

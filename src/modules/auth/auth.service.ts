@@ -1,13 +1,33 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
-import { db, DbUser, DbPatient, DbDoctor } from '../../common/data/mock-db';
+import { db, DbUser, DbPatient, DbDoctor, ORIGINAL_HOSPITAL_MODULES } from '../../common/data/mock-db';
 import { ENV } from '../../config/env.config';
 import { AppError } from '../../common/errors/AppError';
 import { LoginInput, RegisterPatientInput } from './auth.dto';
 import { JwtAuthPayload } from '../../common/middleware/auth.middleware';
 
 export class AuthService {
+  getEffectiveAllowedModules(user: DbUser): string[] {
+    const roleDefaultModules: Record<string, string[]> = {
+      DOCTOR: ['doctor_queue', 'doctor_consultation', 'doctor_tokens'],
+      RECEPTIONIST: ['recep_desk', 'recep_approvals', 'recep_pos', 'recep_reports'],
+      PATIENT: ['patient_portal', 'patient_booking', 'patient_history', 'patient_billing'],
+      PHARMACIST: ['pharma_queue', 'pharma_inventory', 'pharma_pos', 'pharma_safety', 'pharma_procurement'],
+      ADMIN: ORIGINAL_HOSPITAL_MODULES.map(m => m.id)
+    };
+
+    if (user.role === 'ADMIN') {
+      return user.allowedModules && user.allowedModules.length > 0
+        ? user.allowedModules
+        : roleDefaultModules.ADMIN;
+    }
+
+    // STRICT SECURITY: Non-admin users can never access or receive admin modules
+    const nonAdminModules = (user.allowedModules || []).filter(m => !m.startsWith('admin_'));
+    return nonAdminModules.length > 0 ? nonAdminModules : (roleDefaultModules[user.role] || []);
+  }
+
   async login(input: LoginInput) {
     const rawId = input.identifier.trim();
     const identifier = rawId.toLowerCase();
@@ -67,13 +87,15 @@ export class AuthService {
       profileData = { name: user.name || 'Pharmacist' };
     }
 
+    const effectiveAllowedModules = this.getEffectiveAllowedModules(user);
+
     const tokenPayload: JwtAuthPayload = {
       userId: user.id,
       role: user.role,
       phone: user.phone,
       email: user.email,
       profileId,
-      allowedModules: user.allowedModules
+      allowedModules: effectiveAllowedModules
     };
 
     const token = jwt.sign(tokenPayload, ENV.JWT_SECRET, {
@@ -94,7 +116,7 @@ export class AuthService {
         department: user.department,
         profileId,
         profile: profileData,
-        allowedModules: user.allowedModules
+        allowedModules: effectiveAllowedModules
       }
     };
   }
@@ -232,6 +254,8 @@ export class AuthService {
       profileData = { name: user.name || 'Pharmacist' };
     }
 
+    const effectiveAllowedModules = this.getEffectiveAllowedModules(user);
+
     return {
       id: user.id,
       phone: user.phone,
@@ -240,7 +264,7 @@ export class AuthService {
       role: user.role,
       profileId,
       profile: profileData,
-      allowedModules: user.allowedModules
+      allowedModules: effectiveAllowedModules
     };
   }
 

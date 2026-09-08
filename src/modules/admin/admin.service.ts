@@ -21,9 +21,25 @@ export class AdminService {
 
       return {
         id: u.id,
+        username: u.username || u.phone,
         phone: u.phone,
         email: u.email || 'N/A',
         role: u.role,
+        gender: u.gender || profile?.gender || null,
+        dateOfBirth: u.dateOfBirth || profile?.dateOfBirth || null,
+        cnic: u.cnic || profile?.cnic || null,
+        bloodGroup: u.bloodGroup || null,
+        address: u.address || profile?.address || null,
+        emergencyContact: u.emergencyContact || profile?.emergencyContact || null,
+        emergencyPhone: u.emergencyPhone || null,
+        department: u.department || (u.role === 'DOCTOR' ? profile?.specialization : u.role === 'PHARMACIST' ? 'Central Pharmacy' : u.role === 'RECEPTIONIST' ? 'Front Desk' : u.role === 'ADMIN' ? 'Administration' : 'Outpatient'),
+        licenseNumber: u.licenseNumber || null,
+        qualifications: u.qualifications || profile?.qualifications || [],
+        experienceYears: u.experienceYears || profile?.experienceYears || null,
+        consultationFee: u.consultationFee || profile?.consultationFee || null,
+        deskNumber: u.deskNumber || null,
+        shift: u.shift || null,
+        allergies: u.allergies || null,
         isBlocked: Boolean(u.isBlocked),
         blockedReason: u.blockedReason || null,
         blockedAt: u.blockedAt || null,
@@ -45,11 +61,13 @@ export class AdminService {
     }
 
     if (filters?.search) {
-      const q = filters.search.toLowerCase();
+      const q = filters.search.toLowerCase().replace(/^@/, '');
       users = users.filter(u =>
         u.name.toLowerCase().includes(q) ||
+        (u.username && u.username.toLowerCase().includes(q)) ||
         u.phone.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q)
+        u.email.toLowerCase().includes(q) ||
+        (u.cnic && u.cnic.toLowerCase().includes(q))
       );
     }
 
@@ -220,23 +238,68 @@ export class AdminService {
   }
 
   async createUser(input: CreateUserInput, adminActorId: string = 'admin') {
+    // 1. Process & Validate Username (Login ID)
+    let finalUsername = input.username?.trim().toLowerCase();
+    if (!finalUsername) {
+      if (input.email && input.email.includes('@')) {
+        finalUsername = input.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
+      } else {
+        finalUsername = input.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+      }
+      if (finalUsername.length < 3) {
+        finalUsername = `user_${Math.floor(1000 + Math.random() * 9000)}`;
+      }
+    }
+
+    if (!/^[a-zA-Z0-9_.-]{3,30}$/.test(finalUsername)) {
+      throw AppError.badRequest('Invalid username format: Username must be 3 to 30 characters with no spaces (only letters, numbers, underscores, and dashes allowed).');
+    }
+
+    const usernameTaken = db.users.some(u => u.username && u.username.toLowerCase() === finalUsername);
+    if (usernameTaken) {
+      throw AppError.conflict(`Username "@${finalUsername}" is already taken. Please choose another username.`);
+    }
+
+    // 2. Check Phone / Email duplicate
     const existing = db.users.find(
-      u => u.phone === input.phone || (input.email && u.email?.toLowerCase() === input.email.toLowerCase())
+      u => u.phone === input.phone || (input.email && input.email.trim() && u.email?.toLowerCase() === input.email.toLowerCase())
     );
     if (existing) {
-      throw AppError.conflict('A user with this phone or email already exists in the registry.');
+      throw AppError.conflict('A user with this phone number or email already exists in the registry.');
     }
 
     const salt = bcrypt.genSaltSync(8);
     const passwordHash = bcrypt.hashSync(input.password, salt);
 
+    const qualificationsArray = Array.isArray(input.qualifications)
+      ? input.qualifications
+      : typeof input.qualifications === 'string'
+      ? input.qualifications.split(',').map(q => q.trim()).filter(Boolean)
+      : undefined;
+
     const newUser: DbUser = {
       id: `u-${uuidv4().substring(0, 8)}`,
+      username: finalUsername,
       name: input.name,
       phone: input.phone,
-      email: input.email,
+      email: input.email && input.email.trim() ? input.email.trim() : undefined,
       passwordHash,
       role: input.role,
+      gender: input.gender,
+      dateOfBirth: input.dateOfBirth,
+      cnic: input.cnic,
+      bloodGroup: input.bloodGroup,
+      address: input.address,
+      emergencyContact: input.emergencyContact,
+      emergencyPhone: input.emergencyPhone,
+      department: input.department || (input.role === 'DOCTOR' ? input.specialization : undefined),
+      licenseNumber: input.licenseNumber,
+      qualifications: qualificationsArray,
+      experienceYears: input.experienceYears ? Number(input.experienceYears) : undefined,
+      consultationFee: input.consultationFee ? Number(input.consultationFee) : undefined,
+      deskNumber: input.deskNumber,
+      shift: input.shift,
+      allergies: input.allergies,
       isBlocked: false,
       isDemo: false,
       createdAt: new Date().toISOString(),
@@ -250,13 +313,13 @@ export class AdminService {
         id: `doc-${uuidv4().substring(0, 6)}`,
         userId: newUser.id,
         name: input.name,
-        specialization: input.specialization || 'General Practice',
-        biography: 'Certified medical practitioner granted access by administrator.',
-        qualifications: ['MBBS', 'FCPS'],
-        experienceYears: 5,
+        specialization: input.specialization || input.department || 'General Practice',
+        biography: `Certified medical practitioner (${newUser.qualifications?.join(', ') || 'MBBS'}).`,
+        qualifications: newUser.qualifications || ['MBBS', 'FCPS'],
+        experienceYears: newUser.experienceYears || 5,
         languages: ['English', 'Urdu'],
-        consultationFee: 100,
-        followUpFee: 70,
+        consultationFee: newUser.consultationFee || 1500,
+        followUpFee: (newUser.consultationFee || 1500) * 0.7,
         dailyPatientLimit: 100,
         createdAt: new Date().toISOString()
       };
@@ -276,9 +339,9 @@ export class AdminService {
         fullName: input.name,
         cnic: input.cnic || `${Date.now()}`.substring(0, 13),
         gender: input.gender || 'Not Specified',
-        dateOfBirth: '1995-01-01',
-        address: 'Registered by Hospital Administration',
-        emergencyContact: input.phone,
+        dateOfBirth: input.dateOfBirth || '1995-01-01',
+        address: input.address || 'Registered by Hospital Administration',
+        emergencyContact: input.emergencyPhone || input.emergencyContact || input.phone,
         hasWhatsApp: true,
         primaryNotificationChannel: 'SMS',
         createdAt: new Date().toISOString()
@@ -294,15 +357,17 @@ export class AdminService {
       resourceId: newUser.id,
       newState: {
         userId: newUser.id,
+        username: newUser.username,
         phone: newUser.phone,
         role: newUser.role,
         name: input.name
       },
-      metadata: { role: input.role }
+      metadata: { role: input.role, username: newUser.username }
     });
 
     return {
       id: newUser.id,
+      username: newUser.username,
       phone: newUser.phone,
       email: newUser.email,
       role: newUser.role,

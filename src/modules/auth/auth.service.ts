@@ -12,6 +12,8 @@ export class AuthService {
     const identifier = input.identifier.trim().toLowerCase();
     const user = db.users.find(
       u =>
+        (u.username && u.username.toLowerCase() === identifier) ||
+        (u.username && `@${u.username.toLowerCase()}` === identifier) ||
         u.phone.toLowerCase() === identifier ||
         (u.email && u.email.toLowerCase() === identifier) ||
         (u.email && u.email.split('@')[0].toLowerCase() === identifier) ||
@@ -19,7 +21,7 @@ export class AuthService {
     );
 
     if (!user) {
-      throw AppError.unauthorized('Invalid phone/email or password');
+      throw AppError.unauthorized('Invalid username, phone/email, or password');
     }
 
     if (user.isBlocked) {
@@ -28,7 +30,7 @@ export class AuthService {
 
     const isValid = bcrypt.compareSync(input.password, user.passwordHash);
     if (!isValid) {
-      throw AppError.unauthorized('Invalid phone/email or password');
+      throw AppError.unauthorized('Invalid username, phone/email, or password');
     }
 
     let profileId: string | undefined;
@@ -68,10 +70,14 @@ export class AuthService {
       token,
       user: {
         id: user.id,
+        username: user.username,
         phone: user.phone,
         email: user.email,
         name: user.name || profileData?.name || profileData?.fullName || (user.role === 'ADMIN' ? 'Root Administrator' : 'Staff Member'),
         role: user.role,
+        gender: user.gender,
+        cnic: user.cnic,
+        department: user.department,
         profileId,
         profile: profileData,
         allowedModules: user.allowedModules
@@ -96,8 +102,12 @@ export class AuthService {
     const salt = bcrypt.genSaltSync(8);
     const passwordHash = bcrypt.hashSync(rawPassword, salt);
 
+    const genUsername = email ? email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '') : input.fullName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+
     const newUser: DbUser = {
       id: uuidv4(),
+      username: genUsername || `user_${Date.now()}`.substring(0, 15),
+      name: input.fullName,
       phone,
       email,
       passwordHash,

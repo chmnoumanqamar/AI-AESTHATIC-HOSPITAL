@@ -22,16 +22,42 @@ import {
   EyeOff,
   Sliders,
   KeyRound,
-  Pill
+  Pill,
+  AtSign,
+  Building,
+  Calendar,
+  MapPin,
+  Award,
+  Clock,
+  Heart,
+  PhoneCall,
+  Info,
+  UserCheck
 } from 'lucide-react';
 import { api } from '../../services/api';
 
 export interface HospitalUser {
   id: string;
+  username: string;
   phone: string;
   email: string;
   role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST';
   name: string;
+  gender?: string | null;
+  dateOfBirth?: string | null;
+  cnic?: string | null;
+  bloodGroup?: string | null;
+  address?: string | null;
+  emergencyContact?: string | null;
+  emergencyPhone?: string | null;
+  department?: string | null;
+  licenseNumber?: string | null;
+  qualifications?: string[];
+  experienceYears?: number | null;
+  consultationFee?: number | null;
+  deskNumber?: string | null;
+  shift?: string | null;
+  allergies?: string | null;
   isBlocked: boolean;
   blockedReason?: string | null;
   blockedAt?: string | null;
@@ -97,7 +123,9 @@ export const AdminUserAccessView: React.FC = () => {
 
   // Modal States
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createModalTab, setCreateModalTab] = useState<'CREDENTIALS' | 'PERSONAL' | 'PROFESSIONAL'>('CREDENTIALS');
   const [blockingTargetUser, setBlockingTargetUser] = useState<HospitalUser | null>(null);
+  const [profileTargetUser, setProfileTargetUser] = useState<HospitalUser | null>(null);
   const [blockReason, setBlockReason] = useState('Administrative compliance review');
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -107,33 +135,95 @@ export const AdminUserAccessView: React.FC = () => {
   const [savingPermissions, setSavingPermissions] = useState(false);
   const [permissionsSuccessMsg, setPermissionsSuccessMsg] = useState<string | null>(null);
 
-  // New User Form State
-  const [newUser, setNewUser] = useState({
+  // Enhanced New User Form State
+  const defaultUserForm = {
     name: '',
+    username: '',
     phone: '',
     email: '',
     password: '',
     role: 'DOCTOR' as 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST',
-    specialization: 'Internal Medicine'
-  });
+    gender: 'Male',
+    dateOfBirth: '',
+    cnic: '',
+    bloodGroup: 'O+',
+    address: '',
+    emergencyContact: '',
+    emergencyPhone: '',
+    department: 'Cardiology',
+    specialization: 'Cardiology & Internal Medicine',
+    licenseNumber: '',
+    qualifications: 'MBBS, FCPS',
+    experienceYears: 5,
+    consultationFee: 2500,
+    deskNumber: 'OPD Counter 1',
+    shift: 'Morning Shift (08:00 - 16:00)',
+    allergies: ''
+  };
+
+  const [newUser, setNewUser] = useState(defaultUserForm);
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [usernameTouched, setUsernameTouched] = useState(false);
+
+  const getUsernameValidationStatus = () => {
+    const uname = newUser.username.trim();
+    if (!uname) {
+      return { valid: false, message: 'Username is required for system login' };
+    }
+    if (uname.length < 3) {
+      return { valid: false, message: 'Invalid username: Minimum 3 characters required' };
+    }
+    if (uname.length > 30) {
+      return { valid: false, message: 'Invalid username: Maximum 30 characters allowed' };
+    }
+    if (/\s/.test(uname)) {
+      return { valid: false, message: 'Invalid username: Spaces are not allowed' };
+    }
+    if (!/^[a-zA-Z0-9_.-]+$/.test(uname)) {
+      return { valid: false, message: 'Invalid username: Only letters, numbers, underscores (_), and dashes (-) allowed' };
+    }
+    const isTaken = users.some(u => u.username && u.username.toLowerCase() === uname.toLowerCase());
+    if (isTaken) {
+      return { valid: false, message: `Username "@${uname}" is already taken by another user` };
+    }
+    return { valid: true, message: `Username "@${uname}" is valid and available` };
+  };
+
+  const handleRoleSelect = (role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST') => {
+    let defaultDept = 'Cardiology';
+    let defaultSpec = 'Cardiology & Internal Medicine';
+    if (role === 'RECEPTIONIST') {
+      defaultDept = 'Patient Front-Desk';
+      defaultSpec = 'Front-Desk Operations';
+    } else if (role === 'PHARMACIST') {
+      defaultDept = 'Central Pharmacy & Dispensary';
+      defaultSpec = 'Clinical Pharmacology & Dispensing';
+    } else if (role === 'PATIENT') {
+      defaultDept = 'Outpatient Department';
+      defaultSpec = 'General Medicine';
+    } else if (role === 'ADMIN') {
+      defaultDept = 'Hospital Administration';
+      defaultSpec = 'Systems Operations & Compliance';
+    }
+    setNewUser(prev => ({
+      ...prev,
+      role,
+      department: defaultDept,
+      specialization: defaultSpec
+    }));
+  };
 
   const handleOpenCreateModal = () => {
-    setNewUser({
-      name: '',
-      phone: '',
-      email: '',
-      password: '',
-      role: 'DOCTOR',
-      specialization: 'Internal Medicine'
-    });
+    setNewUser(defaultUserForm);
     setConfirmPassword('');
     setPasswordError(null);
+    setUsernameTouched(false);
     setShowPassword(false);
     setShowConfirmPassword(false);
+    setCreateModalTab('CREDENTIALS');
     setIsCreateModalOpen(true);
   };
 
@@ -334,33 +424,71 @@ export const AdminUserAccessView: React.FC = () => {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    const uname = newUser.username.trim();
+    if (!uname) {
+      setPasswordError('Username (Login ID) is required.');
+      setCreateModalTab('CREDENTIALS');
+      return;
+    }
+    if (uname.length < 3 || uname.length > 30) {
+      setPasswordError('Invalid username: Must be between 3 and 30 characters.');
+      setCreateModalTab('CREDENTIALS');
+      return;
+    }
+    if (/\s/.test(uname)) {
+      setPasswordError('Invalid username: Spaces are not allowed in username.');
+      setCreateModalTab('CREDENTIALS');
+      return;
+    }
+    if (!/^[a-zA-Z0-9_.-]+$/.test(uname)) {
+      setPasswordError('Invalid username: Only letters, numbers, underscores (_), and dashes (-) are allowed.');
+      setCreateModalTab('CREDENTIALS');
+      return;
+    }
+    if (users.some(u => u.username && u.username.toLowerCase() === uname.toLowerCase())) {
+      setPasswordError(`Username "@${uname}" is already taken. Please choose another username.`);
+      setCreateModalTab('CREDENTIALS');
+      return;
+    }
+    if (!newUser.name.trim()) {
+      setPasswordError('Full Legal Name is required.');
+      setCreateModalTab('CREDENTIALS');
+      return;
+    }
+    if (!newUser.phone.trim()) {
+      setPasswordError('Phone number is required for contact and verification.');
+      setCreateModalTab('PROFESSIONAL');
+      return;
+    }
     if (newUser.password !== confirmPassword) {
       setPasswordError('Passwords do not match. Please ensure both fields are identical.');
+      setCreateModalTab('CREDENTIALS');
       return;
     }
     if (newUser.password.length < 6) {
       setPasswordError('Password must be at least 6 characters long.');
+      setCreateModalTab('CREDENTIALS');
       return;
     }
     setPasswordError(null);
     setActionLoading(true);
     try {
-      await api.post('/admin/users', newUser);
-      alert(`✅ Account created and access granted to ${newUser.name} as ${newUser.role}!`);
-      setIsCreateModalOpen(false);
-      setNewUser({
-        name: '',
-        phone: '',
-        email: '',
-        password: '',
-        role: 'DOCTOR',
-        specialization: 'Internal Medicine'
+      await api.post('/admin/users', {
+        ...newUser,
+        username: uname.toLowerCase(),
+        phone: newUser.phone.trim(),
+        email: newUser.email.trim() || undefined,
+        experienceYears: Number(newUser.experienceYears) || 0,
+        consultationFee: Number(newUser.consultationFee) || 0
       });
+      alert(`✅ Account created and access granted to ${newUser.name} (@${uname}) as ${newUser.role}!`);
+      setIsCreateModalOpen(false);
+      setNewUser(defaultUserForm);
       setConfirmPassword('');
       setPasswordError(null);
       await fetchUsers();
     } catch (err: any) {
-      alert(err.response?.data?.error?.message || 'Failed to create user account');
+      setPasswordError(err.response?.data?.error?.message || err.response?.data?.message || 'Failed to create user account');
     } finally {
       setActionLoading(false);
     }
@@ -476,7 +604,7 @@ export const AdminUserAccessView: React.FC = () => {
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
-              placeholder="Search user name, phone..."
+              placeholder="Search name, @username, phone, CNIC..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               style={{ paddingLeft: '2.5rem' }}
@@ -542,7 +670,17 @@ export const AdminUserAccessView: React.FC = () => {
                               </span>
                             )}
                           </div>
-                          <div className="text-[11px] text-slate-400 font-mono">ID: {user.id}</div>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                            <span className="text-xs font-mono font-bold text-emerald-700 dark:text-[#74C69D] bg-emerald-50 dark:bg-[#203622] px-1.5 py-0.5 rounded border border-emerald-200 dark:border-[#2D6A4F]">
+                              @{user.username || user.phone}
+                            </span>
+                            {user.bloodGroup && (
+                              <span className="text-[10px] font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/50 px-1.5 py-0.2 rounded border border-rose-200 dark:border-rose-800">
+                                {user.bloodGroup}
+                              </span>
+                            )}
+                            <span className="text-[11px] text-slate-400 font-mono">ID: {user.id}</span>
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -557,6 +695,11 @@ export const AdminUserAccessView: React.FC = () => {
                         <Mail className="w-3 h-3 text-slate-400" />
                         <span>{user.email}</span>
                       </div>
+                      {user.cnic && (
+                        <div className="text-[10px] text-slate-400 dark:text-slate-400 font-mono mt-0.5">
+                          CNIC: {user.cnic}
+                        </div>
+                      )}
                     </td>
 
                     {/* Role Dropdown */}
@@ -618,7 +761,7 @@ export const AdminUserAccessView: React.FC = () => {
                         </div>
                       ) : (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                           <span>Active / Permitted</span>
                         </span>
                       )}
@@ -626,27 +769,39 @@ export const AdminUserAccessView: React.FC = () => {
 
                     {/* Action Controls */}
                     <td className="py-3.5 px-5 text-right">
-                      {isRootAdmin ? (
-                        <span className="text-xs text-slate-400 font-medium italic">Root Protected</span>
-                      ) : user.isBlocked ? (
+                      <div className="inline-flex items-center justify-end gap-1.5">
                         <button
-                          onClick={() => handleToggleBlock(user, false)}
-                          disabled={actionLoading}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 clinical-button-primary rounded-lg text-xs font-bold transition-all shadow-xs"
+                          type="button"
+                          onClick={() => setProfileTargetUser(user)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#38482E] text-slate-700 dark:text-[#C2C5AA] hover:bg-slate-100 dark:hover:bg-[#25331E] text-xs font-semibold transition-colors cursor-pointer shadow-2xs"
+                          title="View Full Profile Dossier"
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>Restore Access</span>
+                          <UserCheck className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                          <span>Details</span>
                         </button>
-                      ) : (
-                        <button
-                          onClick={() => setBlockingTargetUser(user)}
-                          disabled={actionLoading}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-rose-950/30 hover:bg-rose-50 dark:hover:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-400 rounded-lg text-xs font-bold transition-all shadow-xs"
-                        >
-                          <Ban className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
-                          <span>Block Access</span>
-                        </button>
-                      )}
+
+                        {isRootAdmin ? (
+                          <span className="text-xs text-slate-400 font-medium italic ml-1">Root Protected</span>
+                        ) : user.isBlocked ? (
+                          <button
+                            onClick={() => handleToggleBlock(user, false)}
+                            disabled={actionLoading}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 clinical-button-primary rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Restore Access</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setBlockingTargetUser(user)}
+                            disabled={actionLoading}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-rose-950/30 hover:bg-rose-50 dark:hover:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-400 rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
+                          >
+                            <Ban className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                            <span>Block Access</span>
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -721,211 +876,847 @@ export const AdminUserAccessView: React.FC = () => {
       {/* MODAL: Grant Access to New User */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs animate-fade-in">
-          <div className="w-full max-w-lg bg-white dark:bg-[#1A2215] border border-slate-200 dark:border-[#2F3E29] rounded-2xl p-6 space-y-4 shadow-xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[#2F3E29]">
-              <div className="flex items-center gap-2.5 text-slate-900 dark:text-white">
-                <UserPlus className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                <h3 className="font-bold text-base">Grant Access to New Hospital User</h3>
+          <div className="w-full max-w-2xl max-h-[92vh] bg-white dark:bg-[#1A2215] border border-slate-200 dark:border-[#2F3E29] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-[#2F3E29] flex items-center justify-between shrink-0 bg-slate-50/70 dark:bg-[#151D11]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-700 dark:text-emerald-400 shrink-0 shadow-2xs">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                      Grant Access to New Hospital User
+                    </h3>
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                      {newUser.role}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-[#A4AC86] mt-0.5">
+                    Configure official system username, personal demographics, and hospital credentials.
+                  </p>
+                </div>
               </div>
+
               <button
+                type="button"
                 onClick={() => {
                   setIsCreateModalOpen(false);
                   setPasswordError(null);
                 }}
-                className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#202C1B] transition-colors cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateUser} className="space-y-4 pt-1">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">Full Legal Name</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Dr. Tariq Mehmood"
-                    value={newUser.name}
-                    onChange={e => setNewUser({ ...newUser, name: e.target.value })}
-                    className="clinical-input w-full text-xs dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
-                  />
+            {/* Modal Tab Switcher */}
+            <div className="px-5 py-2.5 border-b border-slate-200 dark:border-[#2F3E29] flex items-center gap-2 bg-slate-50/40 dark:bg-[#131A10] shrink-0 overflow-x-auto">
+              <button
+                type="button"
+                onClick={() => setCreateModalTab('CREDENTIALS')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  createModalTab === 'CREDENTIALS'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-white dark:bg-[#202C1B] text-slate-600 dark:text-[#C2C5AA] border border-slate-200 dark:border-[#38482E] hover:bg-slate-100 dark:hover:bg-[#2A3924]'
+                }`}
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>1. Account Credentials</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCreateModalTab('PERSONAL')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  createModalTab === 'PERSONAL'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-white dark:bg-[#202C1B] text-slate-600 dark:text-[#C2C5AA] border border-slate-200 dark:border-[#38482E] hover:bg-slate-100 dark:hover:bg-[#2A3924]'
+                }`}
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>2. Personal Demographics</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCreateModalTab('PROFESSIONAL')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  createModalTab === 'PROFESSIONAL'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-white dark:bg-[#202C1B] text-slate-600 dark:text-[#C2C5AA] border border-slate-200 dark:border-[#38482E] hover:bg-slate-100 dark:hover:bg-[#2A3924]'
+                }`}
+              >
+                <Building className="w-3.5 h-3.5" />
+                <span>3. Contact & Department</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateUser} className="flex-1 flex flex-col overflow-hidden">
+              {/* Scrollable Form Body */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
+                {passwordError && (
+                  <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2 animate-in fade-in">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>{passwordError}</span>
+                  </div>
+                )}
+
+                {/* TAB 1: Account & Credentials */}
+                {createModalTab === 'CREDENTIALS' && (
+                  <div className="space-y-4 animate-fade-in">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                          Full Legal Name <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Dr. Tariq Mehmood"
+                          value={newUser.name}
+                          onChange={e => setNewUser({ ...newUser, name: e.target.value })}
+                          className="clinical-input w-full text-xs dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                          System Role <span className="text-rose-500">*</span>
+                        </label>
+                        <select
+                          value={newUser.role}
+                          onChange={e => handleRoleSelect(e.target.value as any)}
+                          className="clinical-input w-full text-xs font-bold dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                        >
+                          <option value="DOCTOR">Doctor (Consultant / Surgeon)</option>
+                          <option value="RECEPTIONIST">Receptionist (Front-Desk / Triage)</option>
+                          <option value="PHARMACIST">Pharmacist (Clinical Dispensary)</option>
+                          <option value="PATIENT">Patient (Outpatient Member)</option>
+                          <option value="ADMIN">Administrator (IT & Compliance)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Dedicated Username (Login ID) with Live Validation */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA]">
+                          Username (Login ID) <span className="text-rose-500">*</span>
+                        </label>
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          Used to sign in across all portals
+                        </span>
+                      </div>
+                      <div className="relative flex items-center">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-mono font-bold text-xs">
+                          @
+                        </div>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. dr_tariq or nouman_desk"
+                          value={newUser.username}
+                          onChange={e => {
+                            setNewUser({ ...newUser, username: e.target.value.toLowerCase().replace(/\s+/g, '_') });
+                            setUsernameTouched(true);
+                            if (passwordError) setPasswordError(null);
+                          }}
+                          style={{ paddingLeft: '2rem' }}
+                          className={`clinical-input w-full text-xs font-mono dark:bg-[#171F13] dark:text-white ${
+                            usernameTouched && newUser.username
+                              ? getUsernameValidationStatus().valid
+                                ? 'border-emerald-500 focus:ring-emerald-500'
+                                : 'border-rose-500 focus:ring-rose-500'
+                              : 'dark:border-[#38482E]'
+                          }`}
+                        />
+                      </div>
+
+                      {/* Live Username Feedback */}
+                      {usernameTouched && newUser.username && (
+                        <div
+                          className={`text-[11px] font-semibold mt-1.5 flex items-center gap-1.5 ${
+                            getUsernameValidationStatus().valid
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : 'text-rose-600 dark:text-rose-400'
+                          }`}
+                        >
+                          {getUsernameValidationStatus().valid ? (
+                            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                          ) : (
+                            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                          )}
+                          <span>{getUsernameValidationStatus().message}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Passwords */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                          Password (Min 6 chars) <span className="text-rose-500">*</span>
+                        </label>
+                        <div className="relative flex items-center">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <Lock className="w-3.5 h-3.5" />
+                          </div>
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            required
+                            minLength={6}
+                            autoComplete="new-password"
+                            placeholder="Enter password"
+                            value={newUser.password}
+                            onChange={e => {
+                              setNewUser({ ...newUser, password: e.target.value });
+                              if (passwordError) setPasswordError(null);
+                            }}
+                            style={{ paddingLeft: '2.25rem', paddingRight: '2.25rem' }}
+                            className="clinical-input w-full text-xs font-mono dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                          >
+                            {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                          Confirm Password <span className="text-rose-500">*</span>
+                        </label>
+                        <div className="relative flex items-center">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <Lock className="w-3.5 h-3.5" />
+                          </div>
+                          <input
+                            type={showConfirmPassword ? 'text' : 'password'}
+                            required
+                            minLength={6}
+                            autoComplete="new-password"
+                            placeholder="Confirm password"
+                            value={confirmPassword}
+                            onChange={e => {
+                              setConfirmPassword(e.target.value);
+                              if (passwordError) setPasswordError(null);
+                            }}
+                            style={{ paddingLeft: '2.25rem', paddingRight: '2.25rem' }}
+                            className={`clinical-input w-full text-xs font-mono dark:bg-[#171F13] dark:text-white ${
+                              confirmPassword && newUser.password
+                                ? confirmPassword === newUser.password
+                                  ? 'border-emerald-500 focus:ring-emerald-500'
+                                  : 'border-rose-500 focus:ring-rose-500'
+                                : 'dark:border-[#38482E]'
+                            }`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                          >
+                            {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {newUser.password && confirmPassword && (
+                      <div className="text-[11px] font-semibold flex items-center gap-1.5">
+                        {newUser.password === confirmPassword ? (
+                          <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Passwords match</span>
+                          </span>
+                        ) : (
+                          <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                            <span>Passwords do not match</span>
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* TAB 2: Personal & Identity */}
+                {createModalTab === 'PERSONAL' && (
+                  <div className="space-y-4 animate-fade-in">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                          Gender
+                        </label>
+                        <select
+                          value={newUser.gender}
+                          onChange={e => setNewUser({ ...newUser, gender: e.target.value })}
+                          className="clinical-input w-full text-xs dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                        >
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                          Blood Group
+                        </label>
+                        <select
+                          value={newUser.bloodGroup}
+                          onChange={e => setNewUser({ ...newUser, bloodGroup: e.target.value })}
+                          className="clinical-input w-full text-xs font-bold dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                        >
+                          <option value="O+">O Positive (O+)</option>
+                          <option value="A+">A Positive (A+)</option>
+                          <option value="B+">B Positive (B+)</option>
+                          <option value="AB+">AB Positive (AB+)</option>
+                          <option value="O-">O Negative (O-)</option>
+                          <option value="A-">A Negative (A-)</option>
+                          <option value="B-">B Negative (B-)</option>
+                          <option value="AB-">AB Negative (AB-)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                          Date of Birth
+                        </label>
+                        <input
+                          type="date"
+                          value={newUser.dateOfBirth}
+                          onChange={e => setNewUser({ ...newUser, dateOfBirth: e.target.value })}
+                          className="clinical-input w-full text-xs dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                          CNIC / National Identity Card
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 35201-1234567-1"
+                          value={newUser.cnic}
+                          onChange={e => setNewUser({ ...newUser, cnic: e.target.value })}
+                          className="clinical-input w-full text-xs font-mono dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                          Emergency Contact Person
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Spouse, parent or guardian"
+                          value={newUser.emergencyContact}
+                          onChange={e => setNewUser({ ...newUser, emergencyContact: e.target.value })}
+                          className="clinical-input w-full text-xs dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                          Emergency Contact Phone
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. +92 300 9988776"
+                          value={newUser.emergencyPhone}
+                          onChange={e => setNewUser({ ...newUser, emergencyPhone: e.target.value })}
+                          className="clinical-input w-full text-xs font-mono dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 3: Contact & Professional Placement */}
+                {createModalTab === 'PROFESSIONAL' && (
+                  <div className="space-y-4 animate-fade-in">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                          Phone Number (Mobile / WhatsApp) <span className="text-rose-500">*</span>
+                        </label>
+                        <div className="relative flex items-center">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <Phone className="w-3.5 h-3.5" />
+                          </div>
+                          <input
+                            type="text"
+                            required
+                            placeholder="+92 300 1234567"
+                            value={newUser.phone}
+                            onChange={e => setNewUser({ ...newUser, phone: e.target.value })}
+                            style={{ paddingLeft: '2.25rem' }}
+                            className="clinical-input w-full text-xs font-mono dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                          Email Address (Optional)
+                        </label>
+                        <div className="relative flex items-center">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <Mail className="w-3.5 h-3.5" />
+                          </div>
+                          <input
+                            type="email"
+                            placeholder="staff@hospital.com"
+                            value={newUser.email}
+                            onChange={e => setNewUser({ ...newUser, email: e.target.value })}
+                            style={{ paddingLeft: '2.25rem' }}
+                            className="clinical-input w-full text-xs dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                        Residential Address & City
+                      </label>
+                      <div className="relative flex items-center">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                          <MapPin className="w-3.5 h-3.5" />
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="e.g. House 14, Street 7, Sector F-8, Islamabad"
+                          value={newUser.address}
+                          onChange={e => setNewUser({ ...newUser, address: e.target.value })}
+                          style={{ paddingLeft: '2.25rem' }}
+                          className="clinical-input w-full text-xs dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Dynamic Role-Adaptive Field Card */}
+                    <div className="p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/40 dark:bg-[#162315] space-y-3">
+                      <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                        <Award className="w-4 h-4" />
+                        <span>Professional Placement Details ({newUser.role})</span>
+                      </div>
+
+                      {/* Doctor Specific Fields */}
+                      {newUser.role === 'DOCTOR' && (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-[11px] font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                                Medical Specialization
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="e.g. Dermatology & Aesthetic Medicine"
+                                value={newUser.specialization}
+                                onChange={e => setNewUser({ ...newUser, specialization: e.target.value })}
+                                className="clinical-input w-full text-xs dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[11px] font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                                PMDC / Medical License No.
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="e.g. PMDC-89214-C"
+                                value={newUser.licenseNumber}
+                                onChange={e => setNewUser({ ...newUser, licenseNumber: e.target.value })}
+                                className="clinical-input w-full text-xs font-mono dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                              <label className="text-[11px] font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                                Qualifications / Degrees
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="MBBS, FCPS"
+                                value={newUser.qualifications}
+                                onChange={e => setNewUser({ ...newUser, qualifications: e.target.value })}
+                                className="clinical-input w-full text-xs dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[11px] font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                                Experience (Years)
+                              </label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={newUser.experienceYears}
+                                onChange={e => setNewUser({ ...newUser, experienceYears: Number(e.target.value) })}
+                                className="clinical-input w-full text-xs font-mono dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[11px] font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                                Consultation Fee (PKR)
+                              </label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={newUser.consultationFee}
+                                onChange={e => setNewUser({ ...newUser, consultationFee: Number(e.target.value) })}
+                                className="clinical-input w-full text-xs font-mono dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Receptionist Specific Fields */}
+                      {newUser.role === 'RECEPTIONIST' && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[11px] font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                              Assigned Front Desk / Station
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. OPD Lobby Counter 1"
+                              value={newUser.deskNumber}
+                              onChange={e => setNewUser({ ...newUser, deskNumber: e.target.value })}
+                              className="clinical-input w-full text-xs dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[11px] font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                              Duty Shift
+                            </label>
+                            <select
+                              value={newUser.shift}
+                              onChange={e => setNewUser({ ...newUser, shift: e.target.value })}
+                              className="clinical-input w-full text-xs dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                            >
+                              <option value="Morning Shift (08:00 - 16:00)">Morning Shift (08:00 - 16:00)</option>
+                              <option value="Evening Shift (16:00 - 00:00)">Evening Shift (16:00 - 00:00)</option>
+                              <option value="Night Shift (00:00 - 08:00)">Night Shift (00:00 - 08:00)</option>
+                            </select>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Pharmacist Specific Fields */}
+                      {newUser.role === 'PHARMACIST' && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[11px] font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                              Pharmacy License Number (RPh)
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. RPh-PK-98124"
+                              value={newUser.licenseNumber}
+                              onChange={e => setNewUser({ ...newUser, licenseNumber: e.target.value })}
+                              className="clinical-input w-full text-xs font-mono dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[11px] font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                              Assigned Dispensary Section
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Central OPD Pharmacy"
+                              value={newUser.department}
+                              onChange={e => setNewUser({ ...newUser, department: e.target.value })}
+                              className="clinical-input w-full text-xs dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Patient Specific Fields */}
+                      {newUser.role === 'PATIENT' && (
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-[11px] font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                              Known Drug Allergies
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Penicillin, NSAIDs, Sulfa, or None"
+                              value={newUser.allergies}
+                              onChange={e => setNewUser({ ...newUser, allergies: e.target.value })}
+                              className="clinical-input w-full text-xs dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Admin Specific Fields */}
+                      {newUser.role === 'ADMIN' && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[11px] font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                              Administrative Department
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Hospital IT & Operations"
+                              value={newUser.department}
+                              onChange={e => setNewUser({ ...newUser, department: e.target.value })}
+                              className="clinical-input w-full text-xs dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[11px] font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                              Designation / Title
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Systems & Compliance Officer"
+                              value={newUser.specialization}
+                              onChange={e => setNewUser({ ...newUser, specialization: e.target.value })}
+                              className="clinical-input w-full text-xs dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-slate-200 dark:border-[#2F3E29] flex items-center justify-between shrink-0 bg-slate-50/70 dark:bg-[#151D11]">
+                <div className="flex items-center gap-1.5">
+                  {createModalTab !== 'CREDENTIALS' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (createModalTab === 'PROFESSIONAL') setCreateModalTab('PERSONAL');
+                        else if (createModalTab === 'PERSONAL') setCreateModalTab('CREDENTIALS');
+                      }}
+                      className="px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] bg-white dark:bg-[#202C1B] border border-slate-200 dark:border-[#38482E] rounded-xl hover:bg-slate-100 dark:hover:bg-[#2A3924] transition-colors cursor-pointer"
+                    >
+                      ← Back
+                    </button>
+                  )}
+                  {createModalTab !== 'PROFESSIONAL' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (createModalTab === 'CREDENTIALS') setCreateModalTab('PERSONAL');
+                        else if (createModalTab === 'PERSONAL') setCreateModalTab('PROFESSIONAL');
+                      }}
+                      className="px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] bg-white dark:bg-[#202C1B] border border-slate-200 dark:border-[#38482E] rounded-xl hover:bg-slate-100 dark:hover:bg-[#2A3924] transition-colors cursor-pointer"
+                    >
+                      Next Step →
+                    </button>
+                  )}
                 </div>
 
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">System Role</label>
-                  <select
-                    value={newUser.role}
-                    onChange={e => setNewUser({ ...newUser, role: e.target.value as any })}
-                    className="clinical-input w-full text-xs dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCreateModalOpen(false);
+                      setPasswordError(null);
+                    }}
+                    className="clinical-button-secondary text-xs"
                   >
-                    <option value="DOCTOR">Doctor</option>
-                    <option value="RECEPTIONIST">Receptionist</option>
-                    <option value="PATIENT">Patient</option>
-                    <option value="PHARMACIST">Pharmacist</option>
-                    <option value="ADMIN">Administrator</option>
-                  </select>
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={actionLoading}
+                    className="clinical-button-primary text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-sm"
+                  >
+                    {actionLoading ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Creating Account...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+                        <span>Grant Access & Save</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">Phone Number (Login ID)</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="+15550000099"
-                    value={newUser.phone}
-                    onChange={e => setNewUser({ ...newUser, phone: e.target.value })}
-                    className="clinical-input w-full text-xs font-mono dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
-                  />
+      {/* MODAL: View Full Personnel Profile Dossier */}
+      {profileTargetUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs animate-fade-in">
+          <div className="w-full max-w-xl bg-white dark:bg-[#1A2215] border border-slate-200 dark:border-[#2F3E29] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
+            {/* Dossier Header Banner */}
+            <div className="p-5 border-b border-slate-200 dark:border-[#2F3E29] bg-gradient-to-r from-slate-50 via-emerald-50/40 to-slate-50 dark:from-[#151D11] dark:via-[#192716] dark:to-[#151D11] flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold text-lg shadow-md shrink-0">
+                  {profileTargetUser.role === 'DOCTOR' && <Stethoscope className="w-6 h-6" />}
+                  {profileTargetUser.role === 'RECEPTIONIST' && <ClipboardList className="w-6 h-6" />}
+                  {profileTargetUser.role === 'PHARMACIST' && <Pill className="w-6 h-6" />}
+                  {profileTargetUser.role === 'ADMIN' && <ShieldCheck className="w-6 h-6" />}
+                  {profileTargetUser.role === 'PATIENT' && <User className="w-6 h-6" />}
                 </div>
-
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">Email Address</label>
-                  <input
-                    type="email"
-                    placeholder="staff@hospital.com"
-                    value={newUser.email}
-                    onChange={e => setNewUser({ ...newUser, email: e.target.value })}
-                    className="clinical-input w-full text-xs dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
-                  />
-                </div>
-              </div>
-
-              {newUser.role === 'DOCTOR' && (
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">Medical Specialization</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Dermatology & Cosmetic Surgery"
-                    value={newUser.specialization}
-                    onChange={e => setNewUser({ ...newUser, specialization: e.target.value })}
-                    className="clinical-input w-full text-xs dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
-                  />
-                </div>
-              )}
-
-              {passwordError && (
-                <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2 animate-in fade-in">
-                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                  <span>{passwordError}</span>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Password Input */}
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
-                    Password (Min 6 chars)
-                  </label>
-                  <div className="relative flex items-center">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                      <Lock className="w-3.5 h-3.5" />
-                    </div>
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      minLength={6}
-                      autoComplete="new-password"
-                      placeholder="Enter new password"
-                      value={newUser.password}
-                      onChange={e => {
-                        setNewUser({ ...newUser, password: e.target.value });
-                        if (passwordError) setPasswordError(null);
-                      }}
-                      style={{ paddingLeft: '2.25rem', paddingRight: '2.25rem' }}
-                      className="clinical-input w-full text-xs font-mono dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-                      title={showPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    </button>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-lg text-slate-900 dark:text-white">
+                      {profileTargetUser.name}
+                    </h3>
+                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                      {profileTargetUser.role}
+                    </span>
                   </div>
-                </div>
-
-                {/* Confirm Password Input */}
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
-                    Confirm Password
-                  </label>
-                  <div className="relative flex items-center">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                      <Lock className="w-3.5 h-3.5" />
-                    </div>
-                    <input
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      required
-                      minLength={6}
-                      autoComplete="new-password"
-                      placeholder="Re-enter password to confirm"
-                      value={confirmPassword}
-                      onChange={e => {
-                        setConfirmPassword(e.target.value);
-                        if (passwordError) setPasswordError(null);
-                      }}
-                      style={{ paddingLeft: '2.25rem', paddingRight: '2.25rem' }}
-                      className={`clinical-input w-full text-xs font-mono dark:bg-[#171F13] dark:text-white ${
-                        confirmPassword && newUser.password
-                          ? confirmPassword === newUser.password
-                            ? 'border-emerald-500 focus:ring-emerald-500'
-                            : 'border-rose-500 focus:ring-rose-500'
-                          : 'dark:border-[#38482E]'
-                      }`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-                      title={showConfirmPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    </button>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs font-mono font-bold text-emerald-700 dark:text-[#74C69D] bg-emerald-50 dark:bg-[#203622] px-2 py-0.5 rounded border border-emerald-200 dark:border-[#2D6A4F]">
+                      @{profileTargetUser.username || profileTargetUser.phone}
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-mono">ID: {profileTargetUser.id}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Password Match Badge */}
-              {newUser.password && confirmPassword && (
-                <div className="text-[11px] font-semibold flex items-center gap-1.5 transition-all">
-                  {newUser.password === confirmPassword ? (
-                    <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Passwords match</span>
-                    </span>
-                  ) : (
-                    <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1">
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                      <span>Passwords do not match</span>
-                    </span>
+              <button
+                type="button"
+                onClick={() => setProfileTargetUser(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#202C1B] transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Dossier Content Grid */}
+            <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh] custom-scrollbar text-xs">
+              {/* Contact & Demographics Card */}
+              <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-[#161E12] border border-slate-200 dark:border-[#2F3E29]">
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block">Phone / WhatsApp</span>
+                  <span className="font-mono font-semibold text-slate-800 dark:text-white">{profileTargetUser.phone || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block">Official Email</span>
+                  <span className="font-semibold text-slate-800 dark:text-white">{profileTargetUser.email || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block">CNIC / National ID</span>
+                  <span className="font-mono font-semibold text-slate-800 dark:text-white">{profileTargetUser.cnic || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block">Blood Group</span>
+                  <span className="font-bold text-rose-600 dark:text-rose-400">{profileTargetUser.bloodGroup || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block">Gender</span>
+                  <span className="font-semibold text-slate-800 dark:text-white">{profileTargetUser.gender || 'Not Specified'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block">Date of Birth</span>
+                  <span className="font-semibold text-slate-800 dark:text-white">{profileTargetUser.dateOfBirth || 'N/A'}</span>
+                </div>
+              </div>
+
+              {/* Department & Placement Details */}
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#161E12] border border-slate-200 dark:border-[#2F3E29] space-y-2">
+                <span className="text-[10px] font-bold uppercase text-slate-400 block">Hospital Department & Placement</span>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <span className="text-slate-500 dark:text-[#A4AC86]">Department / Unit:</span>
+                    <p className="font-bold text-slate-800 dark:text-white">{profileTargetUser.department || profileTargetUser.profile?.specialization || 'Clinical General'}</p>
+                  </div>
+                  {profileTargetUser.licenseNumber && (
+                    <div>
+                      <span className="text-slate-500 dark:text-[#A4AC86]">License / Registration:</span>
+                      <p className="font-mono font-bold text-emerald-700 dark:text-[#74C69D]">{profileTargetUser.licenseNumber}</p>
+                    </div>
+                  )}
+                  {profileTargetUser.qualifications && profileTargetUser.qualifications.length > 0 && (
+                    <div>
+                      <span className="text-slate-500 dark:text-[#A4AC86]">Qualifications:</span>
+                      <p className="font-semibold text-slate-800 dark:text-white">{profileTargetUser.qualifications.join(', ')}</p>
+                    </div>
+                  )}
+                  {profileTargetUser.consultationFee && (
+                    <div>
+                      <span className="text-slate-500 dark:text-[#A4AC86]">Consultation Fee:</span>
+                      <p className="font-mono font-bold text-slate-800 dark:text-white">PKR {profileTargetUser.consultationFee}</p>
+                    </div>
+                  )}
+                  {profileTargetUser.deskNumber && (
+                    <div>
+                      <span className="text-slate-500 dark:text-[#A4AC86]">Assigned Station:</span>
+                      <p className="font-semibold text-slate-800 dark:text-white">{profileTargetUser.deskNumber}</p>
+                    </div>
+                  )}
+                  {profileTargetUser.shift && (
+                    <div>
+                      <span className="text-slate-500 dark:text-[#A4AC86]">Duty Shift:</span>
+                      <p className="font-semibold text-slate-800 dark:text-white">{profileTargetUser.shift}</p>
+                    </div>
+                  )}
+                  {profileTargetUser.allergies && (
+                    <div className="col-span-2">
+                      <span className="text-slate-500 dark:text-[#A4AC86]">Documented Allergies:</span>
+                      <p className="font-bold text-rose-600 dark:text-rose-400">{profileTargetUser.allergies}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Residential & Emergency Contact */}
+              {(profileTargetUser.address || profileTargetUser.emergencyContact || profileTargetUser.emergencyPhone) && (
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#161E12] border border-slate-200 dark:border-[#2F3E29] space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block">Emergency & Location Info</span>
+                  {profileTargetUser.address && (
+                    <p className="text-slate-700 dark:text-[#C2C5AA]">
+                      <strong className="text-slate-900 dark:text-white">Address:</strong> {profileTargetUser.address}
+                    </p>
+                  )}
+                  {(profileTargetUser.emergencyContact || profileTargetUser.emergencyPhone) && (
+                    <p className="text-slate-700 dark:text-[#C2C5AA]">
+                      <strong className="text-slate-900 dark:text-white">Emergency Contact:</strong> {profileTargetUser.emergencyContact || ''} {profileTargetUser.emergencyPhone ? `(${profileTargetUser.emergencyPhone})` : ''}
+                    </p>
                   )}
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-[#2F3E29]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsCreateModalOpen(false);
-                    setPasswordError(null);
-                  }}
-                  className="clinical-button-secondary text-xs"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  className="clinical-button-primary text-xs font-bold uppercase tracking-wider"
-                >
-                  {actionLoading ? 'Creating Account...' : 'Grant Access & Save'}
-                </button>
+              {/* Module Scope */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60">
+                <span className="font-bold text-emerald-900 dark:text-emerald-300">Active Module Permissions:</span>
+                <span className="font-mono font-bold text-xs text-emerald-800 dark:text-emerald-400">
+                  {profileTargetUser.allowedModules && profileTargetUser.allowedModules.length > 0
+                    ? `${profileTargetUser.allowedModules.length} Modules Granted`
+                    : profileTargetUser.role === 'ADMIN'
+                    ? 'All 18 Modules (Full Root)'
+                    : 'Role Default Suite'}
+                </span>
               </div>
-            </form>
+            </div>
+
+            {/* Dossier Footer */}
+            <div className="p-4 border-t border-slate-200 dark:border-[#2F3E29] flex items-center justify-end bg-slate-50/70 dark:bg-[#151D11] shrink-0">
+              <button
+                type="button"
+                onClick={() => setProfileTargetUser(null)}
+                className="clinical-button-secondary text-xs px-4 py-2"
+              >
+                Close Dossier
+              </button>
+            </div>
           </div>
         </div>
       )}

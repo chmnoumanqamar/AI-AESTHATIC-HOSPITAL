@@ -3,11 +3,27 @@ import bcrypt from 'bcryptjs';
 
 export interface DbUser {
   id: string;
+  username?: string; // Unique system username / login ID
   phone: string;
   email?: string;
   name?: string;
   passwordHash: string;
   role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST';
+  gender?: string;
+  dateOfBirth?: string;
+  cnic?: string;
+  bloodGroup?: string;
+  address?: string;
+  emergencyContact?: string;
+  emergencyPhone?: string;
+  department?: string;
+  licenseNumber?: string;
+  qualifications?: string[];
+  experienceYears?: number;
+  consultationFee?: number;
+  deskNumber?: string;
+  shift?: string;
+  allergies?: string;
   isBlocked?: boolean;
   blockedReason?: string;
   blockedAt?: string;
@@ -451,11 +467,14 @@ class InMemoryHospitalDatabase {
     // 1. Admin User
     const adminUser: DbUser = {
       id: 'u-admin-01',
+      username: 'admin',
       name: 'Root Administrator',
       phone: '+15550000001',
       email: 'admin@hospital.com',
       passwordHash: defaultPasswordHash,
       role: 'ADMIN',
+      gender: 'Male',
+      department: 'Executive Administration & IT',
       isDemo: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -465,10 +484,21 @@ class InMemoryHospitalDatabase {
     // 2. Doctor Users & Profiles
     const doc1User: DbUser = {
       id: 'u-doc-01',
+      username: 'dr_aisha',
+      name: 'Dr. Aisha Khan',
       phone: '+15550000002',
       email: 'dr.aisha@hospital.com',
       passwordHash: defaultPasswordHash,
       role: 'DOCTOR',
+      gender: 'Female',
+      dateOfBirth: '1982-06-15',
+      cnic: '35201-1122334-5',
+      bloodGroup: 'B+',
+      department: 'Cardiology',
+      licenseNumber: 'PMDC-48921-C',
+      qualifications: ['MBBS (King Edward)', 'FCPS (Cardiology)', 'Fellowship (USA)'],
+      experienceYears: 15,
+      consultationFee: 2500,
       isDemo: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -490,10 +520,21 @@ class InMemoryHospitalDatabase {
 
     const doc2User: DbUser = {
       id: 'u-doc-02',
+      username: 'dr_marcus',
+      name: 'Dr. Marcus Vance',
       phone: '+15550000003',
       email: 'dr.marcus@hospital.com',
       passwordHash: defaultPasswordHash,
       role: 'DOCTOR',
+      gender: 'Male',
+      dateOfBirth: '1985-03-22',
+      cnic: '35201-9988112-7',
+      bloodGroup: 'O+',
+      department: 'Aesthetics & Dermatology',
+      licenseNumber: 'PMDC-77312-D',
+      qualifications: ['MD (Johns Hopkins)', 'Aesthetic Surgery Diplomate'],
+      experienceYears: 12,
+      consultationFee: 3000,
       isDemo: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -519,10 +560,18 @@ class InMemoryHospitalDatabase {
     // 3. Receptionist User & Profile
     const recepUser: DbUser = {
       id: 'u-recep-01',
+      username: 'sarah_desk',
+      name: 'Sarah Jenkins',
       phone: '+15550000004',
       email: 'receptionist@hospital.com',
       passwordHash: defaultPasswordHash,
       role: 'RECEPTIONIST',
+      gender: 'Female',
+      dateOfBirth: '1996-08-14',
+      cnic: '35201-5544332-1',
+      department: 'Patient Front-Desk',
+      deskNumber: 'OPD Counter 1',
+      shift: 'Morning Shift (08:00 - 16:00)',
       isDemo: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -539,11 +588,18 @@ class InMemoryHospitalDatabase {
     // 3.1. Pharmacist User
     const pharmaUser: DbUser = {
       id: 'u-pharma-01',
+      username: 'tariq_pharma',
       name: 'Tariq Mehmood, RPh',
       phone: '+15550000040',
       email: 'pharmacy@hospital.com',
       passwordHash: defaultPasswordHash,
       role: 'PHARMACIST',
+      gender: 'Male',
+      dateOfBirth: '1984-12-05',
+      cnic: '35201-3322119-8',
+      department: 'Central Pharmacy & Dispensary',
+      licenseNumber: 'RPh-PK-98124',
+      experienceYears: 14,
       isDemo: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -582,10 +638,16 @@ class InMemoryHospitalDatabase {
     // 5. Patient Users & Profiles
     const p1User: DbUser = {
       id: 'u-pat-01',
+      username: 'john_doe',
+      name: 'John Doe',
       phone: '+15550000010',
       email: 'john.doe@example.com',
       passwordHash: defaultPasswordHash,
       role: 'PATIENT',
+      gender: 'Male',
+      dateOfBirth: '1988-04-12',
+      cnic: '35201-1234567-1',
+      bloodGroup: 'A+',
       isDemo: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -607,10 +669,16 @@ class InMemoryHospitalDatabase {
 
     const p2User: DbUser = {
       id: 'u-pat-02',
+      username: 'emily_clark',
+      name: 'Emily Clark',
       phone: '+15550000020',
       email: 'emily.clark@example.com',
       passwordHash: defaultPasswordHash,
       role: 'PATIENT',
+      gender: 'Female',
+      dateOfBirth: '1993-09-24',
+      cnic: '35201-7654321-2',
+      bloodGroup: 'O+',
       isDemo: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -632,10 +700,16 @@ class InMemoryHospitalDatabase {
 
     const p3User: DbUser = {
       id: 'u-pat-03',
+      username: 'robert_taylor',
+      name: 'Robert Taylor',
       phone: '+15550000030',
       email: 'robert.taylor@example.com',
       passwordHash: defaultPasswordHash,
       role: 'PATIENT',
+      gender: 'Male',
+      dateOfBirth: '1975-11-03',
+      cnic: '35201-9988776-3',
+      bloodGroup: 'AB+',
       isDemo: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()

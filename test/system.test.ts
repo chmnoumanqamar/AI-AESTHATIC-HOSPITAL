@@ -428,6 +428,81 @@ async function runSystemTestSuite() {
     'Handover Standard: Live patient registered by Nouman appears in queue as Token #01 without any demo records'
   );
 
+  // 10.8: Admin provisions user with dedicated username and comprehensive hospital details
+  const createdDoctor = await adminService.createUser({
+    username: 'dr_zubair',
+    name: 'Dr. Zubair Qureshi',
+    phone: '+923004455667',
+    email: 'zubair@hospital.com',
+    password: 'Password123!',
+    role: 'DOCTOR',
+    gender: 'Male',
+    dateOfBirth: '1980-04-15',
+    cnic: '35201-9988112-9',
+    bloodGroup: 'O+',
+    address: 'Suite 401, Doctors Plaza, Lahore',
+    emergencyContact: 'Mrs. Zubair',
+    emergencyPhone: '+923004455668',
+    department: 'Cardiology',
+    specialization: 'Interventional Cardiology',
+    licenseNumber: 'PMDC-98124-C',
+    qualifications: ['MBBS', 'FCPS', 'MRCP'],
+    experienceYears: 16,
+    consultationFee: 3000
+  });
+  assert(createdDoctor.username === 'dr_zubair', 'Handover: Dedicated @username properly assigned and registered');
+
+  // Verify getAllUsers includes the username and rich details
+  const allUsersWithDetails = await adminService.getAllUsers({ search: 'dr_zubair' });
+  assert(
+    allUsersWithDetails.length === 1 &&
+    allUsersWithDetails[0].username === 'dr_zubair' &&
+    allUsersWithDetails[0].bloodGroup === 'O+' &&
+    allUsersWithDetails[0].cnic === '35201-9988112-9',
+    'Handover: Master User Access directory returns @username and comprehensive demographic data'
+  );
+
+  // 10.9: Duplicate username conflict rejection
+  let duplicateUsernameError = false;
+  try {
+    await adminService.createUser({
+      username: 'dr_zubair',
+      name: 'Another Person',
+      phone: '+923009988111',
+      password: 'Password123!',
+      role: 'DOCTOR'
+    });
+  } catch (err: any) {
+    if (err.statusCode === 409 || err.message?.includes('already taken')) {
+      duplicateUsernameError = true;
+    }
+  }
+  assert(duplicateUsernameError, 'Validation: Rejects duplicate username with HTTP 409 Conflict');
+
+  // 10.10: Invalid username format rejection (contains spaces or illegal symbols)
+  let invalidUsernameError = false;
+  try {
+    await adminService.createUser({
+      username: 'invalid user name!',
+      name: 'Invalid User',
+      phone: '+923009988222',
+      password: 'Password123!',
+      role: 'RECEPTIONIST'
+    });
+  } catch (err: any) {
+    if (err.statusCode === 400 || err.message?.includes('Invalid username')) {
+      invalidUsernameError = true;
+    }
+  }
+  assert(invalidUsernameError, 'Validation: Rejects invalid username containing spaces and illegal characters');
+
+  // 10.11: Login authentication via @username
+  const loginByUsername = await authService.login({
+    identifier: '@dr_zubair',
+    password: 'Password123!'
+  });
+  assert(loginByUsername.user.username === 'dr_zubair', 'Auth: Allows direct secure sign-in via @username');
+
   console.log('\n========================================================');
   console.log(`TEST SUMMARY: ${passed} PASSED | ${failed} FAILED`);
   console.log('========================================================\n');

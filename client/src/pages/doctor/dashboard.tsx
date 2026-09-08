@@ -256,17 +256,12 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-[#E2E6D8] dark:border-[#2F3E29]">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#1F291E] dark:text-[#F6F7F2]">
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#1F291E] dark:text-[#F6F7F2]">
               {currentTab === 'doctor_queue' && "Today's Clinical Queue Deck"}
               {currentTab === 'doctor_consultation' && 'Clinical Consultation Deck'}
               {currentTab === 'doctor_tokens' && 'Token Allocation Matrix'}
             </h1>
           </div>
-          <p className="text-xs text-[#656D4A] dark:text-[#A4AC86] mt-1 flex items-center gap-2">
-            <span>Attending: <strong>{currentUser?.profile?.name || 'Dr. Aisha Khan'}</strong></span>
-            <span>•</span>
-            <span>{currentUser?.profile?.specialization || 'Cardiology & Internal Medicine'}</span>
-          </p>
         </div>
 
         {/* Date Selector & Call Next Quick Action */}

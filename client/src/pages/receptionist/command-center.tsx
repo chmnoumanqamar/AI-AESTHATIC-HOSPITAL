@@ -68,7 +68,14 @@ export const ReceptionistCommandCenter: React.FC<ReceptionistCommandCenterProps>
 
   useEffect(() => {
     fetchPendingBookings();
-  }, []);
+    const handleRefresh = () => {
+      refreshQueue();
+      fetchPendingBookings();
+    };
+    window.addEventListener('hospital:refresh-queue', handleRefresh);
+    return () => window.removeEventListener('hospital:refresh-queue', handleRefresh);
+  }, [refreshQueue]);
+
 
   const handleApprove = async (appointmentId: string) => {
     try {

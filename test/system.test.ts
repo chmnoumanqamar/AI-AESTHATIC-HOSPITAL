@@ -503,6 +503,61 @@ async function runSystemTestSuite() {
   });
   assert(loginByUsername.user.username === 'dr_zubair', 'Auth: Allows direct secure sign-in via @username');
 
+  // 10.12: AI Chatbot Seeds Daily Clinical Data via Roman Urdu Doctor Command
+  const doctorSeedResponse = await aiAgentOrchestrator.processMessage(
+    'es kuch daily ka data dal do manay check kerna hai',
+    [],
+    {
+      userId: createdDoctor.id,
+      doctorId: db.doctors.find(d => d.userId === createdDoctor.id)?.id,
+      userRole: 'DOCTOR',
+      userName: 'Dr. Zubair Qureshi',
+      sessionId: 's-test-doctor-seed'
+    }
+  );
+  assert(
+    doctorSeedResponse.cardData?.type === 'CLINICAL_DATA_SEEDED' &&
+    doctorSeedResponse.cardData?.tokensCount === 3 &&
+    doctorSeedResponse.content.includes('Kamyabi Se Enter'),
+    'AI Chatbot: Maturely populates 3 daily clinical patients and tokens upon Roman Urdu doctor request'
+  );
+
+  // 10.13: Seeded patients immediately appear in doctor live queue as WAITING
+  const targetDoc = db.doctors.find(d => d.userId === createdDoctor.id);
+  const updatedDocQueue = await queueService.getLiveQueue(targetDoc?.id, today, { userId: createdDoctor.id, role: 'DOCTOR' });
+  assert(
+    updatedDocQueue.length === 3 && updatedDocQueue.every(q => q.queueStatus === 'WAITING'),
+    'Live Queue: Seeded patients immediately visible with WAITING status in doctor clinical queue'
+  );
+
+  // 10.14: AI Chatbot Summons Next Patient via Roman Urdu Command
+  const summonResponse = await aiAgentOrchestrator.processMessage(
+    'aglay mareez ko consultation room mein summon karo',
+    [],
+    {
+      userId: createdDoctor.id,
+      doctorId: targetDoc?.id,
+      userRole: 'DOCTOR',
+      userName: 'Dr. Zubair Qureshi',
+      sessionId: 's-test-doctor-summon'
+    }
+  );
+  assert(
+    summonResponse.cardData?.type === 'PATIENT_SUMMONED' &&
+    summonResponse.cardData?.tokenNumber === 1 &&
+    summonResponse.content.includes('Summon Kar Diya Gaya Hai'),
+    'AI Chatbot: Correctly summons next waiting patient into doctor consultation room'
+  );
+
+  // 10.15: Static RAG does not produce irrelevant false positives on conversational Roman Urdu
+  const { ragRetrieverService } = await import('../src/modules/ai-agent/rag/retriever.service');
+  const ragQueryCheck = ragRetrieverService.search('es kuch daily ka data dal do manay check kerna hai');
+  assert(
+    ragQueryCheck.length === 0,
+    'RAG Guardrail: Prevents stopword/check false-positive matches on conversational Roman Urdu commands'
+  );
+
+
   console.log('\n========================================================');
   console.log(`TEST SUMMARY: ${passed} PASSED | ${failed} FAILED`);
   console.log('========================================================\n');

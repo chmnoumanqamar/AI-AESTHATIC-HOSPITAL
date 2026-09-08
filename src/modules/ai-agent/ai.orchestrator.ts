@@ -1,9 +1,10 @@
+import { v4 as uuidv4 } from 'uuid';
 import { medicalSafetyGuard } from './safety/medical-safety.guard';
 import { confirmationGuard } from './safety/confirmation.guard';
 import { ragRetrieverService } from './rag/retriever.service';
 import { toolHandlers } from './tools/tool-registry';
 import { logger } from '../../common/utils/logger';
-import { db } from '../../common/data/mock-db';
+import { db, DbAppointment, DbQueueEntry, DbPatient, DbUser } from '../../common/data/mock-db';
 import { geminiClient } from './gemini-client';
 import { appointmentReminderService, UpcomingReminderItem } from '../appointment/appointment-reminder.service';
 import { auditVaultService } from '../audit/audit.service';
@@ -11,6 +12,8 @@ import { appointmentService } from '../appointment/appointment.service';
 import { queueService } from '../queue/queue.service';
 import { doctorService } from '../doctor/doctor.service';
 import { tokenService } from '../token/token.service';
+import { recordAuditLog } from '../../common/middleware/audit.middleware';
+import { normalizeDateString } from '../../common/utils/date-helper';
 
 export interface AiChatMessage {
   role: 'user' | 'assistant' | 'system' | 'tool';
@@ -25,13 +28,16 @@ export interface AiChatMessage {
 
 export interface AiChatSessionContext {
   userId?: string;
+  doctorId?: string;
   patientId?: string;
   userRole?: string;
+  userName?: string;
   sessionId: string;
   channel?: 'WEB' | 'WHATSAPP';
   senderPhone?: string;
   senderName?: string;
 }
+
 
 export class AiAgentOrchestrator {
   /**
@@ -299,6 +305,323 @@ export class AiAgentOrchestrator {
     }
 
     // STEP 3: Multi-Lingual & Role-Aware Intent Classification
+
+    // 0. Seed / Enter Daily Clinical Data Intent (Doctor, Receptionist, Admin)
+    const isSeedClinicalDataIntent =
+      (lower.includes('data dal') ||
+       lower.includes('data daal') ||
+       lower.includes('data enter') ||
+       lower.includes('data dalo') ||
+       lower.includes('data add') ||
+       lower.includes('daily ka data') ||
+       lower.includes('daily data') ||
+       lower.includes('kuch data') ||
+       lower.includes('test data') ||
+       lower.includes('sample data') ||
+       lower.includes('dummy data') ||
+       lower.includes('mareez daal') ||
+       lower.includes('mareez enter') ||
+       lower.includes('mareez add') ||
+       lower.includes('patients daal') ||
+       lower.includes('patients enter') ||
+       lower.includes('patients add') ||
+       lower.includes('appointments add') ||
+       lower.includes('queue bhar') ||
+       lower.includes('kuch patients') ||
+       lower.includes('populate queue') ||
+       lower.includes('populate daily') ||
+       lower.includes('seed data') ||
+       lower.includes('seed queue') ||
+       lower.includes('add test patients') ||
+       lower.includes('create sample appointments') ||
+       lower.includes('generate test data') ||
+       lower.includes('generate sample') ||
+       lower.includes('ڈیٹا داخل') ||
+       lower.includes('مریض شامل') ||
+       lower.includes('ٹیسٹ ڈیٹا') ||
+       (lower.includes('data') && (lower.includes('check kerna') || lower.includes('check karna') || lower.includes('testing') || lower.includes('test')) && (lower.includes('dal') || lower.includes('daal') || lower.includes('enter') || lower.includes('add'))));
+
+    if (isSeedClinicalDataIntent) {
+      if (context.userRole === 'PATIENT') {
+        const patientDeclineMsg = lang === 'roman_urdu'
+          ? '⚠️ **Permission Notice:** Aap patient account se logged in hain. Daily clinical queue data sirf Doctors, Receptionists, aur Hospital Admins enter kar saktay hain. Agar aap apne liye consultation book karna chahtay hain to batayein!'
+          : '⚠️ **Permission Notice:** Daily clinical queue data can only be seeded by Doctors, Receptionists, or Administrators. If you wish to book an appointment for yourself, please let me know!';
+        return {
+          role: 'assistant',
+          content: patientDeclineMsg
+        };
+      }
+
+      // 1. Resolve Target Doctor
+      let targetDoctor = context.doctorId ? db.doctors.find(d => d.id === context.doctorId) : undefined;
+
+      if (!targetDoctor && context.userId) {
+        targetDoctor = db.doctors.find(d => d.userId === context.userId || d.id === context.userId);
+      }
+
+      // Check if prompt mentions a doctor by name
+      for (const doc of db.doctors) {
+        const docFirstName = doc.name.toLowerCase().replace(/dr\.?\s*/i, '').split(' ')[0];
+        if (lower.includes(doc.name.toLowerCase()) || (docFirstName.length > 2 && lower.includes(docFirstName))) {
+          targetDoctor = doc;
+          break;
+        }
+      }
+
+      if (!targetDoctor && context.userId) {
+        const user = db.users.find(u => u.id === context.userId);
+        if (user) {
+          targetDoctor = db.doctors.find(d =>
+            d.userId === user.id ||
+            (user.name && d.name.toLowerCase() === user.name.toLowerCase()) ||
+            (user.username && d.name.toLowerCase().includes(user.username.toLowerCase()))
+          );
+        }
+      }
+
+      if (!targetDoctor) {
+        targetDoctor = db.doctors[db.doctors.length - 1] || db.doctors[0];
+      }
+
+      const today = normalizeDateString(new Date());
+      const isDerm = targetDoctor?.specialization?.toLowerCase().includes('derm') ||
+                     targetDoctor?.specialization?.toLowerCase().includes('skin') ||
+                     targetDoctor?.specialization?.toLowerCase().includes('aesthet');
+
+      const testPatientTemplates = isDerm ? [
+        {
+          fullName: 'Sara Malik',
+          gender: 'Female',
+          dob: '1996-04-12',
+          phone: `+92301${Math.floor(1000000 + Math.random() * 9000000)}`,
+          cnic: '35201-7711223-2',
+          complaint: 'Acne scarring, uneven skin texture & chemical peel follow-up',
+          serviceName: 'Aesthetic Skin Evaluation'
+        },
+        {
+          fullName: 'Kamran Tariq',
+          gender: 'Male',
+          dob: '1990-08-23',
+          phone: `+92322${Math.floor(1000000 + Math.random() * 9000000)}`,
+          cnic: '35201-4455661-7',
+          complaint: 'Eczematous dermatitis flare-up on forearms and persistent pruritus',
+          serviceName: 'Clinical Dermatology Review'
+        },
+        {
+          fullName: 'Fatima Zahra',
+          gender: 'Female',
+          dob: '1988-11-05',
+          phone: `+92333${Math.floor(1000000 + Math.random() * 9000000)}`,
+          cnic: '35201-9988776-4',
+          complaint: 'Aesthetic anti-aging consultation & dermoscopy pigmentation review',
+          serviceName: 'Dermoscopy & Aesthetic Assessment'
+        }
+      ] : [
+        {
+          fullName: 'Muhammad Usman',
+          gender: 'Male',
+          dob: '1982-06-15',
+          phone: `+92300${Math.floor(1000000 + Math.random() * 9000000)}`,
+          cnic: '35201-8849201-3',
+          complaint: 'Hypertension follow-up, BP monitoring & mild exertional tightness',
+          serviceName: 'Cardiology Consultation'
+        },
+        {
+          fullName: 'Ayesha Siddiqa',
+          gender: 'Female',
+          dob: '1991-03-22',
+          phone: `+92321${Math.floor(1000000 + Math.random() * 9000000)}`,
+          cnic: '35201-1928374-2',
+          complaint: 'Cardiovascular risk evaluation, occasional palpitations & fatigue',
+          serviceName: 'Preventive Cardiac Review'
+        },
+        {
+          fullName: 'Zubair Ahmed Khan',
+          gender: 'Male',
+          dob: '1975-09-10',
+          phone: `+92333${Math.floor(1000000 + Math.random() * 9000000)}`,
+          cnic: '35201-9922113-5',
+          complaint: 'Routine dyslipidemia checkup & follow-up 12-lead digital ECG assessment',
+          serviceName: '12-Lead ECG & Consultation'
+        }
+      ];
+
+      const createdRecords: Array<{
+        patientName: string;
+        tokenNumber: number;
+        complaint: string;
+        serviceName: string;
+        appointmentId: string;
+      }> = [];
+
+      for (const t of testPatientTemplates) {
+        let patient = db.patients.find(p => p.fullName.toLowerCase() === t.fullName.toLowerCase());
+        if (!patient) {
+          const uId = `u-${uuidv4().substring(0, 8)}`;
+          const pId = `pat-${uuidv4().substring(0, 8)}`;
+          const newUser: DbUser = {
+            id: uId,
+            username: t.fullName.toLowerCase().replace(/\s+/g, '_'),
+            name: t.fullName,
+            phone: t.phone,
+            passwordHash: '$2a$10$patientdemopasswordhash2026',
+            role: 'PATIENT',
+            gender: t.gender,
+            dateOfBirth: t.dob,
+            cnic: t.cnic,
+            isDemo: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          db.users.push(newUser);
+
+          patient = {
+            id: pId,
+            userId: uId,
+            fullName: t.fullName,
+            cnic: t.cnic,
+            gender: t.gender,
+            dateOfBirth: t.dob,
+            address: 'Lahore, Pakistan',
+            emergencyContact: t.phone,
+            hasWhatsApp: true,
+            primaryNotificationChannel: 'WhatsApp',
+            createdAt: new Date().toISOString()
+          };
+          db.patients.push(patient);
+        }
+
+        const token = await tokenService.allocateToken(targetDoctor.id, today);
+
+        const aptId = `apt-${uuidv4().substring(0, 8)}`;
+        const appointment: DbAppointment = {
+          id: aptId,
+          patientId: patient.id,
+          doctorId: targetDoctor.id,
+          appointmentDate: today,
+          status: 'CONFIRMED',
+          tokenId: token.id,
+          bookingSource: 'AI_AGENT',
+          chiefComplaint: t.complaint,
+          isDemo: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        db.appointments.push(appointment);
+
+        const qeId = `qe-${uuidv4().substring(0, 8)}`;
+        const queueEntry: DbQueueEntry = {
+          id: qeId,
+          appointmentId: aptId,
+          queueStatus: 'WAITING',
+          checkInTime: new Date().toISOString(),
+          createdAt: new Date().toISOString()
+        };
+        db.queueEntries.push(queueEntry);
+
+        recordAuditLog({
+          actorId: context.userId || 'AI_AGENT',
+          actorType: context.userRole || 'DOCTOR',
+          action: 'AI_ASSISTANT_SEEDED_DAILY_QUEUE_DATA',
+          resourceType: 'QueueEntry',
+          resourceId: qeId,
+          metadata: {
+            doctorId: targetDoctor.id,
+            doctorName: targetDoctor.name,
+            patientName: patient.fullName,
+            tokenNumber: token.tokenNumber
+          }
+        });
+
+        createdRecords.push({
+          patientName: t.fullName,
+          tokenNumber: token.tokenNumber,
+          complaint: t.complaint,
+          serviceName: t.serviceName,
+          appointmentId: aptId
+        });
+      }
+
+      let returnText = '';
+      if (lang === 'roman_urdu') {
+        returnText = `✅ **Daily Clinical Data Kamyabi Se Enter Ho Chuka Hai!**\n\n` +
+          `Jee **${targetDoctor.name}**! Aap ke clinical queue deck ke liye aaj ki tareekh (**${today}**) par **${createdRecords.length} patients** queue mein add kar diye gaye hain:\n\n` +
+          createdRecords.map((r, i) => `${i + 1}. 👤 **${r.patientName}** (Token **#${r.tokenNumber.toString().padStart(2, '0')}**)\n   • **Service:** ${r.serviceName}\n   • **Complaint:** *${r.complaint}*\n   • **Status:** \`WAITING\` *(Checked-in at Reception)*`).join('\n\n') +
+          `\n\n💡 **Agla Amal (Next Step):**\nYeh tamam patients ab aap ke live queue deck par waiting mein hain. Aap screen par **'Ready to Summon'** (Call Next) button click karein ya mujhay kahein: *"Call next patient"*, aur pehla mareez consultation room mein summon ho jaye ga!`;
+      } else if (lang === 'urdu') {
+        returnText = `✅ **ڈیٹا کامیابی سے درج کر دیا گیا ہے!**\n\n` +
+          `محترم **${targetDoctor.name}**! آج کے کلینیکل کیو کے لیے **${createdRecords.length} مریض** ٹوکنز کے ساتھ شامل کر دیے گئے ہیں:\n\n` +
+          createdRecords.map((r, i) => `${i + 1}. 👤 **${r.patientName}** (ٹوکن **#${r.tokenNumber}**) - ${r.serviceName}\n   • شکایت: *${r.complaint}*`).join('\n') +
+          `\n\nآپ **'Ready to Summon'** کے ذریعے مریض کو کمرے میں بلا سکتے ہیں۔`;
+      } else {
+        returnText = `✅ **Daily Clinical Data Seeded Successfully!**\n\n` +
+          `**${targetDoctor.name}**, I have populated **${createdRecords.length} verified clinical patients** into your live consultation queue for today (**${today}**):\n\n` +
+          createdRecords.map((r, i) => `${i + 1}. 👤 **${r.patientName}** (Token **#${r.tokenNumber.toString().padStart(2, '0')}**)\n   • **Service:** ${r.serviceName}\n   • **Complaint:** *${r.complaint}*\n   • **Status:** \`WAITING\` *(Checked-in)*`).join('\n\n') +
+          `\n\n💡 **Next Step:**\nThese patients are checked in and waiting. You can click **'Ready to Summon'** on your deck or tell me *"Call next patient"* to summon the first patient into the consultation suite!`;
+      }
+
+      return {
+        role: 'assistant',
+        content: returnText,
+        cardData: {
+          type: 'CLINICAL_DATA_SEEDED',
+          doctorId: targetDoctor.id,
+          doctorName: targetDoctor.name,
+          date: today,
+          tokensCount: createdRecords.length,
+          patients: createdRecords
+        }
+      };
+    }
+
+    // 0.1 Direct Summon / Call Next Patient Intent (Doctor, Admin, Receptionist)
+    const isCallNextIntent =
+      (lower.includes('call next') ||
+       lower.includes('summon next') ||
+       lower.includes('aglay mareez') ||
+       lower.includes('agle mareez') ||
+       lower.includes('next patient bula') ||
+       lower.includes('next patient summon') ||
+       lower.includes('room mein bula') ||
+       (lower.includes('next') && (lower.includes('call') || lower.includes('summon') || lower.includes('bula'))));
+
+    if (isCallNextIntent && ['DOCTOR', 'ADMIN', 'RECEPTIONIST'].includes(context.userRole || 'DOCTOR')) {
+      let targetDocId = context.doctorId;
+      if (!targetDocId && context.userId) {
+        const doc = db.doctors.find(d => d.userId === context.userId || d.id === context.userId);
+        if (doc) targetDocId = doc.id;
+      }
+      if (!targetDocId) {
+        targetDocId = db.doctors[0]?.id;
+      }
+
+      if (targetDocId) {
+        try {
+          const called = await queueService.callNextPatient(targetDocId, context.userId || 'AI_AGENT', context.userRole || 'DOCTOR');
+          const successCallMsg = lang === 'roman_urdu'
+            ? `📢 **Mareez Ko Summon Kar Diya Gaya Hai!**\n\n• **Token:** **#${called.tokenNumber}**\n• **Mareez Ka Naam:** **${called.patientName}**\n• **Status:** \`CALLED\` (Inhein consultation room mein aane ka signal bhej diya gaya hai).\n\nAap ab digital consultation start kar ke clinical notes aur prescription (Rx) issue kar saktay hain.`
+            : `📢 **Patient Summoned!**\n\n• **Token:** **#${called.tokenNumber}**\n• **Patient Name:** **${called.patientName}**\n• **Status:** \`CALLED\`\n\nYou can now begin consultation and issue digital prescriptions.`;
+
+          return {
+            role: 'assistant',
+            content: successCallMsg,
+            cardData: {
+              type: 'PATIENT_SUMMONED',
+              ...called
+            }
+          };
+        } catch (err: any) {
+          const notFoundMsg = lang === 'roman_urdu'
+            ? `ℹ️ Is waqt queue mein koi checked-in 'WAITING' mareez nahi hai jise bulaya ja sake. Agar aap test data enter karna chahtay hain to mujhay kahein: *"Daily ka data dal do"*`
+            : `ℹ️ No checked-in waiting patients found in queue to summon. To enter sample patients, ask: *"Enter daily data"*`;
+
+          return {
+            role: 'assistant',
+            content: notFoundMsg
+          };
+        }
+      }
+    }
 
     // 1. Pending Approvals & Booking Requests Intent (Staff & Admin)
     const isPendingApprovalIntent =
@@ -1402,9 +1725,14 @@ ${upcomingReminders.length > 0 ? `NOTE: The patient has an upcoming appointment 
       const reminderNote = upcomingReminders.length > 0 && upcomingReminders[0].isUpcomingSoon
         ? `\n\n🔔 **Reminder:** Aap ki Dr. ${upcomingReminders[0].doctorName} ke sath appointment ${upcomingReminders[0].appointmentDate} ko scheduled hai (Token #${upcomingReminders[0].tokenNumber}).`
         : '';
+
+      const staffActionsNote = ['DOCTOR', 'ADMIN', 'RECEPTIONIST'].includes(context.userRole || '')
+        ? `\n\n💡 **Staff Direct Commands:**\n• *"Daily ka data dal do"* (Queue mein 3 live test patients add karne ke liye)\n• *"Call next patient"* (Aglay waiting mareez ko summon karne ke liye)\n• *"Queue status"* (Aaj ke tokens check karne ke liye)\n• *"Augmentin stock"* (Pharmacy inventory check karne ke liye)`
+        : '';
+
       return {
         role: 'assistant',
-        content: `Assalam-o-Alaikum! Main aap ka AI Clinical Assistant hoon. Main doctors dhoondnay, nayi appointment lene, pharmacy dawai ka stock maloom karne, 48h reminders check karne, ya aap ki purani tareekh aur bills dekhne mein madad kar sakta hoon. Main aap ki kya madad karoon?${reminderNote}`
+        content: `Assalam-o-Alaikum! Main aap ka AI Clinical Assistant hoon. Main hospital operations, queue management, appointments, aur pharmacy details mein madad kar sakta hoon.${reminderNote}${staffActionsNote}\n\nMain aap ke liye kya karoon?`
       };
     } else if (lang === 'urdu') {
       return {

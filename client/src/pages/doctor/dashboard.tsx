@@ -48,9 +48,20 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
   const { queue, refreshQueue } = useQueueStream(doctorId, selectedDate);
   const { matrix, refreshMatrix } = useTokenMatrix(doctorId, selectedDate);
 
+  // Auto-refresh queue and token matrix whenever AI assistant seeds daily data or summons patient
+  React.useEffect(() => {
+    const handleQueueRefresh = () => {
+      refreshQueue();
+      refreshMatrix();
+    };
+    window.addEventListener('hospital:refresh-queue', handleQueueRefresh);
+    return () => window.removeEventListener('hospital:refresh-queue', handleQueueRefresh);
+  }, [refreshQueue, refreshMatrix]);
+
   const [activeConsultation, setActiveConsultation] = useState<any>(null);
   const [patientHistory, setPatientHistory] = useState<any>(null);
   const [allocatingToken, setAllocatingToken] = useState(false);
+
 
   // Search & Filter in Consultation Deck
   const [consultationSearch, setConsultationSearch] = useState('');

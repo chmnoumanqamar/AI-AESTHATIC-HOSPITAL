@@ -252,18 +252,8 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
 
   return (
     <div className="space-y-6 animate-fade-in pb-16">
-      {/* Universal Doctor Top Navigation Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-[#E2E6D8] dark:border-[#2F3E29]">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#1F291E] dark:text-[#F6F7F2]">
-              {currentTab === 'doctor_queue' && "Today's Clinical Queue Deck"}
-              {currentTab === 'doctor_consultation' && 'Clinical Consultation Deck'}
-              {currentTab === 'doctor_tokens' && 'Token Allocation Matrix'}
-            </h1>
-          </div>
-        </div>
-
+      {/* Universal Doctor Top Action Bar */}
+      <div className="flex items-center justify-end gap-2.5 flex-wrap pb-3 border-b border-[#E2E6D8] dark:border-[#2F3E29]">
         {/* Date Selector & Call Next Quick Action */}
         <div className="flex items-center gap-2.5 flex-wrap">
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-[#1E2718] border border-[#E2E6D8] dark:border-[#2F3E29] text-xs font-semibold shadow-xs">

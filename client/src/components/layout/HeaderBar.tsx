@@ -281,17 +281,17 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
       {/* Left: Feature Window Title */}
       <div className="flex items-center gap-2">
         <div 
-          className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl border shadow-2xs transition-all duration-200"
+          className="flex items-center gap-2.5 px-4 py-2 rounded-xl border shadow-xs transition-all duration-200 select-none"
           style={{
             backgroundColor: isDark ? '#242E1C' : '#F4F7F4',
             borderColor: isDark ? '#414833' : '#DDE3D5',
           }}
         >
           {FeatureIcon && (
-            <FeatureIcon className="w-4 h-4 text-[#2D6A4F] dark:text-[#A4AC86]" />
+            <FeatureIcon className="w-4 h-4 text-[#2D6A4F] dark:text-[#74C69D] shrink-0" />
           )}
           <span 
-            className="text-xs sm:text-sm font-bold tracking-tight select-text"
+            className="text-sm font-extrabold tracking-tight select-text"
             style={{ color: isDark ? '#F6F7F2' : '#1F291E' }}
           >
             {feature.label}

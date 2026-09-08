@@ -1,16 +1,125 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, Sun, Moon, Stethoscope, ClipboardList, User, ShieldCheck, Pill } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Bell, 
+  CheckCheck, 
+  Clock, 
+  ArrowRight, 
+  ShieldAlert, 
+  ShieldCheck, 
+  Activity, 
+  Settings, 
+  FileText, 
+  X,
+  Sparkles
+} from 'lucide-react';
+import { ALL_HOSPITAL_MODULES, getStoredHierarchy } from './StructuralRailNav';
+
+export interface HospitalNotification {
+  id: string;
+  title: string;
+  description: string;
+  targetTab: string;
+  targetWindowLabel: string;
+  category: 'SECURITY' | 'QUEUE' | 'AUDIT' | 'POLICY' | 'CLINICAL';
+  timestamp: string;
+  unread: boolean;
+  roleScope?: ('ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST')[];
+}
+
+const INITIAL_NOTIFICATIONS: HospitalNotification[] = [
+  {
+    id: 'notif-1',
+    title: 'System Policies Alert',
+    description: "Daily patient token threshold & auto-cancellation policies require verification.",
+    targetTab: 'admin_config',
+    targetWindowLabel: 'System Policies',
+    category: 'POLICY',
+    timestamp: '5m ago',
+    unread: true,
+    roleScope: ['ADMIN']
+  },
+  {
+    id: 'notif-2',
+    title: 'High Queue Congestion',
+    description: 'OPD Queue load exceeded 15 patients waiting. Token T-104 waiting over 25 minutes.',
+    targetTab: 'admin_queue',
+    targetWindowLabel: 'Live System Queue Monitor',
+    category: 'QUEUE',
+    timestamp: '14m ago',
+    unread: true,
+    roleScope: ['ADMIN', 'RECEPTIONIST']
+  },
+  {
+    id: 'notif-3',
+    title: 'User Access Authorization',
+    description: 'New staff credential review pending for Clinical Dispensary Pharmacist.',
+    targetTab: 'admin_users',
+    targetWindowLabel: 'User Access Control',
+    category: 'SECURITY',
+    timestamp: '32m ago',
+    unread: true,
+    roleScope: ['ADMIN']
+  },
+  {
+    id: 'notif-4',
+    title: 'Prescription Revision Audit',
+    description: 'Prescription PRX-9082 revised: "Dosage adjusted from 500mg to 250mg TDS".',
+    targetTab: 'admin_audit',
+    targetWindowLabel: 'Audit Vault',
+    category: 'AUDIT',
+    timestamp: '1h ago',
+    unread: false,
+    roleScope: ['ADMIN']
+  },
+  {
+    id: 'notif-5',
+    title: 'Executive BI Analytics Ready',
+    description: 'Today\'s hospital bed utilization, revenue, and token turnaround charts generated.',
+    targetTab: 'admin_reports',
+    targetWindowLabel: 'Executive Analytics & BI',
+    category: 'POLICY',
+    timestamp: '2h ago',
+    unread: false,
+    roleScope: ['ADMIN']
+  },
+  {
+    id: 'notif-6',
+    title: 'New Patient Triage Check-In',
+    description: 'Token T-108 checked in and assigned to General Consultation Queue.',
+    targetTab: 'doctor_queue',
+    targetWindowLabel: "Today's Clinical Queue",
+    category: 'CLINICAL',
+    timestamp: '7m ago',
+    unread: true,
+    roleScope: ['DOCTOR']
+  },
+  {
+    id: 'notif-7',
+    title: 'Dispense Queue Alert',
+    description: 'Prescription pending urgent dispense verification at Dispensary Counter 1.',
+    targetTab: 'pharma_queue',
+    targetWindowLabel: 'Live Dispense Queue',
+    category: 'CLINICAL',
+    timestamp: '18m ago',
+    unread: true,
+    roleScope: ['PHARMACIST']
+  }
+];
 
 interface HeaderBarProps {
   currentUser?: any;
   currentRole: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST';
-  onSwitchRole: (role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST') => void;
+  currentTab?: string;
+  onSelectTab?: (tab: string) => void;
+  onSwitchRole?: (role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST') => void;
   isolatedPort?: string | null;
 }
 
 export const HeaderBar: React.FC<HeaderBarProps> = ({
   currentUser,
   currentRole,
+  currentTab,
+  onSelectTab,
   onSwitchRole,
   isolatedPort
 }) => {
@@ -23,6 +132,23 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
     return false;
   });
 
+  const [notifications, setNotifications] = useState<HospitalNotification[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('hospital_notifications');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          // fallback
+        }
+      }
+    }
+    return INITIAL_NOTIFICATIONS;
+  });
+
+  const [isOpen, setIsOpen] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add('dark');
@@ -33,138 +159,304 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
     }
   }, [isDark]);
 
-  const toggleTheme = () => {
-    setIsDark(prev => !prev);
+  useEffect(() => {
+    try {
+      localStorage.setItem('hospital_notifications', JSON.stringify(notifications));
+    } catch {
+      // ignore
+    }
+  }, [notifications]);
+
+  // Click outside to close notification window
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
+  const getFeatureDetails = () => {
+    if (currentTab === 'admin_users') {
+      return { label: 'Master User Access & Permission Vault', icon: ShieldCheck };
+    }
+
+    try {
+      const stored = getStoredHierarchy();
+      const found = stored.find(m => m.id === currentTab);
+      if (found) return { label: found.label, icon: found.icon };
+    } catch {
+      // fallback
+    }
+
+    const fallback = ALL_HOSPITAL_MODULES.find(m => m.id === currentTab);
+    if (fallback) return { label: fallback.label, icon: fallback.icon };
+
+    if (currentTab) {
+      const formatted = currentTab
+        .replace(/^(admin_|doctor_|recep_|patient_|pharma_)/, '')
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase());
+      return { label: formatted, icon: null };
+    }
+
+    return { label: 'System Policies', icon: null };
   };
 
-  const todayFormatted = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
+  const feature = getFeatureDetails();
+  const FeatureIcon = feature.icon;
 
-  const getRoleDisplayName = () => {
-    if (currentUser?.profile?.fullName) return currentUser.profile.fullName;
-    if (currentUser?.profile?.name) return currentUser.profile.name;
-    if (currentUser?.fullName) return currentUser.fullName;
-    if (currentUser?.name) return currentUser.name;
+  // Filter notifications for active role
+  const roleNotifications = notifications.filter(
+    n => !n.roleScope || n.roleScope.includes(currentRole)
+  );
 
-    switch (currentRole) {
-      case 'DOCTOR':
-        return 'Dr. Aisha Khan';
-      case 'RECEPTIONIST':
-        return 'Sarah Jenkins';
-      case 'PATIENT':
-        return currentUser?.phone || 'Patient';
-      case 'ADMIN':
-        return 'System Administrator';
-      case 'PHARMACIST':
-        return 'Tariq Mehmood, RPh';
-      default:
-        return 'Operator';
+  const unreadCount = roleNotifications.filter(n => n.unread).length;
+
+  const handleNotificationClick = (notif: HospitalNotification) => {
+    // Mark this notification as read
+    setNotifications(prev =>
+      prev.map(n => (n.id === notif.id ? { ...n, unread: false } : n))
+    );
+
+    // Close notification popover
+    setIsOpen(false);
+
+    // Navigate to target window
+    if (onSelectTab && notif.targetTab) {
+      onSelectTab(notif.targetTab);
     }
   };
 
-  const getRoleSubtitle = () => {
-    switch (currentRole) {
-      case 'DOCTOR':
-        return currentUser?.profile?.specialization || 'Cardiology & Internal Medicine';
-      case 'RECEPTIONIST':
-        return 'Hospital Receptionist & Patient Triage';
-      case 'PATIENT':
-        return 'Patient Portal';
-      case 'ADMIN':
-        return 'System Operations & Compliance';
-      case 'PHARMACIST':
-        return 'Chief Clinical Pharmacist & Dispensary';
+  const handleMarkAllRead = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setNotifications(prev =>
+      prev.map(n =>
+        !n.roleScope || n.roleScope.includes(currentRole)
+          ? { ...n, unread: false }
+          : n
+      )
+    );
+  };
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'POLICY':
+        return <Settings className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />;
+      case 'QUEUE':
+        return <Activity className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />;
+      case 'SECURITY':
+        return <ShieldAlert className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />;
+      case 'AUDIT':
+        return <ShieldCheck className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />;
       default:
-        return currentRole;
+        return <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />;
     }
   };
 
   return (
     <header 
-      className="h-16 px-6 flex items-center justify-between shrink-0 select-none border-b shadow-xs z-20 transition-colors duration-200"
+      className="h-16 px-6 flex items-center justify-between shrink-0 select-none border-b shadow-xs z-20 transition-colors duration-200 relative"
       style={{ 
         backgroundColor: isDark ? '#1F2718' : '#FFFFFF', 
         borderColor: isDark ? '#333D29' : '#E2E6D8' 
       }}
     >
-      {/* Left: Clean Date & Clinic Status */}
-      <div className="flex items-center gap-3">
+      {/* Left: Feature Window Title */}
+      <div className="flex items-center gap-2">
         <div 
-          className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg border shadow-2xs transition-colors"
-          style={{ 
-            backgroundColor: isDark ? '#242E1C' : '#F9FAF7', 
-            borderColor: isDark ? '#414833' : '#E2E6D8', 
-            color: isDark ? '#F6F7F2' : '#1F291E' 
+          className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl border shadow-2xs transition-all duration-200"
+          style={{
+            backgroundColor: isDark ? '#242E1C' : '#F4F7F4',
+            borderColor: isDark ? '#414833' : '#DDE3D5',
           }}
         >
-          <Calendar className="w-3.5 h-3.5" style={{ color: isDark ? '#A4AC86' : '#2D6A4F' }} />
-          <span className="font-semibold" style={{ color: isDark ? '#F6F7F2' : '#1F291E' }}>{todayFormatted}</span>
-        </div>
-
-        <div className="hidden md:flex items-center gap-1.5 text-xs pl-2">
-          <span className="w-2.5 h-2.5 rounded-full shadow-xs" style={{ backgroundColor: isDark ? '#A4AC86' : '#2D6A4F' }} />
-          <span className="font-semibold text-[11px]" style={{ color: isDark ? '#A4AC86' : '#2D6A4F' }}>Clinic Schedule Active</span>
+          {FeatureIcon && (
+            <FeatureIcon className="w-4 h-4 text-[#2D6A4F] dark:text-[#A4AC86]" />
+          )}
+          <span 
+            className="text-xs sm:text-sm font-bold tracking-tight select-text"
+            style={{ color: isDark ? '#F6F7F2' : '#1F291E' }}
+          >
+            {feature.label}
+          </span>
         </div>
       </div>
 
-      {/* Right: Clean Profile & Dark/Light Mode Toggle */}
-      <div className="flex items-center gap-3">
-        {/* Professional User Profile */}
-        <div className="flex items-center gap-2.5 pl-1">
-          <div 
-            className="w-9 h-9 rounded-xl border flex items-center justify-center font-bold text-xs shadow-xs transition-colors"
-            style={{ 
-              backgroundColor: isDark ? '#2D3923' : '#E8F3EB', 
-              borderColor: isDark ? '#406343' : '#A7D7C5', 
-              color: isDark ? '#F6F7F2' : '#1B4332' 
-            }}
-          >
-            {currentRole === 'DOCTOR' && <Stethoscope className="w-4 h-4 text-[#2D6A4F] dark:text-[#A4AC86]" />}
-            {currentRole === 'RECEPTIONIST' && <ClipboardList className="w-4 h-4 text-[#B45309] dark:text-[#FBBF24]" />}
-            {currentRole === 'PATIENT' && <User className="w-4 h-4 text-[#2D6A4F] dark:text-[#A4AC86]" />}
-            {currentRole === 'ADMIN' && <ShieldCheck className="w-4 h-4 text-[#7C3AED] dark:text-[#C084FC]" />}
-            {currentRole === 'PHARMACIST' && <Pill className="w-4 h-4 text-[#0F766E] dark:text-[#2DD4BF]" />}
-          </div>
-
-          <div className="hidden sm:block text-left">
-            <div className="text-xs font-bold leading-tight" style={{ color: isDark ? '#F6F7F2' : '#1F291E' }}>
-              {getRoleDisplayName()}
-            </div>
-            <div className="text-[10px] font-semibold" style={{ color: isDark ? '#B6AD90' : '#656D4A' }}>
-              {getRoleSubtitle()}
-            </div>
-          </div>
-        </div>
-
-        {/* Top-Right Dark Mode / Light Mode Toggle Button */}
+      {/* Right: Bell Icon with Interactive Sub-Window Popover */}
+      <div className="relative flex items-center" ref={popoverRef}>
         <button
-          onClick={toggleTheme}
-          id="theme-mode-toggle"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all duration-200 shadow-2xs cursor-pointer active:scale-95 group font-medium"
+          id="header-notification-btn"
+          onClick={() => setIsOpen(prev => !prev)}
+          className={`relative w-9 h-9 rounded-xl border flex items-center justify-center transition-all duration-200 shadow-2xs cursor-pointer active:scale-95 group ${
+            isOpen ? 'ring-2 ring-emerald-500/50 border-[#2D6A4F]' : 'hover:border-[#2D6A4F] dark:hover:border-[#A4AC86]'
+          }`}
           style={{
             backgroundColor: isDark ? '#2D3923' : '#FFFFFF',
-            borderColor: isDark ? '#656D4A' : '#C2C5AA',
-            color: isDark ? '#F6F7F2' : '#333D29'
+            borderColor: isOpen ? (isDark ? '#52796F' : '#2D6A4F') : (isDark ? '#414833' : '#E2E6D8'),
+            color: isDark ? '#F6F7F2' : '#1F291E'
           }}
-          title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-          aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          title={unreadCount > 0 ? `${unreadCount} unread notifications` : 'Notifications'}
+          aria-label="Notifications"
+          aria-expanded={isOpen}
         >
-          {isDark ? (
-            <>
-              <Sun className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" style={{ color: '#A4AC86' }} />
-              <span className="text-[11px] font-bold" style={{ color: '#A4AC86' }}>Light</span>
-            </>
+          <Bell className="w-4 h-4 transition-transform group-hover:rotate-12" style={{ color: isDark ? '#A4AC86' : '#2D6A4F' }} />
+          
+          {/* Dynamic Unread Badge */}
+          {unreadCount > 0 ? (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-emerald-600 dark:bg-emerald-500 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-xs ring-2 ring-white dark:ring-[#1F2718] animate-pulse">
+              {unreadCount}
+            </span>
           ) : (
-            <>
-              <Moon className="w-4 h-4 group-hover:-rotate-12 transition-transform duration-300" style={{ color: '#7F4F24' }} />
-              <span className="text-[11px] font-bold" style={{ color: '#7F4F24' }}>Dark</span>
-            </>
+            <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
           )}
         </button>
+
+        {/* Floating Notification Sub-Window Popover */}
+        {isOpen && (
+          <div 
+            id="notifications-sub-window"
+            className="absolute right-0 top-12 w-[340px] sm:w-[410px] max-h-[520px] rounded-2xl shadow-2xl border flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200"
+            style={{
+              backgroundColor: isDark ? '#1F2718' : '#FFFFFF',
+              borderColor: isDark ? '#3E4D34' : '#DDE3D5'
+            }}
+          >
+            {/* Popover Header */}
+            <div 
+              className="p-3.5 px-4 border-b flex items-center justify-between"
+              style={{
+                backgroundColor: isDark ? '#26311E' : '#F9FAF7',
+                borderColor: isDark ? '#3E4D34' : '#E8ECE3'
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <Bell className="w-4 h-4 text-[#2D6A4F] dark:text-[#A4AC86]" />
+                <span className="font-bold text-sm tracking-tight" style={{ color: isDark ? '#F6F7F2' : '#1F291E' }}>
+                  Notifications
+                </span>
+                {unreadCount > 0 && (
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-mono">
+                    {unreadCount} new
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                {unreadCount > 0 && (
+                  <button
+                    onClick={handleMarkAllRead}
+                    className="flex items-center gap-1 text-[11px] font-semibold text-[#2D6A4F] dark:text-[#A4AC86] hover:underline px-2 py-1 rounded cursor-pointer transition-colors"
+                    title="Mark all notifications as read"
+                  >
+                    <CheckCheck className="w-3.5 h-3.5" />
+                    <span>Mark all read</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#2D3923] transition-colors cursor-pointer"
+                  title="Close notifications"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Notifications List */}
+            <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-[#2F3C26] max-h-[380px]">
+              {roleNotifications.length === 0 ? (
+                <div className="py-12 px-4 text-center text-slate-400 dark:text-slate-500 text-xs">
+                  No notifications to display
+                </div>
+              ) : (
+                roleNotifications.map(notif => (
+                  <div
+                    key={notif.id}
+                    onClick={() => handleNotificationClick(notif)}
+                    className={`p-3.5 px-4 transition-all duration-150 cursor-pointer flex gap-3 group items-start ${
+                      notif.unread
+                        ? 'bg-emerald-50/40 dark:bg-[#243320]/60 hover:bg-emerald-50 dark:hover:bg-[#283B24]'
+                        : 'hover:bg-slate-50/80 dark:hover:bg-[#232D1C]'
+                    }`}
+                  >
+                    {/* Category Icon Badge */}
+                    <div 
+                      className={`w-8 h-8 rounded-xl shrink-0 flex items-center justify-center border shadow-2xs mt-0.5 ${
+                        notif.unread 
+                          ? 'bg-white dark:bg-[#1C2416] border-emerald-300 dark:border-[#385230]' 
+                          : 'bg-slate-100 dark:bg-[#1A2214] border-slate-200 dark:border-[#2F3C26]'
+                      }`}
+                    >
+                      {getCategoryIcon(notif.category)}
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <span 
+                          className={`text-xs font-bold truncate ${
+                            notif.unread 
+                              ? 'text-slate-900 dark:text-white' 
+                              : 'text-slate-700 dark:text-slate-300 font-semibold'
+                          }`}
+                        >
+                          {notif.title}
+                        </span>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono shrink-0">
+                          {notif.timestamp}
+                        </span>
+                      </div>
+
+                      <p className="text-[11.5px] leading-snug mt-1 text-slate-600 dark:text-slate-300 line-clamp-2">
+                        {notif.description}
+                      </p>
+
+                      {/* Click Target Prompt */}
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="inline-flex items-center gap-1 text-[10.5px] font-bold text-[#2D6A4F] dark:text-[#A4AC86] group-hover:translate-x-0.5 transition-transform">
+                          <span>Open {notif.targetWindowLabel}</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </span>
+
+                        {notif.unread && (
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="Unread" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Popover Footer */}
+            <div 
+              className="p-2.5 px-4 text-center border-t text-[11px] font-semibold text-slate-500 dark:text-slate-400"
+              style={{
+                backgroundColor: isDark ? '#232D1B' : '#F9FAF7',
+                borderColor: isDark ? '#3E4D34' : '#E8ECE3'
+              }}
+            >
+              Click any notification to switch directly to that window
+            </div>
+          </div>
+        )}
       </div>
     </header>
   );

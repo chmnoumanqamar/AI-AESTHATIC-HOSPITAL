@@ -26,5 +26,12 @@ router.post('/database/purge', (req, res, next) => adminController.purgeDatabase
 router.patch('/hierarchy/move-page', (req, res, next) => adminController.movePageModule(req, res, next));
 router.post('/hierarchy/reset', (req, res, next) => adminController.resetModuleHierarchy(req, res, next));
 
+// Role Sections & Granular Read/Write/Delete Permissions
+router.get('/role-permissions', (req, res, next) => adminController.getRolePermissions(req, res, next));
+router.put('/role-permissions/:role', (req, res, next) => adminController.updateRolePermissions(req, res, next));
+router.post('/role-permissions/module', (req, res, next) => adminController.addModuleToRole(req, res, next));
+router.delete('/role-permissions/:role/:moduleId', (req, res, next) => adminController.removeModuleFromRole(req, res, next));
+router.post('/role-permissions/reset', (req, res, next) => adminController.resetRolePermissions(req, res, next));
+
 export default router;
 

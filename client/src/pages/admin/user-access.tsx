@@ -500,36 +500,24 @@ export const AdminUserAccessView: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Shield className="w-6 h-6 text-sky-600" />
-            <span>Master User Access & Permission Vault</span>
-          </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Global administrative control: Grant or revoke access permissions across all doctors, receptionists, and patients.
-          </p>
-        </div>
+      {/* Page Header Section: Actions Only */}
+      <div className="flex items-center justify-end gap-2 pb-1">
+        <button
+          onClick={fetchUsers}
+          disabled={loading}
+          className="p-2 text-slate-600 dark:text-[#C2C5AA] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#25331E] rounded-lg border border-slate-200 dark:border-[#38482E] transition-colors cursor-pointer"
+          title="Refresh Registry"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+        </button>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={fetchUsers}
-            disabled={loading}
-            className="p-2 text-slate-600 dark:text-[#C2C5AA] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#25331E] rounded-lg border border-slate-200 dark:border-[#38482E] transition-colors cursor-pointer"
-            title="Refresh Registry"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-
-          <button
-            onClick={handleOpenCreateModal}
-            className="clinical-button-primary flex items-center gap-2 text-xs font-semibold py-2 px-3.5"
-          >
-            <UserPlus className="w-4 h-4 text-emerald-300" />
-            <span>Grant Access to New User</span>
-          </button>
-        </div>
+        <button
+          onClick={handleOpenCreateModal}
+          className="clinical-button-primary flex items-center gap-2 text-xs font-semibold py-2 px-3.5"
+        >
+          <UserPlus className="w-4 h-4 text-emerald-300" />
+          <span>Grant Access to New User</span>
+        </button>
       </div>
 
       {/* Metrics Summary Strip */}
@@ -569,38 +557,48 @@ export const AdminUserAccessView: React.FC = () => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="clinical-card p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        {/* Role Filters */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Filter:</span>
-          {['ALL', 'DOCTOR', 'RECEPTIONIST', 'PATIENT', 'PHARMACIST', 'ADMIN'].map(role => (
-            <button
-              key={role}
-              onClick={() => setSelectedRoleFilter(role)}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                selectedRoleFilter === role
-                  ? 'clinical-button-primary shadow-xs'
-                  : 'bg-slate-100 dark:bg-[#1E2718] text-slate-700 dark:text-[#C2C5AA] border border-slate-200 dark:border-[#38482E] hover:bg-slate-200 dark:hover:bg-[#25331E]'
-              }`}
+      <div className="clinical-card p-4 flex flex-col md:flex-row md:items-center justify-between gap-3.5">
+        {/* Dropdowns: Role Filter & Status Filter */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Role Filter Dropdown */}
+          <div className="flex items-center gap-2">
+            <label className="text-[11px] font-bold text-slate-500 dark:text-[#A4AC86] uppercase tracking-wider shrink-0">
+              Role:
+            </label>
+            <select
+              value={selectedRoleFilter}
+              onChange={e => setSelectedRoleFilter(e.target.value)}
+              className="clinical-input text-xs py-1.5 px-2.5 font-semibold dark:bg-[#171F13] dark:border-[#38482E] dark:text-white cursor-pointer min-w-[135px]"
             >
-              {role === 'ALL' ? 'All Roles' : role.charAt(0) + role.slice(1).toLowerCase() + 's'}
-            </button>
-          ))}
+              <option value="ALL">All Roles</option>
+              <option value="DOCTOR">Doctors</option>
+              <option value="RECEPTIONIST">Receptionists</option>
+              <option value="PATIENT">Patients</option>
+              <option value="PHARMACIST">Pharmacists</option>
+              <option value="ADMIN">Admins</option>
+            </select>
+          </div>
+
+          {/* Status Dropdown */}
+          <div className="flex items-center gap-2">
+            <label className="text-[11px] font-bold text-slate-500 dark:text-[#A4AC86] uppercase tracking-wider shrink-0">
+              Status:
+            </label>
+            <select
+              value={selectedStatusFilter}
+              onChange={e => setSelectedStatusFilter(e.target.value)}
+              className="clinical-input text-xs py-1.5 px-2.5 font-semibold dark:bg-[#171F13] dark:border-[#38482E] dark:text-white cursor-pointer min-w-[125px]"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="ACTIVE">Active Only</option>
+              <option value="BLOCKED">Blocked Only</option>
+            </select>
+          </div>
         </div>
 
-        {/* Status & Live Search */}
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <select
-            value={selectedStatusFilter}
-            onChange={e => setSelectedStatusFilter(e.target.value)}
-            className="clinical-input text-xs py-1.5 font-medium dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="ACTIVE">Active Only</option>
-            <option value="BLOCKED">Blocked Only</option>
-          </select>
-
-          <form onSubmit={handleSearchSubmit} className="relative flex-1 md:w-64">
+        {/* Search */}
+        <div className="w-full md:w-auto">
+          <form onSubmit={handleSearchSubmit} className="relative w-full md:w-72">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
@@ -624,8 +622,6 @@ export const AdminUserAccessView: React.FC = () => {
                 <th className="py-3 px-5">Contact Details</th>
                 <th className="py-3 px-5">Assigned Role</th>
                 <th className="py-3 px-5">Module Permissions</th>
-                <th className="py-3 px-5">Access Status</th>
-                <th className="py-3 px-5 text-right">Access Controls</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-[#2F3E29] text-sm">
@@ -635,14 +631,16 @@ export const AdminUserAccessView: React.FC = () => {
                 return (
                   <tr
                     key={user.id}
-                    className={`hover:bg-slate-50/70 dark:hover:bg-[#202C1B] transition-colors ${
+                    onClick={() => setProfileTargetUser(user)}
+                    className={`hover:bg-slate-50/80 dark:hover:bg-[#202C1B] transition-colors cursor-pointer group ${
                       user.isBlocked ? 'bg-rose-50/30 dark:bg-rose-950/20' : ''
                     }`}
+                    title="Click row to view full user profile dossier"
                   >
-                    {/* User Identity */}
+                    {/* User Identity - Minimal: Name & Username */}
                     <td className="py-3.5 px-5">
                       <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 border ${
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 border transition-transform group-hover:scale-105 ${
                           user.isBlocked
                             ? 'bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
                             : user.role === 'DOCTOR'
@@ -663,52 +661,35 @@ export const AdminUserAccessView: React.FC = () => {
                         </div>
                         <div>
                           <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                            <span>{user.name}</span>
+                            <span className="group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">{user.name}</span>
                             {isRootAdmin && (
                               <span className="text-[10px] px-1.5 py-0.2 bg-slate-200 dark:bg-[#202C1B] text-slate-700 dark:text-[#A4AC86] border border-slate-300 dark:border-[#38482E] rounded font-mono font-bold">
                                 ROOT
                               </span>
                             )}
                           </div>
-                          <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                            <span className="text-xs font-mono font-bold text-emerald-700 dark:text-[#74C69D] bg-emerald-50 dark:bg-[#203622] px-1.5 py-0.5 rounded border border-emerald-200 dark:border-[#2D6A4F]">
-                              @{user.username || user.phone}
-                            </span>
-                            {user.bloodGroup && (
-                              <span className="text-[10px] font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/50 px-1.5 py-0.2 rounded border border-rose-200 dark:border-rose-800">
-                                {user.bloodGroup}
-                              </span>
-                            )}
-                            <span className="text-[11px] text-slate-400 font-mono">ID: {user.id}</span>
+                          <div className="text-xs font-mono font-medium text-slate-500 dark:text-[#A4AC86] mt-0.5">
+                            @{user.username || user.phone}
                           </div>
                         </div>
                       </div>
                     </td>
 
-                    {/* Contact Info */}
+                    {/* Contact Details - Only Contact Number */}
                     <td className="py-3.5 px-5 text-xs">
-                      <div className="flex items-center gap-1.5 text-slate-800 dark:text-slate-200 font-mono">
-                        <Phone className="w-3 h-3 text-slate-400" />
+                      <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200 font-mono font-semibold">
+                        <Phone className="w-3.5 h-3.5 text-slate-400 dark:text-[#A4AC86]" />
                         <span>{user.phone}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
-                        <Mail className="w-3 h-3 text-slate-400" />
-                        <span>{user.email}</span>
-                      </div>
-                      {user.cnic && (
-                        <div className="text-[10px] text-slate-400 dark:text-slate-400 font-mono mt-0.5">
-                          CNIC: {user.cnic}
-                        </div>
-                      )}
                     </td>
 
                     {/* Role Dropdown */}
-                    <td className="py-3.5 px-5">
+                    <td className="py-3.5 px-5" onClick={e => e.stopPropagation()}>
                       <select
                         disabled={isRootAdmin}
                         value={user.role}
                         onChange={e => handleChangeRole(user, e.target.value as any)}
-                        className={`text-xs font-bold rounded-lg px-2.5 py-1.5 border transition-all ${
+                        className={`text-xs font-bold rounded-lg px-2.5 py-1.5 border transition-all cursor-pointer ${
                           user.role === 'DOCTOR'
                             ? 'bg-sky-50 dark:bg-sky-950/40 text-sky-800 dark:text-sky-300 border-sky-200 dark:border-sky-800'
                             : user.role === 'RECEPTIONIST'
@@ -727,7 +708,7 @@ export const AdminUserAccessView: React.FC = () => {
                     </td>
 
                     {/* Module Permissions */}
-                    <td className="py-3.5 px-5">
+                    <td className="py-3.5 px-5" onClick={e => e.stopPropagation()}>
                       <button
                         type="button"
                         onClick={() => handleOpenPermissions(user)}
@@ -744,72 +725,13 @@ export const AdminUserAccessView: React.FC = () => {
                         </span>
                       </button>
                     </td>
-
-                    {/* Status Badge */}
-                    <td className="py-3.5 px-5">
-                      {user.isBlocked ? (
-                        <div>
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
-                            <Ban className="w-3 h-3 text-rose-600 dark:text-rose-400" />
-                            <span>Access Blocked</span>
-                          </span>
-                          {user.blockedReason && (
-                            <p className="text-[10px] text-rose-600 dark:text-rose-400 italic mt-0.5 max-w-xs truncate">
-                              "{user.blockedReason}"
-                            </p>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                          <span>Active / Permitted</span>
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Action Controls */}
-                    <td className="py-3.5 px-5 text-right">
-                      <div className="inline-flex items-center justify-end gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => setProfileTargetUser(user)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#38482E] text-slate-700 dark:text-[#C2C5AA] hover:bg-slate-100 dark:hover:bg-[#25331E] text-xs font-semibold transition-colors cursor-pointer shadow-2xs"
-                          title="View Full Profile Dossier"
-                        >
-                          <UserCheck className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
-                          <span>Details</span>
-                        </button>
-
-                        {isRootAdmin ? (
-                          <span className="text-xs text-slate-400 font-medium italic ml-1">Root Protected</span>
-                        ) : user.isBlocked ? (
-                          <button
-                            onClick={() => handleToggleBlock(user, false)}
-                            disabled={actionLoading}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 clinical-button-primary rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>Restore Access</span>
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => setBlockingTargetUser(user)}
-                            disabled={actionLoading}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-rose-950/30 hover:bg-rose-50 dark:hover:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-400 rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
-                          >
-                            <Ban className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
-                            <span>Block Access</span>
-                          </button>
-                        )}
-                      </div>
-                    </td>
                   </tr>
                 );
               })}
 
               {users.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400 text-sm font-medium">
+                  <td colSpan={4} className="py-12 text-center text-slate-400 text-sm font-medium">
                     No matching users found for this filter query.
                   </td>
                 </tr>
@@ -1581,9 +1503,20 @@ export const AdminUserAccessView: React.FC = () => {
                     <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                       {profileTargetUser.role}
                     </span>
+                    {profileTargetUser.isBlocked ? (
+                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 flex items-center gap-1">
+                        <Ban className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                        Blocked
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                        Active & Permitted
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs font-mono font-bold text-emerald-700 dark:text-[#74C69D] bg-emerald-50 dark:bg-[#203622] px-2 py-0.5 rounded border border-emerald-200 dark:border-[#2D6A4F]">
+                    <span className="text-xs font-mono font-bold text-emerald-700 dark:text-[#74C69D] bg-emerald-50 dark:bg-[#203622] px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
                       @{profileTargetUser.username || profileTargetUser.phone}
                     </span>
                     <span className="text-[11px] text-slate-400 font-mono">ID: {profileTargetUser.id}</span>
@@ -1708,7 +1641,48 @@ export const AdminUserAccessView: React.FC = () => {
             </div>
 
             {/* Dossier Footer */}
-            <div className="p-4 border-t border-slate-200 dark:border-[#2F3E29] flex items-center justify-end bg-slate-50/70 dark:bg-[#151D11] shrink-0">
+            <div className="p-4 border-t border-slate-200 dark:border-[#2F3E29] flex items-center justify-between bg-slate-50/70 dark:bg-[#151D11] shrink-0">
+              <div className="flex items-center gap-2">
+                {profileTargetUser.phone !== '+15550000001' && (
+                  profileTargetUser.isBlocked ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleToggleBlock(profileTargetUser, false);
+                        setProfileTargetUser(prev => prev ? { ...prev, isBlocked: false } : null);
+                      }}
+                      disabled={actionLoading}
+                      className="clinical-button-primary px-3 py-1.5 text-xs font-bold flex items-center gap-1.5"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Restore Access</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setBlockingTargetUser(profileTargetUser)}
+                      disabled={actionLoading}
+                      className="px-3 py-1.5 bg-white dark:bg-rose-950/30 hover:bg-rose-50 dark:hover:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-400 rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Ban className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                      <span>Block Access</span>
+                    </button>
+                  )
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleOpenPermissions(profileTargetUser);
+                    setProfileTargetUser(null);
+                  }}
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-[#202C1B] hover:bg-slate-200 dark:hover:bg-[#283822] text-slate-700 dark:text-[#C2C5AA] border border-slate-200 dark:border-[#38482E] rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Sliders className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>Configure Permissions</span>
+                </button>
+              </div>
+
               <button
                 type="button"
                 onClick={() => setProfileTargetUser(null)}

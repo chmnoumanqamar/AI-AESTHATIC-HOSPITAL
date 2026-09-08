@@ -46,6 +46,8 @@ export const CommandDeckShell: React.FC<CommandDeckShellProps> = ({
         <HeaderBar
           currentUser={currentUser}
           currentRole={currentRole}
+          currentTab={currentTab}
+          onSelectTab={onSelectTab}
           onSwitchRole={onSwitchRole}
           isolatedPort={isolatedPort}
         />

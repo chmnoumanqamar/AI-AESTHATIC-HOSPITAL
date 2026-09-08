@@ -279,20 +279,33 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
       }}
     >
       {/* Left: Feature Window Title */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <div 
-          className="flex items-center gap-2.5 px-4 py-2 rounded-xl border shadow-xs transition-all duration-200 select-none"
+          className="flex items-center gap-3 px-4 py-2 rounded-2xl border transition-all duration-200 select-none shadow-xs"
           style={{
-            backgroundColor: isDark ? '#242E1C' : '#F4F7F4',
-            borderColor: isDark ? '#414833' : '#DDE3D5',
+            backgroundColor: isDark ? '#232F1C' : '#FFFFFF',
+            borderColor: isDark ? '#3D5033' : '#D4DCD0',
+            boxShadow: isDark ? '0 2px 10px rgba(0,0,0,0.3)' : '0 2px 10px rgba(45,106,79,0.06)'
           }}
         >
           {FeatureIcon && (
-            <FeatureIcon className="w-4 h-4 text-[#2D6A4F] dark:text-[#74C69D] shrink-0" />
+            <div 
+              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border"
+              style={{
+                backgroundColor: isDark ? '#1B2615' : '#EBF4EE',
+                borderColor: isDark ? '#3D5235' : '#C7DDCF',
+                color: isDark ? '#74C69D' : '#2D6A4F'
+              }}
+            >
+              <FeatureIcon className="w-4.5 h-4.5" />
+            </div>
           )}
           <span 
-            className="text-sm font-extrabold tracking-tight select-text"
-            style={{ color: isDark ? '#F6F7F2' : '#1F291E' }}
+            className="text-base sm:text-lg font-black tracking-tight select-text"
+            style={{ 
+              color: isDark ? '#FFFFFF' : '#111827',
+              letterSpacing: '-0.02em'
+            }}
           >
             {feature.label}
           </span>

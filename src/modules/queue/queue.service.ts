@@ -1,4 +1,4 @@
-import { db, DbQueueEntry } from '../../common/data/mock-db';
+import { db, DbQueueEntry, isDemoUser } from '../../common/data/mock-db';
 import { AppError } from '../../common/errors/AppError';
 import { normalizeDateString } from '../../common/utils/date-helper';
 import { recordAuditLog } from '../../common/middleware/audit.middleware';
@@ -7,13 +7,19 @@ export class QueueService {
   /**
    * LIVE QUEUE STREAM / MATRIX QUERY
    */
-  async getLiveQueue(doctorId?: string, dateInput?: string) {
+  async getLiveQueue(doctorId?: string, dateInput?: string, requestingUser?: any) {
     db.ensureTodaySchedule();
     const targetDate = dateInput ? normalizeDateString(dateInput) : normalizeDateString(new Date());
 
     let appointments = db.appointments.filter(
       a => a.appointmentDate === targetDate && ['CONFIRMED', 'PENDING'].includes(a.status)
     );
+
+    // Production Handover Standard: Any newly added person/staff must NEVER see factory mock/dummy records.
+    // Their department starts 100% clean and empty until real live patients are registered.
+    if (!isDemoUser(requestingUser)) {
+      appointments = appointments.filter(a => !a.isDemo);
+    }
 
     if (doctorId) {
       appointments = appointments.filter(a => a.doctorId === doctorId);

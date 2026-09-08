@@ -35,7 +35,8 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
   currentTab = 'patient_portal',
   onSelectTab
 }) => {
-  const patientId = currentUser?.profileId || 'pat-01';
+  const isDefaultDemoAccount = !currentUser || currentUser.email === 'john.doe@example.com' || currentUser.id === 'u-pat-01';
+  const patientId = currentUser?.profileId || (isDefaultDemoAccount ? 'pat-01' : (currentUser?.id || ''));
 
   // Active tab state synced with prop
   const [activeTab, setActiveTab] = useState<string>(currentTab);

@@ -4,7 +4,7 @@ import { pharmacyService } from './pharmacy.service';
 export class PharmacyController {
   async getDispenseQueue(req: Request, res: Response, next: NextFunction) {
     try {
-      const queue = await pharmacyService.getDispenseQueue();
+      const queue = await pharmacyService.getDispenseQueue(req.user);
       res.json({
         status: 'SUCCESS',
         data: queue

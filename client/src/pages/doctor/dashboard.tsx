@@ -40,7 +40,8 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
   currentTab = 'doctor_queue',
   onSelectTab
 }) => {
-  const doctorId = currentUser?.profileId || 'doc-01';
+  const isDefaultDemoAccount = !currentUser || currentUser.email === 'dr.aisha@hospital.com' || currentUser.id === 'u-doc-01';
+  const doctorId = currentUser?.profileId || (isDefaultDemoAccount ? 'doc-01' : (currentUser?.id || ''));
   const todayStr = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
 

@@ -7,7 +7,7 @@ export class QueueController {
     try {
       const doctorId = (req.query.doctorId as string) || (req.user?.role === 'DOCTOR' ? req.user.profileId : undefined);
       const date = req.query.date as string;
-      const list = await queueService.getLiveQueue(doctorId, date);
+      const list = await queueService.getLiveQueue(doctorId, date, req.user);
       res.json({
         success: true,
         data: list

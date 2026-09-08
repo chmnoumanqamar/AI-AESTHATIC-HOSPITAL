@@ -8,7 +8,7 @@ export const UpdateUserAccessSchema = z.object({
 export type UpdateUserAccessInput = z.infer<typeof UpdateUserAccessSchema>;
 
 export const UpdateUserRoleSchema = z.object({
-  role: z.enum(['ADMIN', 'DOCTOR', 'RECEPTIONIST', 'PATIENT'])
+  role: z.enum(['ADMIN', 'DOCTOR', 'RECEPTIONIST', 'PATIENT', 'PHARMACIST'])
 });
 
 export type UpdateUserRoleInput = z.infer<typeof UpdateUserRoleSchema>;
@@ -17,7 +17,7 @@ export const CreateUserSchema = z.object({
   phone: z.string().min(8),
   email: z.string().email().optional(),
   password: z.string().min(6),
-  role: z.enum(['ADMIN', 'DOCTOR', 'RECEPTIONIST', 'PATIENT']),
+  role: z.enum(['ADMIN', 'DOCTOR', 'RECEPTIONIST', 'PATIENT', 'PHARMACIST']),
   name: z.string().min(2),
   specialization: z.string().optional(),
   cnic: z.string().optional(),

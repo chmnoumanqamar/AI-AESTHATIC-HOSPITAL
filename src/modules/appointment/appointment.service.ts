@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { db, DbAppointment, DbQueueEntry } from '../../common/data/mock-db';
+import { db, DbAppointment, DbQueueEntry, isDemoUser } from '../../common/data/mock-db';
 import { AppError } from '../../common/errors/AppError';
 import { tokenService } from '../token/token.service';
 import { normalizeDateString } from '../../common/utils/date-helper';
@@ -8,8 +8,13 @@ import { recordAuditLog } from '../../common/middleware/audit.middleware';
 import { notificationService } from '../notification/notification.service';
 
 export class AppointmentService {
-  async getAllAppointments(filters?: { doctorId?: string; patientId?: string; date?: string; status?: string }) {
+  async getAllAppointments(filters?: { doctorId?: string; patientId?: string; date?: string; status?: string }, requestingUser?: any) {
     let list = db.appointments;
+
+    // Handover Clean Slate standard: Non-demo users should NEVER receive demo seed data
+    if (!isDemoUser(requestingUser)) {
+      list = list.filter(a => !a.isDemo);
+    }
 
     if (filters?.doctorId) {
       list = list.filter(a => a.doctorId === filters.doctorId);

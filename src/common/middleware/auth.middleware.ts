@@ -48,3 +48,25 @@ export const authMiddleware = (req: Request, _res: Response, next: NextFunction)
     throw AppError.unauthorized('Invalid or expired authentication token');
   }
 };
+
+export const optionalAuthMiddleware = (req: Request, _res: Response, next: NextFunction): void => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return next();
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, ENV.JWT_SECRET) as JwtAuthPayload;
+    const user = db.users.find(u => u.id === decoded.userId);
+    if (user && !user.isBlocked) {
+      req.user = {
+        ...decoded,
+        allowedModules: user.allowedModules
+      };
+    }
+  } catch (_err) {
+    // Optional token validation error - proceed anonymously without blocking
+  }
+  next();
+};

@@ -226,6 +226,7 @@ export const App: React.FC = () => {
 
       {currentTab.startsWith('recep_') && (
         <ReceptionistCommandCenter
+          currentUser={currentUser}
           currentTab={currentTab}
           onSelectTab={tab => setCurrentTab(tab)}
         />

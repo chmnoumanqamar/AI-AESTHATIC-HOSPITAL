@@ -46,6 +46,9 @@ export class AuthService {
       const recep = db.receptionists.find(r => r.userId === user.id);
       profileId = recep?.id;
       profileData = recep;
+    } else if (user.role === 'PHARMACIST') {
+      profileId = user.id;
+      profileData = { name: user.name || 'Pharmacist' };
     }
 
     const tokenPayload: JwtAuthPayload = {
@@ -198,6 +201,9 @@ export class AuthService {
       const recep = db.receptionists.find(r => r.userId === user.id);
       profileId = recep?.id;
       profileData = recep;
+    } else if (user.role === 'PHARMACIST') {
+      profileId = user.id;
+      profileData = { name: user.name || 'Pharmacist' };
     }
 
     return {

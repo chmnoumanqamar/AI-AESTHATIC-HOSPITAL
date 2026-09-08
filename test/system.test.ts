@@ -11,6 +11,8 @@ import { medicalSafetyGuard } from '../src/modules/ai-agent/safety/medical-safet
 import { aiAgentOrchestrator } from '../src/modules/ai-agent/ai.orchestrator';
 import { appointmentReminderService } from '../src/modules/appointment/appointment-reminder.service';
 import { sanitizeClinicalResponse } from '../src/common/middleware/rbac.middleware';
+import { adminService } from '../src/modules/admin/admin.service';
+import { pharmacyService } from '../src/modules/pharmacy/pharmacy.service';
 import { db } from '../src/common/data/mock-db';
 
 let passed = 0;
@@ -338,6 +340,92 @@ async function runSystemTestSuite() {
   assert(
     pharmacistQueueCheck.cardData?.type === 'PHARMACY_QUEUE_CARD',
     'AI Chatbot: Generates live dispense queue report for Pharmacist staff role'
+  );
+
+  // TEST 10: PRODUCTION HANDOVER STANDARDS - CLEAN DEPARTMENT INVARIANT FOR NEW PERSONS
+  console.log('\n--- TEST GROUP 10: PRODUCTION HANDOVER STANDARDS - CLEAN DEPARTMENT INVARIANT ---');
+
+  // 10.1: Default demo receptionist (u-recep-01) sees demo data
+  const demoQueue = await queueService.getLiveQueue(undefined, today, { userId: 'u-recep-01', role: 'RECEPTIONIST' });
+  assert(demoQueue.length > 0, 'Handover: Demo receptionist retains factory test dataset for guided demos');
+
+  // Purge test-created records from earlier test groups to establish handover clean slate
+  db.purgeRoughData();
+
+  // 10.2: Newly created receptionist (Nouman) has completely EMPTY queue (0 dummy records)
+  const newRecepUser = await adminService.createUser({
+    name: 'Nouman',
+    phone: '+923001122334',
+    email: 'nouman.recep@hospital.com',
+    password: 'Password123!',
+    role: 'RECEPTIONIST'
+  });
+  const noumanQueue = await queueService.getLiveQueue(undefined, today, { userId: newRecepUser.id, role: 'RECEPTIONIST' });
+  assert(noumanQueue.length === 0, 'Handover Standard: Newly added receptionist ("Nouman") department starts completely empty (0 queue items)');
+
+  // 10.3: Newly created receptionist has completely EMPTY pending bookings
+  const noumanPending = await appointmentService.getAllAppointments({ status: 'PENDING' }, { userId: newRecepUser.id, role: 'RECEPTIONIST' });
+  assert(noumanPending.length === 0, 'Handover Standard: Newly added receptionist pending bookings starts completely empty (0 pending)');
+
+  // 10.4: Newly created doctor has completely EMPTY queue and 0 active tokens
+  const newDocUser = await adminService.createUser({
+    name: 'Dr. Salman Ahmed',
+    phone: '+923005566778',
+    email: 'dr.salman@hospital.com',
+    password: 'Password123!',
+    role: 'DOCTOR',
+    specialization: 'Neurology'
+  });
+  const docProfile = db.doctors.find(d => d.userId === newDocUser.id);
+  const docQueue = await queueService.getLiveQueue(docProfile?.id, today, { userId: newDocUser.id, role: 'DOCTOR' });
+  const docMatrix = await tokenService.getDoctorTokensMatrix(docProfile!.id, today);
+  assert(docQueue.length === 0 && docMatrix.activePatientsCount === 0, 'Handover Standard: Newly added doctor department queue and token matrix starts completely empty');
+
+  // 10.5: Newly created pharmacist has completely EMPTY dispense queue
+  const newPharmaUser = await adminService.createUser({
+    name: 'Pharmacist Usman',
+    phone: '+923009988776',
+    email: 'usman.pharma@hospital.com',
+    password: 'Password123!',
+    role: 'PHARMACIST'
+  });
+  const pharmaQueue = await pharmacyService.getDispenseQueue({ userId: newPharmaUser.id, role: 'PHARMACIST' });
+  assert(pharmaQueue.length === 0, 'Handover Standard: Newly added pharmacist live dispense queue starts completely empty');
+
+  // 10.6: Newly created patient has completely EMPTY appointments
+  const newPatientUser = await adminService.createUser({
+    name: 'Zainab Bibi',
+    phone: '+923112233445',
+    email: 'zainab.patient@hospital.com',
+    password: 'Password123!',
+    role: 'PATIENT'
+  });
+  const patProfile = db.patients.find(p => p.userId === newPatientUser.id);
+  const patientAppointments = await appointmentService.getAllAppointments({ patientId: patProfile?.id }, { userId: newPatientUser.id, role: 'PATIENT' });
+  assert(patientAppointments.length === 0, 'Handover Standard: Newly added patient portal starts completely empty');
+
+  // 10.7: Live Operational Data Booking - Real patient check-in appears with proper sequential token
+  const liveBooking = await appointmentService.createBooking(
+    {
+      patientId: patProfile!.id,
+      doctorId: docProfile!.id,
+      serviceId: 'srv-01',
+      appointmentDate: today,
+      bookingSource: 'RECEPTIONIST',
+      chiefComplaint: 'Severe migraine headache'
+    },
+    newRecepUser.id,
+    'RECEPTIONIST'
+  );
+  // Confirm and check in
+  await appointmentService.updateStatus(liveBooking.id, { status: 'CONFIRMED' }, newRecepUser.id, 'RECEPTIONIST');
+  await queueService.checkInPatient(liveBooking.id, newRecepUser.id, 'RECEPTIONIST');
+
+  // Verify it appears in Nouman's queue with clean live data
+  const noumanLiveQueue = await queueService.getLiveQueue(undefined, today, { userId: newRecepUser.id, role: 'RECEPTIONIST' });
+  assert(
+    noumanLiveQueue.length === 1 && noumanLiveQueue[0].patientName === 'Zainab Bibi' && noumanLiveQueue[0].tokenNumber === 1,
+    'Handover Standard: Live patient registered by Nouman appears in queue as Token #01 without any demo records'
   );
 
   console.log('\n========================================================');

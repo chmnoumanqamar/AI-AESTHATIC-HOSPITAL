@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import { queueController } from './queue.controller';
-import { authMiddleware } from '../../common/middleware/auth.middleware';
+import { authMiddleware, optionalAuthMiddleware } from '../../common/middleware/auth.middleware';
 import { requireRoles } from '../../common/middleware/rbac.middleware';
 
 const router = Router();
 
 // Live queue status stream (Public or authenticated)
-router.get('/', (req, res, next) => queueController.getLiveQueue(req, res, next));
+router.get('/', optionalAuthMiddleware, (req, res, next) => queueController.getLiveQueue(req, res, next));
 
 // Receptionist Rapid Check-In
 router.post('/check-in', authMiddleware, requireRoles('ADMIN', 'RECEPTIONIST'), (req, res, next) =>

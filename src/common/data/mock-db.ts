@@ -12,8 +12,39 @@ export interface DbUser {
   blockedReason?: string;
   blockedAt?: string;
   allowedModules?: string[]; // Fully flexible dynamic module permissions granted by Admin
+  isDemo?: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export const DEMO_USER_IDS = new Set([
+  'u-admin-01',
+  'u-doc-01',
+  'u-doc-02',
+  'u-recep-01',
+  'u-pharma-01',
+  'u-pat-01',
+  'u-pat-02',
+  'u-pat-03'
+]);
+
+export function isDemoUser(user?: { userId?: string; id?: string; email?: string } | null): boolean {
+  if (!user) return false;
+  const uid = user.userId || user.id;
+  if (uid && DEMO_USER_IDS.has(uid)) return true;
+  if (user.email && [
+    'admin@hospital.com',
+    'dr.aisha@hospital.com',
+    'dr.marcus@hospital.com',
+    'receptionist@hospital.com',
+    'pharmacy@hospital.com',
+    'john.doe@example.com',
+    'emily.clark@example.com',
+    'robert.taylor@example.com'
+  ].includes(user.email.toLowerCase())) {
+    return true;
+  }
+  return false;
 }
 
 export interface HospitalModuleDef {
@@ -127,6 +158,7 @@ export interface DbDailyToken {
   tokenNumber: number;
   status: 'AVAILABLE' | 'RESERVED' | 'ACTIVE' | 'CANCELLED';
   cancelledAt?: string;
+  isDemo?: boolean;
   createdAt: string;
 }
 
@@ -144,6 +176,7 @@ export interface DbAppointment {
   followUpDate?: string;
   chiefComplaint?: string;
   notes?: string;
+  isDemo?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -156,6 +189,7 @@ export interface DbQueueEntry {
   calledTime?: string;
   consultationStartTime?: string;
   consultationEndTime?: string;
+  isDemo?: boolean;
   createdAt: string;
 }
 
@@ -170,6 +204,7 @@ export interface DbClinicalRecord {
   treatmentPlan: string;
   privateNotes?: string;
   followUpDate?: string;
+  isDemo?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -178,6 +213,7 @@ export interface DbPrescription {
   id: string;
   clinicalRecordId: string;
   patientId: string;
+  isDemo?: boolean;
   createdAt: string;
 }
 
@@ -195,6 +231,7 @@ export interface DbPrescriptionVersion {
   }>;
   correctionReason?: string;
   isCurrent: boolean;
+  isDemo?: boolean;
   createdAt: string;
 }
 
@@ -221,6 +258,7 @@ export interface DbPayment {
   category?: 'CONSULTATION' | 'PROCEDURE' | 'LAB_TEST' | 'PHARMACY' | 'EMERGENCY';
   paymentPlan?: 'FULL' | 'INSTALLMENT_1' | 'INSTALLMENT_2' | 'SPECIAL_WAIVER';
   notes?: string;
+  isDemo?: boolean;
   createdAt: string;
 }
 
@@ -300,6 +338,7 @@ export interface DbDispenseRecord {
   pharmacistName?: string;
   dispensedAt?: string;
   notes?: string;
+  isDemo?: boolean;
   createdAt: string;
 }
 
@@ -417,6 +456,7 @@ class InMemoryHospitalDatabase {
       email: 'admin@hospital.com',
       passwordHash: defaultPasswordHash,
       role: 'ADMIN',
+      isDemo: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -429,6 +469,7 @@ class InMemoryHospitalDatabase {
       email: 'dr.aisha@hospital.com',
       passwordHash: defaultPasswordHash,
       role: 'DOCTOR',
+      isDemo: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -453,6 +494,7 @@ class InMemoryHospitalDatabase {
       email: 'dr.marcus@hospital.com',
       passwordHash: defaultPasswordHash,
       role: 'DOCTOR',
+      isDemo: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -481,6 +523,7 @@ class InMemoryHospitalDatabase {
       email: 'receptionist@hospital.com',
       passwordHash: defaultPasswordHash,
       role: 'RECEPTIONIST',
+      isDemo: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -501,6 +544,7 @@ class InMemoryHospitalDatabase {
       email: 'pharmacy@hospital.com',
       passwordHash: defaultPasswordHash,
       role: 'PHARMACIST',
+      isDemo: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -542,6 +586,7 @@ class InMemoryHospitalDatabase {
       email: 'john.doe@example.com',
       passwordHash: defaultPasswordHash,
       role: 'PATIENT',
+      isDemo: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -566,6 +611,7 @@ class InMemoryHospitalDatabase {
       email: 'emily.clark@example.com',
       passwordHash: defaultPasswordHash,
       role: 'PATIENT',
+      isDemo: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -590,6 +636,7 @@ class InMemoryHospitalDatabase {
       email: 'robert.taylor@example.com',
       passwordHash: defaultPasswordHash,
       role: 'PATIENT',
+      isDemo: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -647,6 +694,7 @@ class InMemoryHospitalDatabase {
       date: today,
       tokenNumber: 1,
       status: 'ACTIVE',
+      isDemo: true,
       createdAt: new Date().toISOString()
     };
     // Token 2: Cancelled (Permanent non-reusable slot)
@@ -657,6 +705,7 @@ class InMemoryHospitalDatabase {
       tokenNumber: 2,
       status: 'CANCELLED',
       cancelledAt: new Date().toISOString(),
+      isDemo: true,
       createdAt: new Date().toISOString()
     };
     // Token 3: Emily Clark (CONFIRMED but NOT_CHECKED_IN - to test skip logic)
@@ -666,6 +715,7 @@ class InMemoryHospitalDatabase {
       date: today,
       tokenNumber: 3,
       status: 'RESERVED',
+      isDemo: true,
       createdAt: new Date().toISOString()
     };
     // Token 4: Robert Taylor (CONFIRMED & WAITING - should be picked by Call Next)
@@ -675,6 +725,7 @@ class InMemoryHospitalDatabase {
       date: today,
       tokenNumber: 4,
       status: 'ACTIVE',
+      isDemo: true,
       createdAt: new Date().toISOString()
     };
     this.dailyTokens.push(t1, t2, t3, t4);
@@ -690,6 +741,7 @@ class InMemoryHospitalDatabase {
       status: 'CONFIRMED',
       bookingSource: 'PORTAL',
       approvedByReceptionistId: 'recep-01',
+      isDemo: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -703,6 +755,7 @@ class InMemoryHospitalDatabase {
       status: 'CONFIRMED',
       bookingSource: 'AI_AGENT',
       approvedByReceptionistId: 'recep-01',
+      isDemo: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -716,6 +769,7 @@ class InMemoryHospitalDatabase {
       status: 'CONFIRMED',
       bookingSource: 'RECEPTIONIST',
       approvedByReceptionistId: 'recep-01',
+      isDemo: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -730,6 +784,7 @@ class InMemoryHospitalDatabase {
       status: 'PENDING',
       bookingSource: 'PORTAL',
       chiefComplaint: 'Follow-up consultation for recurring skin rash on forearm.',
+      isDemo: true,
       createdAt: new Date(Date.now() - 3600000).toISOString(),
       updatedAt: new Date(Date.now() - 3600000).toISOString()
     };
@@ -742,6 +797,7 @@ class InMemoryHospitalDatabase {
       status: 'PENDING',
       bookingSource: 'AI_AGENT',
       chiefComplaint: 'Mild exertional chest tightness; cardiology checkup requested.',
+      isDemo: true,
       createdAt: new Date(Date.now() - 1800000).toISOString(),
       updatedAt: new Date(Date.now() - 1800000).toISOString()
     };
@@ -756,12 +812,14 @@ class InMemoryHospitalDatabase {
       calledTime: today + 'T08:30:00Z',
       consultationStartTime: today + 'T08:32:00Z',
       consultationEndTime: today + 'T08:55:00Z',
+      isDemo: true,
       createdAt: new Date().toISOString()
     };
     const qe2: DbQueueEntry = {
       id: 'qe-02',
       appointmentId: 'apt-02',
       queueStatus: 'NOT_CHECKED_IN',
+      isDemo: true,
       createdAt: new Date().toISOString()
     };
     const qe3: DbQueueEntry = {
@@ -769,6 +827,7 @@ class InMemoryHospitalDatabase {
       appointmentId: 'apt-03',
       queueStatus: 'WAITING',
       checkInTime: today + 'T09:10:00Z',
+      isDemo: true,
       createdAt: new Date().toISOString()
     };
     this.queueEntries.push(qe1, qe2, qe3);
@@ -784,6 +843,7 @@ class InMemoryHospitalDatabase {
       diagnosis: 'Stage 1 Essential Hypertension with mild sinus tachycardia.',
       treatmentPlan: 'Initiate lifestyle modifications, low sodium diet, and ACE inhibitor therapy.',
       privateNotes: 'Patient expressed anxiety regarding workplace stress; follow-up in 4 weeks.',
+      isDemo: true,
       createdAt: today + 'T08:45:00Z',
       updatedAt: today + 'T08:50:00Z'
     };
@@ -793,6 +853,7 @@ class InMemoryHospitalDatabase {
       id: 'rx-01',
       clinicalRecordId: 'cr-01',
       patientId: 'pat-01',
+      isDemo: true,
       createdAt: today + 'T08:48:00Z'
     };
     this.prescriptions.push(rx1);
@@ -821,6 +882,7 @@ class InMemoryHospitalDatabase {
       ],
       correctionReason: undefined,
       isCurrent: false,
+      isDemo: true,
       createdAt: today + 'T08:48:00Z'
     };
 
@@ -848,6 +910,7 @@ class InMemoryHospitalDatabase {
       ],
       correctionReason: 'Optimized ACE inhibitor dosage for target pressure and switched beta blocker to once-daily extended release.',
       isCurrent: true,
+      isDemo: true,
       createdAt: today + 'T08:52:00Z'
     };
     this.prescriptionVersions.push(rx1v1, rx1v2);
@@ -1086,6 +1149,7 @@ class InMemoryHospitalDatabase {
           }
         ],
         totalAmount: 690.00,
+        isDemo: true,
         createdAt: today + 'T08:53:00Z'
       },
       {
@@ -1117,6 +1181,7 @@ class InMemoryHospitalDatabase {
         pharmacistName: 'Tariq Mehmood, RPh',
         dispensedAt: today + 'T09:15:00Z',
         notes: 'Counselled on taking medication after dinner. Verified liver profile clear.',
+        isDemo: true,
         createdAt: today + 'T09:00:00Z'
       }
     ];
@@ -1172,6 +1237,7 @@ class InMemoryHospitalDatabase {
         category: 'CONSULTATION',
         paymentPlan: 'FULL',
         notes: 'Initial cardiology consultation settled in full.',
+        isDemo: true,
         createdAt: today + 'T08:15:00Z'
       },
       {
@@ -1188,6 +1254,7 @@ class InMemoryHospitalDatabase {
         category: 'PROCEDURE',
         paymentPlan: 'INSTALLMENT_1',
         notes: 'Special waiver Rs. 500 applied. 50% advance received via JazzCash.',
+        isDemo: true,
         createdAt: today + 'T09:00:00Z'
       }
     );
@@ -1232,6 +1299,7 @@ class InMemoryHospitalDatabase {
           status: 'CONFIRMED',
           bookingSource: idx % 2 === 0 ? 'PORTAL' : 'AI_AGENT',
           approvedByReceptionistId: 'recep-01',
+          isDemo: true,
           createdAt: createdAtTime,
           updatedAt: createdAtTime
         });
@@ -1244,6 +1312,7 @@ class InMemoryHospitalDatabase {
           calledTime: `${today}T${hourStr}:15:00Z`,
           consultationStartTime: `${today}T${hourStr}:18:00Z`,
           consultationEndTime: `${today}T${hourStr}:38:00Z`,
+          isDemo: true,
           createdAt: createdAtTime
         });
 
@@ -1261,6 +1330,7 @@ class InMemoryHospitalDatabase {
           category: cat,
           paymentPlan: 'FULL',
           notes: `${cat} settlement completed at ${hourStr}:00.`,
+          isDemo: true,
           createdAt: createdAtTime
         });
       });
@@ -1290,6 +1360,7 @@ class InMemoryHospitalDatabase {
             status: 'CONFIRMED',
             bookingSource: (t + dayOffset) % 2 === 0 ? 'PORTAL' : 'RECEPTIONIST',
             approvedByReceptionistId: 'recep-01',
+            isDemo: true,
             createdAt: timeIso,
             updatedAt: timeIso
           });
@@ -1302,6 +1373,7 @@ class InMemoryHospitalDatabase {
             calledTime: `${dateStr}T${hourStr}:22:00Z`,
             consultationStartTime: `${dateStr}T${hourStr}:25:00Z`,
             consultationEndTime: `${dateStr}T${hourStr}:45:00Z`,
+            isDemo: true,
             createdAt: timeIso
           });
 
@@ -1325,6 +1397,7 @@ class InMemoryHospitalDatabase {
             category: cat,
             paymentPlan: isPartial ? 'INSTALLMENT_1' : 'FULL',
             notes: `Clinical settlement for ${cat}.`,
+            isDemo: true,
             createdAt: timeIso
           });
         }
@@ -1352,6 +1425,7 @@ class InMemoryHospitalDatabase {
             status: 'CONFIRMED',
             bookingSource: 'PORTAL',
             approvedByReceptionistId: 'recep-01',
+            isDemo: true,
             createdAt: timeIso,
             updatedAt: timeIso
           });
@@ -1370,6 +1444,7 @@ class InMemoryHospitalDatabase {
             category: cat,
             paymentPlan: 'FULL',
             notes: `Historical archive invoice for ${mDate.toLocaleString('default', { month: 'short' })}.`,
+            isDemo: true,
             createdAt: timeIso
           });
         }

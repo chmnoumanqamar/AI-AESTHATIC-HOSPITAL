@@ -19,7 +19,7 @@ export class AppointmentController {
         patientId: effectivePatientId,
         date: date as string,
         status: status as string
-      });
+      }, req.user);
 
       res.json({
         success: true,

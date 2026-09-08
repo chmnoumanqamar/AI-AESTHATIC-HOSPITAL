@@ -10,11 +10,13 @@ import { api } from '../../services/api';
 import { UserPlus, Shield } from 'lucide-react';
 
 interface ReceptionistCommandCenterProps {
+  currentUser?: any;
   currentTab?: string;
   onSelectTab?: (tab: string) => void;
 }
 
 export const ReceptionistCommandCenter: React.FC<ReceptionistCommandCenterProps> = ({
+  currentUser,
   currentTab = 'recep_desk'
 }) => {
   const { queue, refreshQueue } = useQueueStream();

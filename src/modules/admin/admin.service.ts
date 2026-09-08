@@ -107,7 +107,7 @@ export class AdminService {
     };
   }
 
-  async updateUserRole(userId: string, newRole: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT', adminActorId: string = 'admin') {
+  async updateUserRole(userId: string, newRole: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST', adminActorId: string = 'admin') {
     const user = db.users.find(u => u.id === userId);
     if (!user) {
       throw AppError.notFound('User not found');
@@ -238,6 +238,7 @@ export class AdminService {
       passwordHash,
       role: input.role,
       isBlocked: false,
+      isDemo: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };

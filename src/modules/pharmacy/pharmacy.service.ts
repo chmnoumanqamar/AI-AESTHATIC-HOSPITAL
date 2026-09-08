@@ -1,4 +1,4 @@
-import { db, DbMedicineItem, DbDispenseRecord, DbPharmacySale, DbProcurementOrder } from '../../common/data/mock-db';
+import { db, DbMedicineItem, DbDispenseRecord, DbPharmacySale, DbProcurementOrder, isDemoUser } from '../../common/data/mock-db';
 import { AppError } from '../../common/errors/AppError';
 import { recordAuditLog } from '../../common/middleware/audit.middleware';
 
@@ -6,9 +6,15 @@ export class PharmacyService {
   /**
    * Fetch all dispense queue records, automatically synchronizing any doctor prescriptions
    */
-  async getDispenseQueue() {
+  async getDispenseQueue(requestingUser?: any) {
+    const isDemo = isDemoUser(requestingUser);
+
     // Sync any doctor prescriptions that don't have a dispense record yet
-    for (const rx of db.prescriptions) {
+    const sourcePrescriptions = isDemo
+      ? db.prescriptions
+      : db.prescriptions.filter(rx => !rx.isDemo);
+
+    for (const rx of sourcePrescriptions) {
       const existing = db.dispenseRecords.find(d => d.prescriptionId === rx.id);
       if (!existing) {
         const patient = db.patients.find(p => p.id === rx.patientId);
@@ -52,9 +58,14 @@ export class PharmacyService {
           status: 'PENDING',
           items,
           totalAmount,
+          isDemo: rx.isDemo,
           createdAt: rx.createdAt
         });
       }
+    }
+
+    if (!isDemo) {
+      return db.dispenseRecords.filter(d => !d.isDemo);
     }
 
     return db.dispenseRecords;

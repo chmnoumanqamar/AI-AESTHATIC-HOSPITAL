@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   LayoutDashboard,
   CalendarCheck,
@@ -25,7 +25,11 @@ import {
   Package,
   ShoppingCart,
   ShieldAlert,
-  Truck
+  Truck,
+  ChevronUp,
+  Sun,
+  Moon,
+  User
 } from 'lucide-react';
 import { api } from '../../services/api';
 
@@ -121,6 +125,69 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
 }) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [modulesRegistry, setModulesRegistry] = useState<ModuleNavDef[]>(getStoredHierarchy);
+
+  // Drop-Up State (Preferences & Sign Out)
+  const [isDropUpOpen, setIsDropUpOpen] = useState(false);
+  const dropUpRef = useRef<HTMLDivElement>(null);
+  const stripRef = useRef<HTMLButtonElement>(null);
+
+  // Theme State
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('hospital_theme');
+      if (saved) return saved === 'dark';
+      return document.documentElement.classList.contains('dark');
+    }
+    return false;
+  });
+
+  const toggleTheme = () => {
+    const nextDark = !isDark;
+    setIsDark(nextDark);
+    if (nextDark) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('hospital_theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('hospital_theme', 'light');
+    }
+    window.dispatchEvent(new CustomEvent('hospital_theme_changed', { detail: nextDark ? 'dark' : 'light' }));
+  };
+
+  useEffect(() => {
+    const handleThemeEvent = (e: any) => {
+      if (e.detail) {
+        setIsDark(e.detail === 'dark');
+      }
+    };
+    window.addEventListener('hospital_theme_changed', handleThemeEvent);
+    return () => window.removeEventListener('hospital_theme_changed', handleThemeEvent);
+  }, []);
+
+  // Click outside & Escape key handler to close drop-up
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        dropUpRef.current && 
+        !dropUpRef.current.contains(e.target as Node) &&
+        stripRef.current &&
+        !stripRef.current.contains(e.target as Node)
+      ) {
+        setIsDropUpOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsDropUpOpen(false);
+    };
+    if (isDropUpOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isDropUpOpen]);
 
   // Drag & Drop State in Sidebar
   const [draggedSidebarItem, setDraggedSidebarItem] = useState<ModuleNavDef | null>(null);
@@ -231,6 +298,51 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
   })).filter(cat => cat.items.length > 0 && (currentRole === 'ADMIN' || cat.key !== 'ADMIN'));
 
   const hasMultipleCategories = categories.length > 1;
+
+  // Active User Profile & Department Resolution
+  const resolvedUserName = 
+    currentUser?.profile?.fullName ||
+    currentUser?.profile?.name ||
+    currentUser?.fullName ||
+    currentUser?.name ||
+    (currentRole === 'ADMIN' ? 'Root Administrator'
+      : currentRole === 'DOCTOR' ? 'Dr. Zubair Qureshi'
+      : currentRole === 'RECEPTIONIST' ? 'Nouman Qamar'
+      : currentRole === 'PHARMACIST' ? 'Tariq Mehmood, RPh'
+      : 'Registered Patient');
+
+  const getDepartmentInfo = () => {
+    switch (currentRole) {
+      case 'DOCTOR':
+        return {
+          label: currentUser?.profile?.specialization ? `Doctor • ${currentUser.profile.specialization}` : 'Clinical Doctor',
+          icon: Stethoscope
+        };
+      case 'RECEPTIONIST':
+        return {
+          label: currentUser?.profile?.department || 'Front-Desk Reception',
+          icon: ClipboardList
+        };
+      case 'PATIENT':
+        return {
+          label: 'Patient Services',
+          icon: User
+        };
+      case 'PHARMACIST':
+        return {
+          label: currentUser?.profile?.department || 'Dispensary & Pharmacy',
+          icon: Pill
+        };
+      case 'ADMIN':
+      default:
+        return {
+          label: 'Hospital Administration',
+          icon: ShieldCheck
+        };
+    }
+  };
+
+  const { label: departmentLabel, icon: DepartmentIcon } = getDepartmentInfo();
 
   // Sidebar drag & drop handlers
   const handleSidebarDragStart = (e: React.DragEvent, item: ModuleNavDef) => {
@@ -424,18 +536,108 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
         </nav>
       </div>
 
-      {/* Footer Controls: Only Sign Out */}
-      <div className="p-2 border-t border-[#E2E6D8] dark:border-[#333D29]">
+      {/* Half-Centimeter Arrow Strip & Drop-Up Menu */}
+      <div className="relative border-t border-[#E2E6D8] dark:border-[#333D29]">
+        {/* The Sleek Half-Centimeter Strip */}
         <button
-          onClick={() => setShowLogoutConfirm(true)}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-[#4A5543] hover:text-[#DC2626] hover:bg-[#FEF2F2] dark:text-[#C2C5AA] dark:hover:text-white dark:hover:bg-[#7F4F24]/30 transition-all cursor-pointer ${
-            !isExpanded ? 'justify-center' : ''
+          ref={stripRef}
+          type="button"
+          onClick={() => setIsDropUpOpen(prev => !prev)}
+          style={{ height: '22px' }}
+          className={`w-full flex items-center justify-center transition-all duration-200 cursor-pointer select-none group ${
+            isDropUpOpen 
+              ? 'bg-[#E3EBE0] dark:bg-[#27351F]' 
+              : 'bg-[#F6F8F4] hover:bg-[#EAEFE6] dark:bg-[#1A2315] dark:hover:bg-[#232F1A]'
           }`}
-          title="Sign Out"
+          title={isDropUpOpen ? "Close preferences" : "Theme & Sign Out Options"}
+          aria-label="Toggle Preferences and Sign Out Drop-Up"
         >
-          <LogOut className={`w-4 h-4 shrink-0 transition-transform duration-300 ${!isExpanded ? 'rotate-180' : ''}`} />
-          {isExpanded && <span>Sign Out</span>}
+          <ChevronUp 
+            className={`w-3.5 h-3.5 text-[#656D4A] dark:text-[#A4AC86] transition-transform duration-200 group-hover:scale-110 group-hover:text-[#1B4332] dark:group-hover:text-white ${
+              isDropUpOpen ? 'rotate-180 text-[#2D6A4F] dark:text-[#52B788]' : ''
+            }`}
+          />
         </button>
+
+        {/* Drop-Up Menu (Opens Upward Above Strip) */}
+        {isDropUpOpen && (
+          <div 
+            ref={dropUpRef}
+            className={`absolute bottom-full mb-1.5 z-50 bg-white dark:bg-[#1E2718] border border-[#D4DCD0] dark:border-[#333D29] rounded-2xl shadow-2xl p-1.5 space-y-1 animate-in fade-in slide-in-from-bottom-2 duration-150 ${
+              isExpanded 
+                ? 'left-2 right-2' 
+                : 'left-2 w-52'
+            }`}
+          >
+            {/* Theme Toggle Button (Light / Dark Mode) */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-[#4A5543] dark:text-[#C2C5AA] hover:text-[#1F291E] dark:hover:text-white hover:bg-[#F4F6F0] dark:hover:bg-[#2D3923] transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-2.5">
+                {isDark ? (
+                  <Sun className="w-4 h-4 text-amber-500 shrink-0" />
+                ) : (
+                  <Moon className="w-4 h-4 text-indigo-500 shrink-0" />
+                )}
+                <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+              </div>
+              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#EAEFE6] dark:bg-[#151D10] text-[#2D6A4F] dark:text-[#52B788]">
+                {isDark ? 'DARK' : 'LIGHT'}
+              </span>
+            </button>
+
+            {/* Separator line */}
+            <div className="border-t border-[#E8ECE3] dark:border-[#2D3923] my-1" />
+
+            {/* Sign Out Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setIsDropUpOpen(false);
+                setShowLogoutConfirm(true);
+              }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+            >
+              <LogOut className="w-4 h-4 shrink-0" />
+              <span>Sign Out</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Footer Area: Active Department & User Profile Info */}
+      <div className="p-2 border-t border-[#E2E6D8] dark:border-[#333D29] bg-[#FAFBF8] dark:bg-[#192215]">
+        {isExpanded ? (
+          <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-white dark:bg-[#1F291B] border border-[#E2E6D8] dark:border-[#2D3923] shadow-xs select-none">
+            {/* Department / User Avatar Tile */}
+            <div className="relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-[#E8F3EB] dark:bg-[#253723] text-[#2D6A4F] dark:text-[#74C69D] border border-[#C2DEC9] dark:border-[#3A5337]">
+              <DepartmentIcon className="w-4 h-4" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#1F291B]" />
+            </div>
+
+            {/* User & Department Text */}
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-bold text-[#1F291E] dark:text-white truncate leading-tight">
+                {resolvedUserName}
+              </div>
+              <div className="text-[10px] font-semibold text-[#656D4A] dark:text-[#A4AC86] uppercase tracking-wider truncate mt-0.5">
+                {departmentLabel}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div 
+            className="flex items-center justify-center py-1 select-none"
+            title={`${resolvedUserName} • ${departmentLabel}`}
+          >
+            <div className="relative w-8 h-8 rounded-lg flex items-center justify-center bg-[#E8F3EB] dark:bg-[#253723] text-[#2D6A4F] dark:text-[#74C69D] border border-[#C2DEC9] dark:border-[#3A5337]">
+              <DepartmentIcon className="w-4 h-4" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#1F291B]" />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Sign Out Confirmation Modal */}

@@ -160,6 +160,16 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   }, [isDark]);
 
   useEffect(() => {
+    const handleThemeEvent = (e: any) => {
+      if (e.detail) {
+        setIsDark(e.detail === 'dark');
+      }
+    };
+    window.addEventListener('hospital_theme_changed', handleThemeEvent);
+    return () => window.removeEventListener('hospital_theme_changed', handleThemeEvent);
+  }, []);
+
+  useEffect(() => {
     try {
       localStorage.setItem('hospital_notifications', JSON.stringify(notifications));
     } catch {

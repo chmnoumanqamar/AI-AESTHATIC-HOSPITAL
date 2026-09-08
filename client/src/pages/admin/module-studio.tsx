@@ -687,9 +687,6 @@ export const AdminModuleStudio: React.FC = () => {
                 ({currentRoleDefinition?.permissions.length || 0} pages assigned)
               </span>
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-[#8C987C] line-clamp-1">
-              {currentRoleDefinition?.description}
-            </p>
           </div>
         </div>
 
@@ -811,11 +808,6 @@ export const AdminModuleStudio: React.FC = () => {
                                 {rule.moduleId}
                               </span>
                             </div>
-                            {description && (
-                              <p className="text-[11px] text-slate-400 dark:text-[#768266] truncate max-w-md mt-0.5">
-                                {description}
-                              </p>
-                            )}
                           </div>
                         </div>
                       </td>

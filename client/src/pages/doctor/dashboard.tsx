@@ -467,12 +467,9 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
           {/* Quick Action Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-[#1E2718] border border-[#E2E6D8] dark:border-[#2F3E29] shadow-xs">
             <div>
-              <h3 className="font-bold text-sm text-[#1F291E] dark:text-[#F6F7F2]">
+              <h3 className="font-extrabold text-sm text-[#1F291E] dark:text-[#F6F7F2]">
                 Token Slot Control Center
               </h3>
-              <p className="text-xs text-[#656D4A] dark:text-[#A4AC86] mt-0.5">
-                Allocate walk-in patient slots, monitor slot sequentiality, and enforce permanent cancellation locks.
-              </p>
             </div>
 
             <div className="flex items-center gap-2">

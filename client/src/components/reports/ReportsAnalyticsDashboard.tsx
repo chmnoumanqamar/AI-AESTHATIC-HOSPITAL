@@ -447,12 +447,6 @@ export const ReportsAnalyticsDashboard: React.FC<ReportsAnalyticsDashboardProps>
                 Financial & Patient Volume Timeline
               </h3>
             </div>
-            <p className="text-xs text-slate-500 dark:text-[#A4AC86] mt-0.5">
-              {period === 'daily' && 'Hourly breakdown across today’s shifts (08:00 to 20:00)'}
-              {period === 'weekly' && 'Day-by-day revenue & patient progression for the past 7 days'}
-              {period === 'monthly' && 'Aggregated 5-day intervals across the past 30 days'}
-              {period === 'yearly' && 'Month-by-month annual billing & patient flow'}
-            </p>
           </div>
 
           {/* Controls: Chart Type (Line/Bar), Metric (Revenue/Patients/Both) & Legend */}
@@ -968,14 +962,9 @@ export const ReportsAnalyticsDashboard: React.FC<ReportsAnalyticsDashboardProps>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-[#E2E6D8] dark:border-[#333D29]">
           <div className="flex items-center gap-2">
             <FileSpreadsheet className="w-4 h-4 text-[#2D6A4F] dark:text-[#52B788]" />
-            <div>
-              <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">
-                Period Audit Ledger ({filteredTransactions.length} Invoices)
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-[#A4AC86]">
-                Itemized transaction records for {data?.dateRange?.formattedLabel || period}
-              </p>
-            </div>
+            <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">
+              Period Audit Ledger ({filteredTransactions.length} Invoices)
+            </h3>
           </div>
 
           {/* Quick Search */}

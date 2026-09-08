@@ -98,10 +98,7 @@ export const ConsultationWorkspace: React.FC<ConsultationWorkspaceProps> = ({
       {activeTab === 'history' && (
         <div className="space-y-4">
           <div className="bg-white border border-brand-300 rounded-lg p-5">
-            <h3 className="operational-sub-header mb-2">Permitted Longitudinal History</h3>
-            <p className="text-xs text-brand-600 mb-4">
-              Access verified via DoctorPatientRelationship invariant for this patient.
-            </p>
+            <h3 className="operational-sub-header font-extrabold mb-4">Permitted Longitudinal History</h3>
 
             <div className="space-y-4">
               {patientHistory?.records?.map((record: any) => (

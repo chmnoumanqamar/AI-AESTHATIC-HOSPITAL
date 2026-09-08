@@ -280,16 +280,9 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
-      {/* Top Patient Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Patient Portal</h1>
-          <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mt-0.5">
-            Welcome back, <strong>{currentUser?.profile?.fullName || currentUser?.fullName || currentUser?.name || currentUser?.phone || 'Patient'}</strong>
-          </p>
-        </div>
-
-        {activeTab !== 'patient_booking' && (
+      {/* Top Patient Action Bar */}
+      {activeTab !== 'patient_booking' && (
+        <div className="flex justify-end pb-2">
           <button
             onClick={() => switchTab('patient_booking')}
             className="clinical-button-primary flex items-center gap-2 text-xs"
@@ -297,8 +290,8 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
             <Plus className="w-4 h-4" />
             <span>Book Appointment</span>
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
 
 
@@ -347,10 +340,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
               className="px-5 py-3.5 border-b border-[#E2E6D8] dark:border-[#333D29] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#F8FAF6] dark:bg-[#1E2717]"
             >
               <div>
-                <h3 className="operational-sub-header text-[#1F291E] dark:text-white">My Consultations & Sequential Tokens</h3>
-                <p className="text-xs font-medium text-[#656D4A] dark:text-[#A4AC86]">
-                  Track your guaranteed queue position and consultation status.
-                </p>
+                <h3 className="operational-sub-header font-extrabold text-[#1F291E] dark:text-white">My Consultations & Sequential Tokens</h3>
               </div>
 
               {/* Status Filters */}
@@ -511,9 +501,6 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                 Book an Appointment
               </h2>
-              <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
-                Choose your specialist and preferred date to reserve your consultation token.
-              </p>
             </div>
 
             <form onSubmit={handlePromptCrossCheck} className="space-y-6">
@@ -759,7 +746,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
 
           {/* Clinical Records Timeline */}
           <div className="bg-white rounded-xl p-5 shadow-xs space-y-4 border" style={{ borderColor: '#C2C5AA' }}>
-            <h3 className="operational-sub-header" style={{ color: '#333D29' }}>Clinical Consultations & Prescriptions</h3>
+            <h3 className="operational-sub-header font-extrabold" style={{ color: '#333D29' }}>Clinical Consultations & Prescriptions</h3>
 
             <div className="space-y-4">
               {history?.records?.map((record: any) => (
@@ -829,10 +816,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
 
           {/* Multi-Channel Failover Preferences Card */}
           <div className="bg-white rounded-xl p-5 shadow-xs space-y-4 border" style={{ borderColor: '#C2C5AA' }}>
-            <h3 className="operational-sub-header" style={{ color: '#333D29' }}>Notification Routing & Failover Configuration</h3>
-            <p className="text-xs font-medium" style={{ color: '#7F4F24' }}>
-              Hospital notifications dispatch via Primary channel first; automatically routes to Backup channel on network timeout.
-            </p>
+            <h3 className="operational-sub-header font-extrabold" style={{ color: '#333D29' }}>Notification Routing & Failover Configuration</h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -935,10 +919,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
           {/* Itemized Consultation Charges Table */}
           <div className="bg-white rounded-xl overflow-hidden shadow-xs border" style={{ borderColor: '#C2C5AA' }}>
             <div className="px-5 py-3.5 border-b" style={{ backgroundColor: '#FAFBF7', borderColor: '#C2C5AA' }}>
-              <h3 className="operational-sub-header" style={{ color: '#333D29' }}>Incurred Consultation & Service Ledger</h3>
-              <p className="text-xs font-medium" style={{ color: '#7F4F24' }}>
-                Itemized hospital fees associated with your registered tokens.
-              </p>
+              <h3 className="operational-sub-header font-extrabold" style={{ color: '#333D29' }}>Incurred Consultation & Service Ledger</h3>
             </div>
 
             <div className="overflow-x-auto">
@@ -996,10 +977,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
           {/* Payment Receipts History */}
           <div className="bg-white rounded-xl overflow-hidden shadow-xs border" style={{ borderColor: '#C2C5AA' }}>
             <div className="px-5 py-3.5 border-b" style={{ backgroundColor: '#FAFBF7', borderColor: '#C2C5AA' }}>
-              <h3 className="operational-sub-header" style={{ color: '#333D29' }}>Payment Receipts & POS Settlements</h3>
-              <p className="text-xs font-medium" style={{ color: '#7F4F24' }}>
-                Official transaction log of payments collected via Cash, JazzCash, EasyPaisa, or Debit Card.
-              </p>
+              <h3 className="operational-sub-header font-extrabold" style={{ color: '#333D29' }}>Payment Receipts & POS Settlements</h3>
             </div>
 
             <div className="p-4 space-y-3">

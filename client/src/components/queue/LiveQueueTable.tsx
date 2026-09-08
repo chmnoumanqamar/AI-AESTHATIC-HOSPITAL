@@ -40,8 +40,7 @@ export const LiveQueueTable: React.FC<LiveQueueTableProps> = ({
       {/* Table Header Section */}
       <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-[#414833] bg-[#FAFBF7] dark:bg-[#1F2718]">
         <div>
-          <h3 className="text-base font-bold text-slate-900 dark:text-white">Live Consultation Queue</h3>
-          <p className="text-xs font-medium text-slate-500 dark:text-[#A4AC86]">Patient arrival progression and clinical queue sequence</p>
+          <h3 className="text-base font-extrabold text-slate-900 dark:text-white">Live Consultation Queue</h3>
         </div>
         <span className="self-start sm:self-auto text-xs font-bold px-2.5 py-1 rounded-full border border-slate-200 dark:border-[#414833] bg-slate-100 dark:bg-[#2D3923] text-slate-800 dark:text-slate-200">
           {queue.length} Total Registered

@@ -132,23 +132,14 @@ export const ReceptionistCommandCenter: React.FC<ReceptionistCommandCenterProps>
       {/* Header & Quick Action Bar (Only for Desk Operations) */}
       {currentTab !== 'recep_reports' && (
         <>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="screen-main-header">Front-Desk Command Center</h1>
-              <p className="text-xs text-brand-600">
-                Patient check-in, booking request authorization, and front-desk collection
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsRegisterModalOpen(true)}
-                className="clinical-button-primary flex items-center gap-2 text-xs"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>New Patient (Duplicate Check)</span>
-              </button>
-            </div>
+          <div className="flex items-center justify-end gap-2 pb-2">
+            <button
+              onClick={() => setIsRegisterModalOpen(true)}
+              className="clinical-button-primary flex items-center gap-2 text-xs"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>New Patient (Duplicate Check)</span>
+            </button>
           </div>
 
           {/* Privacy Wall Badge */}

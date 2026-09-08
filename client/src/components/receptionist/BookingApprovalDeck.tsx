@@ -36,8 +36,7 @@ export const BookingApprovalDeck: React.FC<BookingApprovalDeckProps> = ({
         style={{ backgroundColor: '#FAFBF7', borderColor: '#C2C5AA' }}
       >
         <div>
-          <h3 className="operational-sub-header" style={{ color: '#333D29' }}>Front-Desk Booking Approval Deck</h3>
-          <p className="text-xs font-medium" style={{ color: '#7F4F24' }}>Pending appointment requests from Patient Portal and AI Copilot</p>
+          <h3 className="operational-sub-header font-extrabold" style={{ color: '#333D29' }}>Front-Desk Booking Approval Deck</h3>
         </div>
         <span 
           className="operational-metadata-tag px-2.5 py-1 rounded font-bold border"

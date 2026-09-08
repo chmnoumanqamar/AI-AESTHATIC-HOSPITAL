@@ -41,8 +41,7 @@ export const PrescriptionDiffViewer: React.FC<PrescriptionDiffViewerProps> = ({
         <div className="flex items-center gap-2">
           <GitBranch className="w-5 h-5 text-brand-900" />
           <div>
-            <h3 className="operational-sub-header">Prescription Immutable Version Diff</h3>
-            <p className="text-xs text-brand-600">Git-Style Strikethrough & Audit Verification Engine</p>
+            <h3 className="operational-sub-header font-extrabold">Prescription Immutable Version Diff</h3>
           </div>
         </div>
 

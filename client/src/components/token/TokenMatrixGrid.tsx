@@ -58,12 +58,9 @@ export const TokenMatrixGrid: React.FC<TokenMatrixGridProps> = ({
     <div className="bg-white dark:bg-[#1E2718] rounded-2xl p-5 sm:p-6 shadow-xs border border-[#E2E6D8] dark:border-[#2F3E29] space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E2E6D8] dark:border-[#2F3E29]">
         <div>
-          <h3 className="text-sm font-bold text-[#1F291E] dark:text-[#F6F7F2]">
+          <h3 className="text-sm font-extrabold text-[#1F291E] dark:text-[#F6F7F2]">
             Sequential Token Matrix Visualizer
           </h3>
-          <p className="text-xs text-[#656D4A] dark:text-[#A4AC86] mt-0.5">
-            Click any token slot to view patient assignment, cancel slot, or initiate consultation.
-          </p>
         </div>
 
         {/* Legend */}

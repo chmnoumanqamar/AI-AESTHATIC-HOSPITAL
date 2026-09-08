@@ -681,6 +681,9 @@ class InMemoryHospitalDatabase {
         throw new Error(`Invalid hospital role: ${role}`);
       }
     }
+    if (!roleDef) {
+      throw new Error(`Invalid hospital role: ${role}`);
+    }
     roleDef.permissions = permissions;
     this.saveToDisk();
     return roleDef;
@@ -706,6 +709,9 @@ class InMemoryHospitalDatabase {
       } else {
         throw new Error(`Invalid hospital role: ${role}`);
       }
+    }
+    if (!roleDef) {
+      throw new Error(`Invalid hospital role: ${role}`);
     }
     const existingPerm = roleDef.permissions.find(p => p.moduleId === moduleId);
     if (existingPerm) {

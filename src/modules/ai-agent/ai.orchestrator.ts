@@ -51,15 +51,15 @@ export class AiAgentOrchestrator {
 
     // Common Roman Urdu keywords
     const romanUrduKeywords = [
-      'mera', 'meri', 'meray', 'mujhe', 'ap', 'aap', 'kya', 'kia', 'kab', 'kese', 'kaise',
-      'hai', 'hain', 'ho', 'hoga', 'hogi', 'karo', 'karna', 'karni', 'batao', 'batayein', 'btao', 'chahiye',
-      'chahie', 'chahye', 'kitna', 'kitni', 'kitne', 'pehlay', 'baad', 'shukriya', 'theek', 'doctor', 'bhi', 'hum',
-      'session', 'le', 'liay', 'liye', 'wala', 'wali', 'kuch', 'bhejo', 'milna', 'milay', 'milenge',
+      'mera', 'meri', 'meray', 'mujhe', 'mujhy', 'ap', 'aap', 'apka', 'apki', 'apnay', 'apne', 'kya', 'kia', 'kab', 'kese', 'kaise',
+      'hai', 'hain', 'ho', 'hoon', 'hun', 'hoga', 'hogi', 'honge', 'karo', 'karein', 'karna', 'karni', 'krna', 'batao', 'batayein', 'btao', 'bataen', 'chahiye',
+      'chahie', 'chahye', 'kitna', 'kitni', 'kitne', 'pehlay', 'pehle', 'baad', 'shukriya', 'theek', 'doctor', 'bhi', 'hum', 'humara',
+      'session', 'le', 'liay', 'liye', 'wala', 'wali', 'wale', 'kuch', 'bhejo', 'milna', 'milay', 'milenge',
       'aaj', 'kal', 'parson', 'waqt', 'dikhao', 'dikhayein', 'baithte', 'baithti', 'khali', 'bache',
-      'konsa', 'kon', 'koun', 'kounsa', 'kahan', 'kis'
+      'konsa', 'kon', 'koun', 'kounsa', 'kahan', 'kidhar', 'kis', 'kisi', 'dal', 'dalo', 'daal', 'do', 'de', 'dain', 'bulao', 'bulayein', 'summon', 'mareez', 'dawa', 'dawaein', 'timing', 'manay', 'maine', 'tum', 'tumhein', 'apko', 'pata', 'aur', 'or', 'ya', 'yeh', 'ye', 'woh', 'wo', 'sab', 'sari', 'sare'
     ];
 
-    const words = text.toLowerCase().split(/\s+/);
+    const words = text.toLowerCase().split(/[\s,?.!;:()"-]+/);
     const hasRomanUrdu = words.some(w => romanUrduKeywords.includes(w));
     if (hasRomanUrdu) {
       return 'roman_urdu';
@@ -542,6 +542,8 @@ export class AiAgentOrchestrator {
         });
       }
 
+      db.saveToDisk();
+
       let returnText = '';
       if (lang === 'roman_urdu') {
         returnText = `✅ **Daily Clinical Data Kamyabi Se Enter Ho Chuka Hai!**\n\n` +
@@ -580,9 +582,16 @@ export class AiAgentOrchestrator {
        lower.includes('summon next') ||
        lower.includes('aglay mareez') ||
        lower.includes('agle mareez') ||
+       lower.includes('agla mareez') ||
+       lower.includes('agla patient') ||
+       lower.includes('agle patient') ||
+       lower.includes('next mareez') ||
        lower.includes('next patient bula') ||
        lower.includes('next patient summon') ||
        lower.includes('room mein bula') ||
+       lower.includes('mareez bula') ||
+       lower.includes('اگلا مریض') ||
+       lower.includes('مریض بلائیں') ||
        (lower.includes('next') && (lower.includes('call') || lower.includes('summon') || lower.includes('bula'))));
 
     if (isCallNextIntent && ['DOCTOR', 'ADMIN', 'RECEPTIONIST'].includes(context.userRole || 'DOCTOR')) {
@@ -598,9 +607,16 @@ export class AiAgentOrchestrator {
       if (targetDocId) {
         try {
           const called = await queueService.callNextPatient(targetDocId, context.userId || 'AI_AGENT', context.userRole || 'DOCTOR');
-          const successCallMsg = lang === 'roman_urdu'
-            ? `📢 **Mareez Ko Summon Kar Diya Gaya Hai!**\n\n• **Token:** **#${called.tokenNumber}**\n• **Mareez Ka Naam:** **${called.patientName}**\n• **Status:** \`CALLED\` (Inhein consultation room mein aane ka signal bhej diya gaya hai).\n\nAap ab digital consultation start kar ke clinical notes aur prescription (Rx) issue kar saktay hain.`
-            : `📢 **Patient Summoned!**\n\n• **Token:** **#${called.tokenNumber}**\n• **Patient Name:** **${called.patientName}**\n• **Status:** \`CALLED\`\n\nYou can now begin consultation and issue digital prescriptions.`;
+          db.saveToDisk();
+
+          let successCallMsg = '';
+          if (lang === 'roman_urdu') {
+            successCallMsg = `📢 **Mareez Ko Summon Kar Diya Gaya Hai!**\n\n• **Token:** **#${called.tokenNumber}**\n• **Mareez Ka Naam:** **${called.patientName}**\n• **Status:** \`CALLED\` (Inhein consultation room mein anay ka signal bhej diya gaya hai).\n\nAap ab digital consultation shuru kar ke clinical notes aur prescription (Rx) issue kar saktay hain.`;
+          } else if (lang === 'urdu') {
+            successCallMsg = `📢 **اگلے مریض کو بلا لیا گیا ہے!**\n\n• **ٹوکن نمبر:** **#${called.tokenNumber}**\n• **مریض کا نام:** **${called.patientName}**\n• **اسٹیٹس:** \`CALLED\`\n\nآپ اب مشاورت شروع کر سکتے ہیں اور ادویات تجویز کر سکتے ہیں۔`;
+          } else {
+            successCallMsg = `📢 **Patient Summoned!**\n\n• **Token:** **#${called.tokenNumber}**\n• **Patient Name:** **${called.patientName}**\n• **Status:** \`CALLED\`\n\nYou can now begin consultation and issue digital prescriptions.`;
+          }
 
           return {
             role: 'assistant',
@@ -611,9 +627,14 @@ export class AiAgentOrchestrator {
             }
           };
         } catch (err: any) {
-          const notFoundMsg = lang === 'roman_urdu'
-            ? `ℹ️ Is waqt queue mein koi checked-in 'WAITING' mareez nahi hai jise bulaya ja sake. Agar aap test data enter karna chahtay hain to mujhay kahein: *"Daily ka data dal do"*`
-            : `ℹ️ No checked-in waiting patients found in queue to summon. To enter sample patients, ask: *"Enter daily data"*`;
+          let notFoundMsg = '';
+          if (lang === 'roman_urdu') {
+            notFoundMsg = `ℹ️ Is waqt queue mein koi checked-in 'WAITING' mareez nahi hai jise bulaya ja sake. Agar aap test data enter karna chahtay hain to mujhay kahein: *"Daily ka data dal do"*`;
+          } else if (lang === 'urdu') {
+            notFoundMsg = `ℹ️ اس وقت کیو میں کوئی انتظار کرنے والا مریض موجود نہیں ہے۔ اگر آپ ٹیسٹ ڈیٹا داخل کرنا چاہتے ہیں تو کہیے: *"ڈیٹا داخل کریں"*`;
+          } else {
+            notFoundMsg = `ℹ️ No checked-in waiting patients found in queue to summon. To enter sample patients, ask: *"Enter daily data"*`;
+          }
 
           return {
             role: 'assistant',
@@ -642,7 +663,9 @@ export class AiAgentOrchestrator {
       if (pendingList.length === 0) {
         return {
           role: 'assistant',
-          content: '✅ **No Pending Approvals:**\nThere are currently zero pending appointment requests awaiting staff review. All patient bookings have been approved or processed.',
+          content: lang === 'roman_urdu'
+            ? '✅ **Koi Pending Approval Nahi:**\nIs waqt koi nayi booking request staff review ke liye pending nahi hai. Tamam bookings approve ya process ho chuki hain.'
+            : (lang === 'urdu' ? '✅ **کوئی زیرِ التواء درخواست نہیں:**\nاس وقت کوئی نئی بکنگ عملے کی منظوری کی منتظر نہیں ہے۔' : '✅ **No Pending Approvals:**\nThere are currently zero pending appointment requests awaiting staff review. All patient bookings have been approved or processed.'),
           cardData: {
             type: 'PENDING_APPROVALS',
             count: 0,
@@ -657,7 +680,9 @@ export class AiAgentOrchestrator {
 
       return {
         role: 'assistant',
-        content: `📋 **Pending Appointment Requests (${pendingList.length}):**\n\nThe following patient bookings are currently awaiting administrative or receptionist review:\n\n${listLines}`,
+        content: lang === 'roman_urdu'
+          ? `📋 **Pending Appointment Requests (${pendingList.length}):**\n\nMandirja zail mareezon ki booking requests staff approval ki muntazir hain:\n\n${listLines}`
+          : (lang === 'urdu' ? `📋 **زیرِ التواء اپائنٹمنٹ درخواستیں (${pendingList.length}):**\n\nمندرجہ ذیل مریضوں کی بکنگ عملے کی منظوری کی منتظر ہے:\n\n${listLines}` : `📋 **Pending Appointment Requests (${pendingList.length}):**\n\nThe following patient bookings are currently awaiting administrative or receptionist review:\n\n${listLines}`),
         cardData: {
           type: 'PENDING_APPROVALS',
           count: pendingList.length,
@@ -687,6 +712,13 @@ export class AiAgentOrchestrator {
        lower.includes('next patient') ||
        lower.includes('next token') ||
        lower.includes('who is the next patient') ||
+       lower.includes('queue mein kitne') ||
+       lower.includes('kitne mareez') ||
+       lower.includes('kitne patients') ||
+       lower.includes('tokens kitne') ||
+       lower.includes('waiting kitne') ||
+       lower.includes('کیو') ||
+       lower.includes('کتنے مریض') ||
        (lower.includes('queue') && (lower.includes('check') || lower.includes('status') || lower.includes('today') || lower.includes('who') || lower.includes('waiting') || lower.includes('token'))));
 
     if (isQueueIntent) {
@@ -702,14 +734,34 @@ export class AiAgentOrchestrator {
       const nextPatient = waitingList[0];
       const currentPatient = inConsultationList[0];
 
-      const queueText = `📊 **Live OPD Queue Status (Today):**\n\n` +
-        `• **Waiting in Lobby:** **${waitingList.length}** patient(s)\n` +
-        `• **Currently In Consultation:** **${inConsultationList.length}** patient(s)` +
-        (currentPatient ? ` (Token #${currentPatient.tokenNumber} - ${currentPatient.patientName} with ${currentPatient.doctorName})` : '') + `\n` +
-        `• **Next in Line:** ` + (nextPatient ? `Token #${nextPatient.tokenNumber} (${nextPatient.patientName} → ${nextPatient.doctorName})` : 'None waiting at the moment') + `\n` +
-        `• **Completed Today:** **${completedList.length}** patient(s)\n` +
-        `• **Not Checked In Yet:** **${notCheckedInList.length}** patient(s)\n` +
-        `• **Total Today's Queue:** **${total}** patient(s)`;
+      let queueText = '';
+      if (lang === 'roman_urdu') {
+        queueText = `📊 **Live OPD Queue Status (Aaj Ka Din):**\n\n` +
+          `• **Lobby Mein Waiting:** **${waitingList.length}** mareez\n` +
+          `• **Room Mein Consultation Jarri:** **${inConsultationList.length}** mareez` +
+          (currentPatient ? ` (Token #${currentPatient.tokenNumber} - ${currentPatient.patientName} with ${currentPatient.doctorName})` : '') + `\n` +
+          `• **Agla Mareez (Next in Line):** ` + (nextPatient ? `Token #${nextPatient.tokenNumber} (${nextPatient.patientName} → ${nextPatient.doctorName})` : 'Is waqt waiting mein koi nahi hai') + `\n` +
+          `• **Aaj Mukammal Huay:** **${completedList.length}** mareez\n` +
+          `• **Abhi Check-in Nahi Huay:** **${notCheckedInList.length}** mareez\n` +
+          `• **Kul Mareez (Total Today):** **${total}** mareez`;
+      } else if (lang === 'urdu') {
+        queueText = `📊 **لائیو او پی ڈی کیو کی صورتحال (آج):**\n\n` +
+          `• **انتظار گاہ میں موجود:** **${waitingList.length}** مریض\n` +
+          `• **کمرے میں زیرِ معائنہ:** **${inConsultationList.length}** مریض` +
+          (currentPatient ? ` (ٹوکن #${currentPatient.tokenNumber} - ${currentPatient.patientName})` : '') + `\n` +
+          `• **اگلا مریض:** ` + (nextPatient ? `ٹوکن #${nextPatient.tokenNumber} (${nextPatient.patientName})` : 'کوئی نہیں') + `\n` +
+          `• **آج فارغ ہوئے:** **${completedList.length}** مریض\n` +
+          `• **کل رجسٹرڈ مریض:** **${total}** مریض`;
+      } else {
+        queueText = `📊 **Live OPD Queue Status (Today):**\n\n` +
+          `• **Waiting in Lobby:** **${waitingList.length}** patient(s)\n` +
+          `• **Currently In Consultation:** **${inConsultationList.length}** patient(s)` +
+          (currentPatient ? ` (Token #${currentPatient.tokenNumber} - ${currentPatient.patientName} with ${currentPatient.doctorName})` : '') + `\n` +
+          `• **Next in Line:** ` + (nextPatient ? `Token #${nextPatient.tokenNumber} (${nextPatient.patientName} → ${nextPatient.doctorName})` : 'None waiting at the moment') + `\n` +
+          `• **Completed Today:** **${completedList.length}** patient(s)\n` +
+          `• **Not Checked In Yet:** **${notCheckedInList.length}** patient(s)\n` +
+          `• **Total Today's Queue:** **${total}** patient(s)`;
+      }
 
       return {
         role: 'assistant',
@@ -780,6 +832,9 @@ export class AiAgentOrchestrator {
       lower.includes('doctors on duty') ||
       lower.includes('duty today') ||
       lower.includes('which doctors are on duty') ||
+      lower.includes('duty par kon') ||
+      lower.includes('doctors kon hain') ||
+      lower.includes('ڈاکٹر') ||
       (lower.includes('doctor') && lower.includes('duty'));
 
     if (isDoctorsOnDutyIntent) {
@@ -788,9 +843,18 @@ export class AiAgentOrchestrator {
         `• **${d.name}** — ${d.specialization} (${d.experienceYears} yrs experience | Fee: PKR ${d.consultationFee})`
       ).join('\n');
 
+      let docText = '';
+      if (lang === 'roman_urdu') {
+        docText = `🩺 **Aaj Duty Par Maujood Specialist Doctors (${doctors.length}):**\n\n${docLines}\n\nTamam doctors consultations ke liye available hain. Sequential tokens reception par issue hotay hain.`;
+      } else if (lang === 'urdu') {
+        docText = `🩺 **آج ڈیوٹی پر موجود ماہر ڈاکٹرز (${doctors.length}):**\n\n${docLines}\n\nتمام ڈاکٹرز مریضوں کے معائنے کے لیے دستیاب ہیں۔`;
+      } else {
+        docText = `🩺 **Specialist Physicians On Duty Today (${doctors.length}):**\n\n${docLines}\n\nAll physicians are actively accepting consultations. Sequential tokens are issued at reception.`;
+      }
+
       return {
         role: 'assistant',
-        content: `🩺 **Specialist Physicians On Duty Today (${doctors.length}):**\n\n${docLines}\n\nAll physicians are actively accepting consultations. Sequential tokens are issued at reception.`,
+        content: docText,
         cardData: {
           type: 'DOCTOR_LIST',
           doctors
@@ -812,7 +876,9 @@ export class AiAgentOrchestrator {
       if (todayAppointments.length === 0) {
         return {
           role: 'assistant',
-          content: '📅 **Today Schedule:**\nYou have no appointments scheduled on your roster today.'
+          content: lang === 'roman_urdu'
+            ? '📅 **Aaj Ka Schedule:**\nAaj aap ke roaster par koi appointment scheduled nahi hai.'
+            : (lang === 'urdu' ? '📅 **آج کا شیڈول:**\nآج آپ کے شیڈول میں کوئی اپائنٹمنٹ درج نہیں ہے۔' : '📅 **Today Schedule:**\nYou have no appointments scheduled on your roster today.')
         };
       }
 
@@ -822,7 +888,9 @@ export class AiAgentOrchestrator {
 
       return {
         role: 'assistant',
-        content: `📅 **Today Roster & Appointments (${todayAppointments.length}):**\n\n${schedLines}`
+        content: lang === 'roman_urdu'
+          ? `📅 **Aaj Ka Roaster & Appointments (${todayAppointments.length}):**\n\n${schedLines}`
+          : (lang === 'urdu' ? `📅 **آج کی اپائنٹمنٹس (${todayAppointments.length}):**\n\n${schedLines}` : `📅 **Today Roster & Appointments (${todayAppointments.length}):**\n\n${schedLines}`)
       };
     }
 
@@ -1654,12 +1722,22 @@ export class AiAgentOrchestrator {
 
     // STEP 4: Call Gemini for Natural All-Language Conversational Response
     const systemPrompt = `You are the friendly, professional AI Clinical Assistant for AI Aesthetic Hospital.
-CRITICAL LANGUAGE INSTRUCTION:
-- ALWAYS identify the user's language and reply in the EXACT SAME LANGUAGE and style.
-- If user writes in Roman Urdu (e.g. "kese ho", "hospital kab khulta hai", "pharmacy khuli hai", "augmentin mil jaye gi"), respond in natural, polite Roman Urdu.
-- If user writes in Urdu script (اردو), respond in natural, polite Urdu script.
-- If user writes in English, respond in English.
-- If in Arabic, Spanish, etc., respond in that exact language.
+CRITICAL LANGUAGE MATCHING RULE:
+- You MUST identify the language and dialect of the user's latest query.
+- Respond in the EXACT SAME LANGUAGE and style as the user:
+  * If the user wrote in Roman Urdu (e.g. "kese ho", "hospital kab khulta hai", "pharmacy khuli hai", "augmentin mil jaye gi", "dr aisha ki fee", "daily ka data dal do"), you MUST answer entirely in fluent, polite, natural Roman Urdu. NEVER answer in English if the user wrote in Roman Urdu!
+  * If the user wrote in Urdu script (اردو), respond in respectful, proper Urdu script.
+  * If the user wrote in English, respond in English.
+  * If the user wrote in Punjabi, Arabic, etc., respond in that exact language.
+
+USER INTENT & EXECUTION CAPABILITIES:
+- You are connected to the live Hospital Management Engine. You can execute or guide:
+  • Seeding daily clinical queue data ("Daily ka data dal do", "enter daily patients")
+  • Calling/summoning next waiting patient into room ("Call next patient", "aglay mareez ko bulao")
+  • Checking real-time queue tokens and waiting count
+  • Checking pharmacy medicines, availability, and unit pricing in PKR
+  • Checking doctor specialties, fees, and consultation schedules
+  • Guiding patient booking, rescheduling, and cancellations
 
 SAFETY PROTOCOL:
 - Never diagnose symptoms or prescribe medical drugs directly to patients.

@@ -316,8 +316,9 @@ export const auditInterceptor = (actionName: string, resourceType: string) => {
     const originalJson = res.json;
     res.json = function (body: any) {
       if (res.statusCode >= 200 && res.statusCode < 300) {
-        const actorId = req.user?.userId || 'SYSTEM';
-        const actorType = req.user?.role || 'SYSTEM';
+        const reqAny = req as any;
+        const actorId = reqAny.user?.userId || 'SYSTEM';
+        const actorType = reqAny.user?.role || 'SYSTEM';
         const resourceId = req.params.id || body?.data?.id || 'UNKNOWN';
 
         recordAuditLog({

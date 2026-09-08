@@ -8,8 +8,8 @@ export interface GeminiMessage {
 
 export class GeminiClient {
   private apiKey: string | undefined = ENV.GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-  // Models to try in priority order
-  private models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
+  // Models to try in priority order (Google Gemini 3.x Flash series)
+  private models = ['gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-flash-latest'];
 
   /**
    * Call Gemini generateContent API with fallback

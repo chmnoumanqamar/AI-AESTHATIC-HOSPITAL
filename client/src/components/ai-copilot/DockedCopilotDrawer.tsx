@@ -140,8 +140,6 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
   const getSuggestionChips = () => {
     if (userRole === 'DOCTOR') {
       return [
-        { label: '➕ Enter Daily Patients', prompt: 'Is clinical queue mein daily ka test data dal do maine check karna hai' },
-        { label: '📢 Call Next Patient', prompt: 'Aglay mareez ko consultation room mein summon karo' },
         { label: 'Next Patient in Queue', prompt: 'Who is the next patient waiting in my queue?' },
         { label: 'Today Schedule', prompt: 'Give me a summary of my appointments today' },
         { label: 'Prescription Guide', prompt: 'Show active prescriptions requiring follow up' },
@@ -158,7 +156,6 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
     }
     if (userRole === 'RECEPTIONIST') {
       return [
-        { label: '➕ Seed Daily Patients', prompt: 'Is clinical queue mein daily ka test data dal do maine check karna hai' },
         { label: 'Pending Bookings', prompt: 'List all pending appointment booking requests' },
         { label: 'Queue Status', prompt: 'Check token status for today queue' },
         { label: 'Doctors On Duty', prompt: 'Which doctors are on duty today?' },
@@ -167,7 +164,6 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
     }
     if (userRole === 'ADMIN') {
       return [
-        { label: '➕ Seed Daily Queue Data', prompt: 'Is clinical queue mein daily ka test data dal do maine check karna hai' },
         { label: 'Audit Vault Summary', prompt: 'Show immutable cryptographic audit vault status' },
         { label: 'Pending Bookings', prompt: 'List all pending appointment booking requests' },
         { label: 'Pharmacy Inventory', prompt: 'Check low stock medicines and vault inventory' }

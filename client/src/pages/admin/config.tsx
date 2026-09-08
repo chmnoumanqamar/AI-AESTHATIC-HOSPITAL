@@ -104,19 +104,8 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#1F291E] dark:text-[#F6F7F2] flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
-              <Sliders className="w-6 h-6" />
-            </span>
-            <span>21 Clinical Policy Engine Hooks</span>
-          </h1>
-          <p className="text-xs text-brand-600 dark:text-[#B6AD90] mt-1">
-            System invariants, token constraints, and privacy boundary configuration parameters.
-          </p>
-        </div>
-
+      {/* Page Header Section: Actions Only */}
+      <div className="flex items-center justify-end pb-1">
         <button
           onClick={handleSave}
           className="clinical-button-primary flex items-center gap-2 text-xs cursor-pointer shadow-xs"

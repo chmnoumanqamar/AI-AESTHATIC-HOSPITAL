@@ -243,6 +243,86 @@ export class AdminService {
     return hierarchy;
   }
 
+  async getRolePermissions() {
+    return {
+      roles: db.getRolePermissions(),
+      modules: db.getModuleHierarchy()
+    };
+  }
+
+  async updateRolePermissions(role: string, permissions: Array<{ moduleId: string; read: boolean; write: boolean; delete: boolean }>, adminActorId: string = 'admin') {
+    const updatedRole = db.updateRolePermissions(role, permissions);
+    recordAuditLog({
+      actorId: adminActorId,
+      actorType: 'ADMIN',
+      action: 'UPDATE_ROLE_PERMISSIONS',
+      resourceType: 'RolePermissions',
+      resourceId: role,
+      metadata: { role, permissionCount: permissions.length }
+    });
+    return {
+      updatedRole,
+      allRoles: db.getRolePermissions()
+    };
+  }
+
+  async addModuleToRole(
+    role: string,
+    moduleId: string,
+    read: boolean,
+    write: boolean,
+    deletePerm: boolean,
+    newModuleDef?: any,
+    adminActorId: string = 'admin'
+  ) {
+    const updatedRole = db.addModuleToRole(role, moduleId, read, write, deletePerm, newModuleDef);
+    recordAuditLog({
+      actorId: adminActorId,
+      actorType: 'ADMIN',
+      action: 'ADD_ROLE_MODULE_PERMISSION',
+      resourceType: 'RolePermissions',
+      resourceId: `${role}:${moduleId}`,
+      metadata: { role, moduleId, read, write, delete: deletePerm }
+    });
+    return {
+      updatedRole,
+      allRoles: db.getRolePermissions(),
+      modules: db.getModuleHierarchy()
+    };
+  }
+
+  async removeModuleFromRole(role: string, moduleId: string, adminActorId: string = 'admin') {
+    const updatedRole = db.removeModuleFromRole(role, moduleId);
+    recordAuditLog({
+      actorId: adminActorId,
+      actorType: 'ADMIN',
+      action: 'REMOVE_ROLE_MODULE_PERMISSION',
+      resourceType: 'RolePermissions',
+      resourceId: `${role}:${moduleId}`,
+      metadata: { role, moduleId }
+    });
+    return {
+      updatedRole,
+      allRoles: db.getRolePermissions()
+    };
+  }
+
+  async resetRolePermissions(adminActorId: string = 'admin') {
+    const roles = db.resetRolePermissions();
+    recordAuditLog({
+      actorId: adminActorId,
+      actorType: 'ADMIN',
+      action: 'RESET_ROLE_PERMISSIONS',
+      resourceType: 'RolePermissions',
+      resourceId: 'ALL',
+      metadata: { rolesCount: roles.length }
+    });
+    return {
+      roles,
+      modules: db.getModuleHierarchy()
+    };
+  }
+
   async createUser(input: CreateUserInput, adminActorId: string = 'admin') {
     // 1. Process & Validate Username (Login ID)
     let finalUsername = input.username?.trim().toLowerCase();

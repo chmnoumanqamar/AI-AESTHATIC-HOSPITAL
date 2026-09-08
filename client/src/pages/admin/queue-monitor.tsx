@@ -33,30 +33,12 @@ export const AdminQueueMonitor: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#1F291E] dark:text-[#F6F7F2] flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
-                <Activity className="w-6 h-6" />
-              </span>
-              <span>Live Hospital Queue Monitor</span>
-            </h1>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Live Stream</span>
-            </span>
-          </div>
-          <p className="text-xs text-brand-600 dark:text-[#B6AD90] mt-1">
-            Real-time multi-department oversight of patient arrival, room calling progression, and clinical consultation sequence.
-          </p>
-        </div>
-
+      {/* Page Header Section: Actions Only */}
+      <div className="flex items-center justify-end pb-1">
         <button
           onClick={refreshQueue}
           disabled={loading}
-          className="clinical-button-secondary flex items-center gap-1.5 text-xs py-1.5 px-3 self-start sm:self-center"
+          className="clinical-button-secondary flex items-center gap-1.5 text-xs py-1.5 px-3"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           <span>Refresh Feed</span>

@@ -120,6 +120,85 @@ export const ROLE_DEFAULT_MODULES: Record<string, string[]> = {
   ADMIN: HOSPITAL_MODULES.map(m => m.id),
 };
 
+export interface RolePermissionRule {
+  moduleId: string;
+  read: boolean;
+  write: boolean;
+  delete: boolean;
+}
+
+export interface HospitalRoleDefinition {
+  role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST';
+  label: string;
+  description: string;
+  badgeColor: string;
+  permissions: RolePermissionRule[];
+}
+
+export const DEFAULT_ROLE_PERMISSIONS: HospitalRoleDefinition[] = [
+  {
+    role: 'ADMIN',
+    label: 'System Administration',
+    description: 'Supreme hospital security, user provisioning, audits, billing ledger & core configuration',
+    badgeColor: 'emerald',
+    permissions: ORIGINAL_HOSPITAL_MODULES.map(m => ({
+      moduleId: m.id,
+      read: true,
+      write: true,
+      delete: true
+    }))
+  },
+  {
+    role: 'DOCTOR',
+    label: 'Clinical & Doctor Deck',
+    description: 'Patient queue calling, encounter diagnoses, e-prescriptions and clinical history',
+    badgeColor: 'sky',
+    permissions: [
+      { moduleId: 'doctor_queue', read: true, write: true, delete: false },
+      { moduleId: 'doctor_consultation', read: true, write: true, delete: true },
+      { moduleId: 'doctor_tokens', read: true, write: true, delete: false },
+      { moduleId: 'patient_history', read: true, write: false, delete: false }
+    ]
+  },
+  {
+    role: 'RECEPTIONIST',
+    label: 'Front-Desk & Reception',
+    description: 'Patient check-in, token ticketing, booking authorizations and consultation POS',
+    badgeColor: 'purple',
+    permissions: [
+      { moduleId: 'recep_desk', read: true, write: true, delete: false },
+      { moduleId: 'recep_approvals', read: true, write: true, delete: true },
+      { moduleId: 'recep_pos', read: true, write: true, delete: false },
+      { moduleId: 'recep_reports', read: true, write: false, delete: false }
+    ]
+  },
+  {
+    role: 'PHARMACIST',
+    label: 'Pharmacy & Medical Store',
+    description: 'Live prescription fulfillment, stock inventory tracking, safety analysis & POS sales',
+    badgeColor: 'teal',
+    permissions: [
+      { moduleId: 'pharma_queue', read: true, write: true, delete: false },
+      { moduleId: 'pharma_inventory', read: true, write: true, delete: true },
+      { moduleId: 'pharma_pos', read: true, write: true, delete: false },
+      { moduleId: 'pharma_safety', read: true, write: false, delete: false },
+      { moduleId: 'pharma_procurement', read: true, write: true, delete: true }
+    ]
+  },
+  {
+    role: 'PATIENT',
+    label: 'Patient Services & Portal',
+    description: 'Digital self-booking, viewing active sequential tokens, diagnoses & receipts',
+    badgeColor: 'amber',
+    permissions: [
+      { moduleId: 'patient_portal', read: true, write: false, delete: false },
+      { moduleId: 'patient_booking', read: true, write: true, delete: true },
+      { moduleId: 'patient_history', read: true, write: false, delete: false },
+      { moduleId: 'patient_billing', read: true, write: false, delete: false }
+    ]
+  }
+];
+
 export interface DbPatient {
   id: string;
   userId: string;
@@ -422,6 +501,7 @@ class InMemoryHospitalDatabase {
   pharmacySales: DbPharmacySale[] = [];
   procurementOrders: DbProcurementOrder[] = [];
   moduleHierarchy: HospitalModuleDef[] = ORIGINAL_HOSPITAL_MODULES.map(m => ({ ...m }));
+  rolePermissions: HospitalRoleDefinition[] = JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS));
   systemSettings: DbSystemSettings = {
     whatsappBotEnabled: true,
     hospitalWhatsAppNumber: '+92 300 7654321',
@@ -447,6 +527,7 @@ class InMemoryHospitalDatabase {
   constructor() {
     this.seedDefaultData();
     this.loadFromDisk();
+    this.ensureTokensForAppointments();
     if (!fs.existsSync(this.getStorageFilePath())) {
       this.saveToDisk();
     }
@@ -546,6 +627,9 @@ class InMemoryHospitalDatabase {
         if (parsed.moduleHierarchy && Array.isArray(parsed.moduleHierarchy)) {
           this.moduleHierarchy = parsed.moduleHierarchy;
         }
+        if (parsed.rolePermissions && Array.isArray(parsed.rolePermissions)) {
+          this.rolePermissions = parsed.rolePermissions;
+        }
       }
     } catch {
       // Safe fallback on read failure
@@ -568,6 +652,7 @@ class InMemoryHospitalDatabase {
         dispenseRecords: this.dispenseRecords,
         pharmacySales: this.pharmacySales,
         moduleHierarchy: this.moduleHierarchy,
+        rolePermissions: this.rolePermissions,
         savedAt: new Date().toISOString()
       };
       const targetPath = this.getStorageFilePath();
@@ -579,6 +664,95 @@ class InMemoryHospitalDatabase {
 
   getModuleHierarchy(): HospitalModuleDef[] {
     return this.moduleHierarchy;
+  }
+
+  getRolePermissions(): HospitalRoleDefinition[] {
+    return this.rolePermissions;
+  }
+
+  updateRolePermissions(role: string, permissions: RolePermissionRule[]): HospitalRoleDefinition {
+    let roleDef = this.rolePermissions.find(r => r.role === role);
+    if (!roleDef) {
+      const defaultMatch = DEFAULT_ROLE_PERMISSIONS.find(r => r.role === role);
+      if (defaultMatch) {
+        roleDef = JSON.parse(JSON.stringify(defaultMatch));
+        this.rolePermissions.push(roleDef!);
+      } else {
+        throw new Error(`Invalid hospital role: ${role}`);
+      }
+    }
+    roleDef.permissions = permissions;
+    this.saveToDisk();
+    return roleDef;
+  }
+
+  addModuleToRole(
+    role: string,
+    moduleId: string,
+    read: boolean,
+    write: boolean,
+    deletePerm: boolean,
+    newModuleDef?: HospitalModuleDef
+  ): HospitalRoleDefinition {
+    if (newModuleDef && !this.moduleHierarchy.some(m => m.id === newModuleDef.id)) {
+      this.moduleHierarchy.push(newModuleDef);
+    }
+    let roleDef = this.rolePermissions.find(r => r.role === role);
+    if (!roleDef) {
+      const defaultMatch = DEFAULT_ROLE_PERMISSIONS.find(r => r.role === role);
+      if (defaultMatch) {
+        roleDef = JSON.parse(JSON.stringify(defaultMatch));
+        this.rolePermissions.push(roleDef!);
+      } else {
+        throw new Error(`Invalid hospital role: ${role}`);
+      }
+    }
+    const existingPerm = roleDef.permissions.find(p => p.moduleId === moduleId);
+    if (existingPerm) {
+      existingPerm.read = read;
+      existingPerm.write = write;
+      existingPerm.delete = deletePerm;
+    } else {
+      roleDef.permissions.push({
+        moduleId,
+        read,
+        write,
+        delete: deletePerm
+      });
+    }
+    this.saveToDisk();
+    return roleDef;
+  }
+
+  removeModuleFromRole(role: string, moduleId: string): HospitalRoleDefinition {
+    const roleDef = this.rolePermissions.find(r => r.role === role);
+    if (!roleDef) {
+      throw new Error(`Role ${role} not found`);
+    }
+    roleDef.permissions = roleDef.permissions.filter(p => p.moduleId !== moduleId);
+    this.saveToDisk();
+    return roleDef;
+  }
+
+  resetRolePermissions(): HospitalRoleDefinition[] {
+    this.rolePermissions = JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS));
+    this.saveToDisk();
+    return this.rolePermissions;
+  }
+
+  registerCustomModule(moduleDef: HospitalModuleDef): HospitalModuleDef {
+    const existing = this.moduleHierarchy.find(m => m.id === moduleDef.id);
+    if (existing) {
+      existing.label = moduleDef.label;
+      existing.category = moduleDef.category;
+      existing.categoryLabel = moduleDef.categoryLabel;
+      existing.description = moduleDef.description;
+      this.saveToDisk();
+      return existing;
+    }
+    this.moduleHierarchy.push(moduleDef);
+    this.saveToDisk();
+    return moduleDef;
   }
 
   movePageModule(pageId: string, targetCategory: 'ADMIN' | 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'PHARMACY') {
@@ -990,7 +1164,27 @@ class InMemoryHospitalDatabase {
       isDemo: true,
       createdAt: new Date().toISOString()
     };
-    this.dailyTokens.push(t1, t2, t3, t4);
+    // Token 5: Emily Clark with Dr. Marcus Vance (PENDING approval)
+    const t5: DbDailyToken = {
+      id: 'tok-05',
+      doctorId: 'doc-02',
+      date: today,
+      tokenNumber: 1,
+      status: 'RESERVED',
+      isDemo: true,
+      createdAt: new Date().toISOString()
+    };
+    // Token 6: Robert Taylor with Dr. Aisha Khan (PENDING approval)
+    const t6: DbDailyToken = {
+      id: 'tok-06',
+      doctorId: 'doc-01',
+      date: today,
+      tokenNumber: 5,
+      status: 'RESERVED',
+      isDemo: true,
+      createdAt: new Date().toISOString()
+    };
+    this.dailyTokens.push(t1, t2, t3, t4, t5, t6);
 
     // 8. Appointments for Today
     const app1: DbAppointment = {
@@ -1043,6 +1237,7 @@ class InMemoryHospitalDatabase {
       doctorId: 'doc-02',
       serviceId: 'srv-02',
       appointmentDate: today,
+      tokenId: 'tok-05',
       status: 'PENDING',
       bookingSource: 'PORTAL',
       chiefComplaint: 'Follow-up consultation for recurring skin rash on forearm.',
@@ -1056,6 +1251,7 @@ class InMemoryHospitalDatabase {
       doctorId: 'doc-01',
       serviceId: 'srv-01',
       appointmentDate: today,
+      tokenId: 'tok-06',
       status: 'PENDING',
       bookingSource: 'AI_AGENT',
       chiefComplaint: 'Mild exertional chest tightness; cardiology checkup requested.',
@@ -1541,6 +1737,11 @@ class InMemoryHospitalDatabase {
       };
 
       // A. Today's Hourly Progression (for Daily Report)
+      const docTokenCounters: Record<string, number> = {};
+      this.dailyTokens.filter(t => t.date === today).forEach(t => {
+        docTokenCounters[t.doctorId] = Math.max(docTokenCounters[t.doctorId] || 0, t.tokenNumber || 0);
+      });
+
       const todayHours = [8, 9, 10, 11, 12, 14, 15, 16, 17];
       todayHours.forEach((hour, idx) => {
         const hourStr = String(hour).padStart(2, '0');
@@ -1552,12 +1753,27 @@ class InMemoryHospitalDatabase {
         const payId = `pay-hist-today-${idx + 1}`;
         const createdAtTime = `${today}T${hourStr}:${(idx * 7) % 50}:00Z`;
 
+        const nextTokNum = (docTokenCounters[docId] || 0) + 1;
+        docTokenCounters[docId] = nextTokNum;
+        const tokId = `tok-hist-today-${idx + 1}`;
+
+        this.dailyTokens.push({
+          id: tokId,
+          doctorId: docId,
+          date: today,
+          tokenNumber: nextTokNum,
+          status: 'ACTIVE',
+          isDemo: true,
+          createdAt: createdAtTime
+        });
+
         this.appointments.push({
           id: aptId,
           patientId: patId,
           doctorId: docId,
           serviceId: cat === 'PROCEDURE' ? 'srv-02' : 'srv-01',
           appointmentDate: today,
+          tokenId: tokId,
           status: 'CONFIRMED',
           bookingSource: idx % 2 === 0 ? 'PORTAL' : 'AI_AGENT',
           approvedByReceptionistId: 'recep-01',
@@ -1734,6 +1950,47 @@ class InMemoryHospitalDatabase {
           }
         });
       }
+    }
+    this.ensureTokensForAppointments();
+  }
+
+  ensureTokensForAppointments() {
+    let modified = false;
+    const docDateCounters: Record<string, number> = {};
+
+    this.dailyTokens.forEach(t => {
+      const key = `${t.doctorId}_${t.date}`;
+      docDateCounters[key] = Math.max(docDateCounters[key] || 0, t.tokenNumber || 0);
+    });
+
+    this.appointments.forEach(a => {
+      let token = a.tokenId ? this.dailyTokens.find(t => t.id === a.tokenId) : null;
+      if (!token || !token.tokenNumber || token.tokenNumber <= 0) {
+        const key = `${a.doctorId}_${a.appointmentDate}`;
+        const nextNum = (docDateCounters[key] || 0) + 1;
+        docDateCounters[key] = nextNum;
+
+        if (token) {
+          token.tokenNumber = nextNum;
+        } else {
+          token = {
+            id: `tok-auto-${a.id.slice(0, 12)}`,
+            doctorId: a.doctorId,
+            date: a.appointmentDate,
+            tokenNumber: nextNum,
+            status: a.status === 'CONFIRMED' ? 'ACTIVE' : 'RESERVED',
+            isDemo: a.isDemo,
+            createdAt: a.createdAt || new Date().toISOString()
+          };
+          this.dailyTokens.push(token);
+          a.tokenId = token.id;
+        }
+        modified = true;
+      }
+    });
+
+    if (modified) {
+      this.saveToDisk();
     }
   }
 

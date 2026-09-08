@@ -138,20 +138,8 @@ export const AdminDatabaseMaintenance: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in pb-16">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#1F291E] dark:text-[#F6F7F2] flex items-center gap-2.5">
-            <span className="p-2 rounded-xl bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800/80 shadow-xs">
-              <Database className="w-5 h-5" />
-            </span>
-            <span>Database Maintenance & Data Purge Center</span>
-          </h1>
-          <p className="text-xs text-[#656D4A] dark:text-[#A4AC86] mt-1">
-            Safely clear rough mock/test data for live clinical start, or restore factory demo records.
-          </p>
-        </div>
-
+      {/* Page Header Section: Actions Only */}
+      <div className="flex items-center justify-end pb-1">
         <button
           onClick={fetchStats}
           disabled={loading}

@@ -105,56 +105,35 @@ export const AdminAuditVault: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#1F291E] dark:text-[#F6F7F2] flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
-                <ShieldCheck className="w-6 h-6" />
-              </span>
-              <span>Immutable System Audit Vault</span>
-            </h1>
-            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-              <Lock className="w-3 h-3" />
-              <span>Append-Only</span>
-            </span>
-          </div>
-          <p className="text-xs text-brand-600 dark:text-[#B6AD90] mt-1">
-            Forensic, non-repudiable audit ledger capturing all clinical record edits, prescription mutations, queue state changes, and financial events.
-          </p>
-        </div>
+      {/* Page Header Section: Actions Only */}
+      <div className="flex items-center justify-end flex-wrap gap-2 pb-1">
+        <button
+          onClick={handleVerifyIntegrity}
+          disabled={isVerifying}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#E8F3EB] dark:bg-[#203628] text-[#1B4332] dark:text-[#74C69D] border border-[#A7D7C5] dark:border-[#2D6A4F] hover:bg-[#D8EADB] transition-all flex items-center gap-1.5 shadow-xs"
+        >
+          <CheckCircle2 className={`w-3.5 h-3.5 ${isVerifying ? 'animate-spin' : 'text-[#2D6A4F] dark:text-[#52B788]'}`} />
+          <span>{isVerifying ? 'Verifying Hashes...' : 'Verify Ledger'}</span>
+        </button>
 
-        {/* Action Controls */}
-        <div className="flex items-center flex-wrap gap-2">
-          <button
-            onClick={handleVerifyIntegrity}
-            disabled={isVerifying}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#E8F3EB] dark:bg-[#203628] text-[#1B4332] dark:text-[#74C69D] border border-[#A7D7C5] dark:border-[#2D6A4F] hover:bg-[#D8EADB] transition-all flex items-center gap-1.5 shadow-xs"
-          >
-            <CheckCircle2 className={`w-3.5 h-3.5 ${isVerifying ? 'animate-spin' : 'text-[#2D6A4F] dark:text-[#52B788]'}`} />
-            <span>{isVerifying ? 'Verifying Hashes...' : 'Verify Ledger'}</span>
-          </button>
+        <button
+          onClick={handleExportJson}
+          disabled={logs.length === 0}
+          className="clinical-button-secondary flex items-center gap-1.5 text-xs py-1.5 px-3"
+          title="Export full audit records to JSON"
+        >
+          <Download className="w-3.5 h-3.5" />
+          <span>Export (JSON)</span>
+        </button>
 
-          <button
-            onClick={handleExportJson}
-            disabled={logs.length === 0}
-            className="clinical-button-secondary flex items-center gap-1.5 text-xs py-1.5 px-3"
-            title="Export full audit records to JSON"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Export (JSON)</span>
-          </button>
-
-          <button
-            onClick={fetchLogs}
-            disabled={loading}
-            className="clinical-button-secondary flex items-center gap-1.5 text-xs py-1.5 px-3"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
-          </button>
-        </div>
+        <button
+          onClick={fetchLogs}
+          disabled={loading}
+          className="clinical-button-secondary flex items-center gap-1.5 text-xs py-1.5 px-3"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          <span>Refresh</span>
+        </button>
       </div>
 
       {/* Verification Feedback Banner */}

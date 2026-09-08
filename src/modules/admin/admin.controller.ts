@@ -168,6 +168,96 @@ export class AdminController {
       next(err);
     }
   }
+
+  async getRolePermissions(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await adminService.getRolePermissions();
+      res.json({
+        status: 'SUCCESS',
+        data
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateRolePermissions(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { role } = req.params;
+      const { permissions } = req.body;
+      if (!role || !Array.isArray(permissions)) {
+        return res.status(400).json({
+          status: 'ERROR',
+          message: 'role parameter and permissions array are required'
+        });
+      }
+      const adminActorId = req.user?.userId || 'u-admin-01';
+      const result = await adminService.updateRolePermissions(role, permissions, adminActorId);
+      res.json({
+        status: 'SUCCESS',
+        message: `Permissions updated for role ${role}`,
+        data: result
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async addModuleToRole(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { role, moduleId, read = true, write = false, delete: deletePerm = false, newModuleDef } = req.body;
+      if (!role || !moduleId) {
+        return res.status(400).json({
+          status: 'ERROR',
+          message: 'role and moduleId are required'
+        });
+      }
+      const adminActorId = req.user?.userId || 'u-admin-01';
+      const result = await adminService.addModuleToRole(role, moduleId, read, write, deletePerm, newModuleDef, adminActorId);
+      res.json({
+        status: 'SUCCESS',
+        message: `Module ${moduleId} added to role ${role}`,
+        data: result
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async removeModuleFromRole(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { role, moduleId } = req.params;
+      if (!role || !moduleId) {
+        return res.status(400).json({
+          status: 'ERROR',
+          message: 'role and moduleId are required'
+        });
+      }
+      const adminActorId = req.user?.userId || 'u-admin-01';
+      const result = await adminService.removeModuleFromRole(role, moduleId, adminActorId);
+      res.json({
+        status: 'SUCCESS',
+        message: `Module ${moduleId} removed from role ${role}`,
+        data: result
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async resetRolePermissions(req: Request, res: Response, next: NextFunction) {
+    try {
+      const adminActorId = req.user?.userId || 'u-admin-01';
+      const result = await adminService.resetRolePermissions(adminActorId);
+      res.json({
+        status: 'SUCCESS',
+        message: 'Role permissions reset to clinical standards',
+        data: result
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const adminController = new AdminController();

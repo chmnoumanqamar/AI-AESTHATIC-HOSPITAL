@@ -25,7 +25,9 @@ import {
   X,
   Layers,
   Banknote,
-  Smartphone
+  Smartphone,
+  LineChart as LineChartIcon,
+  BarChart3 as BarChartIcon
 } from 'lucide-react';
 import { StatusBadge } from '../common/StatusBadge';
 
@@ -38,6 +40,7 @@ export const ReportsAnalyticsDashboard: React.FC<ReportsAnalyticsDashboardProps>
 }) => {
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('daily');
   const [chartMetric, setChartMetric] = useState<'revenue' | 'patients' | 'both'>('both');
+  const [chartType, setChartType] = useState<'line' | 'bar'>('line');
   const [data, setData] = useState<any | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -150,6 +153,55 @@ export const ReportsAnalyticsDashboard: React.FC<ReportsAnalyticsDashboardProps>
     0
   ];
 
+  // SVG Line / Line-Bar Coordinate Calculations
+  const svgWidth = 1000;
+  const svgHeight = 220;
+  const baselineY = 195;
+  const topY = 20;
+  const availableChartHeight = baselineY - topY;
+
+  const chartPoints = timeSeriesList.map((item: any, idx: number) => {
+    const x = timeSeriesList.length > 1
+      ? ((idx + 0.5) / timeSeriesList.length) * svgWidth
+      : svgWidth / 2;
+    const revY = maxRevenue > 0
+      ? baselineY - (item.revenue / maxRevenue) * availableChartHeight
+      : baselineY;
+    const patY = maxPatients > 0
+      ? baselineY - (item.patients / maxPatients) * availableChartHeight
+      : baselineY;
+    return { ...item, x, revY, patY, idx };
+  });
+
+  const generateSplinePath = (pts: { x: number; y: number }[]) => {
+    if (pts.length === 0) return '';
+    if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`;
+    let path = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = i > 0 ? pts[i - 1] : pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = i !== pts.length - 2 ? pts[i + 2] : p2;
+      const cp1x = p1.x + (p2.x - p0.x) / 6;
+      const cp1y = p1.y + (p2.y - p0.y) / 6;
+      const cp2x = p2.x - (p3.x - p1.x) / 6;
+      const cp2y = p2.y - (p3.y - p1.y) / 6;
+      path += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+    }
+    return path;
+  };
+
+  const revLineD = generateSplinePath(chartPoints.map((p: any) => ({ x: p.x, y: p.revY })));
+  const patLineD = generateSplinePath(chartPoints.map((p: any) => ({ x: p.x, y: p.patY })));
+
+  const revAreaD = chartPoints.length > 1
+    ? `${revLineD} L ${chartPoints[chartPoints.length - 1].x.toFixed(1)} ${baselineY} L ${chartPoints[0].x.toFixed(1)} ${baselineY} Z`
+    : '';
+
+  const patAreaD = chartPoints.length > 1
+    ? `${patLineD} L ${chartPoints[chartPoints.length - 1].x.toFixed(1)} ${baselineY} L ${chartPoints[0].x.toFixed(1)} ${baselineY} Z`
+    : '';
+
   return (
     <div className="space-y-7 animate-fade-in pb-32 print:p-0 print:m-0 print:pb-0">
       {/* Print Specific CSS */}
@@ -179,9 +231,11 @@ export const ReportsAnalyticsDashboard: React.FC<ReportsAnalyticsDashboardProps>
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white">
-                Executive Reports & Analytics
-              </h1>
+              {userRole !== 'ADMIN' && (
+                <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white">
+                  Executive Reports & Analytics
+                </h1>
+              )}
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-emerald-100 dark:bg-[#2D3923] text-emerald-800 dark:text-[#74C69D] border border-emerald-300 dark:border-[#406343]">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Live
@@ -384,7 +438,7 @@ export const ReportsAnalyticsDashboard: React.FC<ReportsAnalyticsDashboardProps>
 
       {/* 3. INTERACTIVE VISUAL TIMELINE PROGRESSION CHART */}
       <div className="p-4 sm:p-5 rounded-xl border border-[#E2E6D8] dark:border-[#333D29] bg-[#FAFBF7] dark:bg-[#1E2717] shadow-xs space-y-4">
-        {/* Chart Header & Metric Toggle */}
+        {/* Chart Header & Metric / Style Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E2E6D8] dark:border-[#333D29]">
           <div>
             <div className="flex items-center gap-2">
@@ -401,8 +455,53 @@ export const ReportsAnalyticsDashboard: React.FC<ReportsAnalyticsDashboardProps>
             </p>
           </div>
 
-          {/* Metric Selector Switch */}
-          <div className="flex items-center gap-2">
+          {/* Controls: Chart Type (Line/Bar), Metric (Revenue/Patients/Both) & Legend */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Legend Badges */}
+            <div className="hidden sm:flex items-center gap-2.5 text-[11px] font-mono font-bold mr-1">
+              {(chartMetric === 'revenue' || chartMetric === 'both') && (
+                <span className="flex items-center gap-1.5 text-emerald-700 dark:text-[#74C69D]">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-2xs" />
+                  <span>Revenue</span>
+                </span>
+              )}
+              {(chartMetric === 'patients' || chartMetric === 'both') && (
+                <span className="flex items-center gap-1.5 text-sky-700 dark:text-[#7DD3FC]">
+                  <span className="w-2.5 h-2.5 rounded-full bg-sky-500 shadow-2xs" />
+                  <span>Patients</span>
+                </span>
+              )}
+            </div>
+
+            {/* Chart View Toggle: Line vs Bar */}
+            <div className="inline-flex p-0.5 rounded-lg bg-slate-200/70 dark:bg-[#151D10] border border-[#D8DEC9] dark:border-[#2C3822] text-xs">
+              <button
+                onClick={() => setChartType('line')}
+                className={`px-2.5 py-1 rounded-md font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  chartType === 'line'
+                    ? 'bg-[#2D6A4F] text-white shadow-xs'
+                    : 'text-slate-600 dark:text-[#A4AC86] hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Continuous Line & Area Chart"
+              >
+                <LineChartIcon className="w-3.5 h-3.5" />
+                <span>Line</span>
+              </button>
+              <button
+                onClick={() => setChartType('bar')}
+                className={`px-2.5 py-1 rounded-md font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  chartType === 'bar'
+                    ? 'bg-[#2D6A4F] text-white shadow-xs'
+                    : 'text-slate-600 dark:text-[#A4AC86] hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Vertical Column Bar Chart"
+              >
+                <BarChartIcon className="w-3.5 h-3.5" />
+                <span>Bar</span>
+              </button>
+            </div>
+
+            {/* Metric Selector Switch */}
             <div className="inline-flex p-0.5 rounded-lg bg-slate-200/70 dark:bg-[#151D10] border border-[#D8DEC9] dark:border-[#2C3822] text-xs">
               <button
                 onClick={() => setChartMetric('revenue')}
@@ -451,8 +550,8 @@ export const ReportsAnalyticsDashboard: React.FC<ReportsAnalyticsDashboardProps>
               ))}
             </div>
 
-            {/* Grid & Bars Container */}
-            <div className="flex-1 relative flex flex-col justify-between">
+            {/* Grid & Visualization Container */}
+            <div className="flex-1 relative flex flex-col justify-between overflow-hidden">
               {/* Horizontal Background Gridlines */}
               <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-7">
                 <div className="border-b border-slate-200/80 dark:border-[#2F3B25] w-full" />
@@ -462,8 +561,142 @@ export const ReportsAnalyticsDashboard: React.FC<ReportsAnalyticsDashboardProps>
                 <div className="border-b border-slate-300 dark:border-[#38462C] w-full" />
               </div>
 
-              {/* Vertical Bars Flex Columns */}
-              <div className="relative z-10 flex-1 flex items-end justify-between gap-1.5 sm:gap-2.5 px-2 pb-7">
+              {/* 3A. SVG Line & Area Chart (When chartType === 'line') */}
+              {chartType === 'line' && (
+                <svg
+                  viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                  preserveAspectRatio="none"
+                  className="absolute inset-0 w-full h-full pb-7 pointer-events-none z-10"
+                >
+                  <defs>
+                    <linearGradient id="revenueLineAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10B981" stopOpacity="0.32" />
+                      <stop offset="60%" stopColor="#10B981" stopOpacity="0.08" />
+                      <stop offset="100%" stopColor="#10B981" stopOpacity="0.0" />
+                    </linearGradient>
+                    <linearGradient id="patientsLineAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#0EA5E9" stopOpacity="0.25" />
+                      <stop offset="70%" stopColor="#0EA5E9" stopOpacity="0.05" />
+                      <stop offset="100%" stopColor="#0EA5E9" stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Revenue Area Fill */}
+                  {(chartMetric === 'revenue' || chartMetric === 'both') && revAreaD && (
+                    <path d={revAreaD} fill="url(#revenueLineAreaGrad)" />
+                  )}
+
+                  {/* Patients Area Fill */}
+                  {(chartMetric === 'patients' || chartMetric === 'both') && patAreaD && (
+                    <path d={patAreaD} fill="url(#patientsLineAreaGrad)" />
+                  )}
+
+                  {/* Vertical Line Bars (Guide Stems) connecting each data node to the baseline */}
+                  {chartPoints.map((p: any) => {
+                    const isHovered = hoveredBarIndex === p.idx;
+                    const targetY = chartMetric === 'patients' ? p.patY : p.revY;
+                    return (
+                      <line
+                        key={`stem-${p.idx}`}
+                        x1={p.x}
+                        y1={targetY}
+                        x2={p.x}
+                        y2={baselineY}
+                        stroke={
+                          isHovered
+                            ? (chartMetric === 'patients' ? '#0EA5E9' : '#10B981')
+                            : (chartMetric === 'patients' ? 'rgba(14, 165, 233, 0.25)' : 'rgba(16, 185, 129, 0.25)')
+                        }
+                        strokeWidth={isHovered ? 2 : 1}
+                        strokeDasharray={isHovered ? 'none' : '3 3'}
+                        className="transition-all duration-150"
+                      />
+                    );
+                  })}
+
+                  {/* Continuous Revenue Spline Stroke */}
+                  {(chartMetric === 'revenue' || chartMetric === 'both') && revLineD && (
+                    <path
+                      d={revLineD}
+                      fill="none"
+                      stroke="#10B981"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  )}
+
+                  {/* Continuous Patients Spline Stroke */}
+                  {(chartMetric === 'patients' || chartMetric === 'both') && patLineD && (
+                    <path
+                      d={patLineD}
+                      fill="none"
+                      stroke="#0EA5E9"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeDasharray={chartMetric === 'both' ? '6 4' : 'none'}
+                    />
+                  )}
+
+                  {/* SVG Nodes & Halos */}
+                  {chartPoints.map((p: any) => {
+                    const isHovered = hoveredBarIndex === p.idx;
+                    return (
+                      <g key={`node-${p.idx}`}>
+                        {(chartMetric === 'revenue' || chartMetric === 'both') && (
+                          <g>
+                            {isHovered && (
+                              <circle
+                                cx={p.x}
+                                cy={p.revY}
+                                r="10"
+                                fill="#10B981"
+                                fillOpacity="0.3"
+                              />
+                            )}
+                            <circle
+                              cx={p.x}
+                              cy={p.revY}
+                              r={isHovered ? 6 : 4}
+                              fill={isHovered ? '#ffffff' : '#10B981'}
+                              stroke="#10B981"
+                              strokeWidth={isHovered ? 3 : 2}
+                              className="transition-all duration-150"
+                            />
+                          </g>
+                        )}
+
+                        {(chartMetric === 'patients' || (chartMetric === 'both' && isHovered)) && (
+                          <g>
+                            {isHovered && (
+                              <circle
+                                cx={p.x}
+                                cy={p.patY}
+                                r="8"
+                                fill="#0EA5E9"
+                                fillOpacity="0.3"
+                              />
+                            )}
+                            <circle
+                              cx={p.x}
+                              cy={p.patY}
+                              r={isHovered ? 5 : 3.5}
+                              fill={isHovered ? '#ffffff' : '#0EA5E9'}
+                              stroke="#0EA5E9"
+                              strokeWidth={isHovered ? 2.5 : 1.5}
+                              className="transition-all duration-150"
+                            />
+                          </g>
+                        )}
+                      </g>
+                    );
+                  })}
+                </svg>
+              )}
+
+              {/* Interactive Slices / Columns Overlay */}
+              <div className="relative z-20 flex-1 flex items-end justify-between gap-1.5 sm:gap-2.5 px-2 pb-7">
                 {timeSeriesList.map((item: any, idx: number) => {
                   const revHeight = maxRevenue > 0 ? Math.max(0, Math.round((item.revenue / maxRevenue) * 100)) : 0;
                   const patHeight = maxPatients > 0 ? Math.max(0, Math.round((item.patients / maxPatients) * 100)) : 0;
@@ -492,49 +725,72 @@ export const ReportsAnalyticsDashboard: React.FC<ReportsAnalyticsDashboardProps>
 
                       {/* Top Metric Indicator Pill */}
                       {hasData && (
-                        <div className="mb-1.5 flex items-center gap-1 font-mono text-[10px] font-black text-emerald-700 dark:text-[#74C69D]">
+                        <div className={`mb-1.5 flex items-center gap-1 font-mono text-[10px] font-black transition-opacity ${
+                          isHovered ? 'opacity-100' : 'opacity-85'
+                        }`}>
                           {chartMetric !== 'patients' && item.revenue > 0 && (
-                            <span className="px-1 py-0.2 rounded bg-white/90 dark:bg-[#151D10] border border-emerald-200 dark:border-[#38462C] shadow-xs text-[9px]">
+                            <span className={`px-1.5 py-0.5 rounded shadow-2xs text-[9px] ${
+                              isHovered
+                                ? 'bg-[#2D6A4F] text-white'
+                                : 'bg-white/90 dark:bg-[#151D10] text-emerald-700 dark:text-[#74C69D] border border-emerald-200 dark:border-[#38462C]'
+                            }`}>
                               Rs. {(item.revenue / 1000).toFixed(item.revenue >= 10000 ? 0 : 1)}k
+                            </span>
+                          )}
+                          {chartMetric === 'patients' && item.patients > 0 && (
+                            <span className={`px-1.5 py-0.5 rounded shadow-2xs text-[9px] ${
+                              isHovered
+                                ? 'bg-sky-600 text-white'
+                                : 'bg-white/90 dark:bg-[#151D10] text-sky-700 dark:text-[#7DD3FC] border border-sky-200 dark:border-[#1E3A4A]'
+                            }`}>
+                              {item.patients} pts
                             </span>
                           )}
                         </div>
                       )}
 
-                      {/* Pillar Representation */}
-                      {hasData ? (
-                        <div className="w-full max-w-[36px] flex items-end justify-center gap-1 h-full">
-                          {/* Revenue Bar */}
-                          {(chartMetric === 'revenue' || chartMetric === 'both') && (
-                            <div
-                              style={{ height: `${Math.max(8, revHeight)}%` }}
-                              className={`w-full rounded-t-lg transition-all duration-200 relative shadow-xs ${
-                                isHovered
-                                  ? 'bg-gradient-to-t from-[#1B4332] to-[#52B788] ring-2 ring-emerald-400 scale-y-105 origin-bottom'
-                                  : 'bg-gradient-to-t from-[#2D6A4F] to-[#40916C] dark:from-[#1E3B2C] dark:to-[#52B788]'
-                              }`}
-                            >
-                              <div className="w-full h-0.5 bg-emerald-200/50 rounded-t-lg" />
-                            </div>
-                          )}
+                      {/* 3B. Bar Representation (When chartType === 'bar') */}
+                      {chartType === 'bar' ? (
+                        hasData ? (
+                          <div className="w-full max-w-[36px] flex items-end justify-center gap-1 h-full">
+                            {/* Revenue Bar */}
+                            {(chartMetric === 'revenue' || chartMetric === 'both') && (
+                              <div
+                                style={{ height: `${Math.max(8, revHeight)}%` }}
+                                className={`w-full rounded-t-lg transition-all duration-200 relative shadow-xs ${
+                                  isHovered
+                                    ? 'bg-gradient-to-t from-[#1B4332] to-[#52B788] ring-2 ring-emerald-400 scale-y-105 origin-bottom'
+                                    : 'bg-gradient-to-t from-[#2D6A4F] to-[#40916C] dark:from-[#1E3B2C] dark:to-[#52B788]'
+                                }`}
+                              >
+                                <div className="w-full h-0.5 bg-emerald-200/50 rounded-t-lg" />
+                              </div>
+                            )}
 
-                          {/* Patient Bar (if Combined or Patients) */}
-                          {chartMetric === 'patients' && (
-                            <div
-                              style={{ height: `${Math.max(8, patHeight)}%` }}
-                              className={`w-full rounded-t-lg transition-all duration-200 relative shadow-xs ${
-                                isHovered
-                                  ? 'bg-gradient-to-t from-sky-700 to-sky-400 ring-2 ring-sky-300 scale-y-105 origin-bottom'
-                                  : 'bg-gradient-to-t from-sky-600 to-sky-400'
-                              }`}
-                            >
-                              <div className="w-full h-0.5 bg-sky-200/50 rounded-t-lg" />
-                            </div>
-                          )}
-                        </div>
+                            {/* Patient Bar */}
+                            {chartMetric === 'patients' && (
+                              <div
+                                style={{ height: `${Math.max(8, patHeight)}%` }}
+                                className={`w-full rounded-t-lg transition-all duration-200 relative shadow-xs ${
+                                  isHovered
+                                    ? 'bg-gradient-to-t from-sky-700 to-sky-400 ring-2 ring-sky-300 scale-y-105 origin-bottom'
+                                    : 'bg-gradient-to-t from-sky-600 to-sky-400'
+                                }`}
+                              >
+                                <div className="w-full h-0.5 bg-sky-200/50 rounded-t-lg" />
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="w-full max-w-[20px] h-1.5 rounded-full bg-slate-200/60 dark:bg-[#25301D] my-0.5" />
+                        )
                       ) : (
-                        /* Zero-data slot indicator */
-                        <div className="w-full max-w-[20px] h-1.5 rounded-full bg-slate-200/60 dark:bg-[#25301D] my-0.5" />
+                        /* Line Chart Hover Column Indicator (subtle glow on hovered column) */
+                        <div
+                          className={`w-full h-full rounded-lg transition-colors ${
+                            isHovered ? 'bg-emerald-500/5 dark:bg-emerald-400/5' : 'bg-transparent'
+                          }`}
+                        />
                       )}
                     </div>
                   );

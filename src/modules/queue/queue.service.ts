@@ -9,6 +9,7 @@ export class QueueService {
    */
   async getLiveQueue(doctorId?: string, dateInput?: string, requestingUser?: any) {
     db.ensureTodaySchedule();
+    db.ensureTokensForAppointments();
     const targetDate = dateInput ? normalizeDateString(dateInput) : normalizeDateString(new Date());
 
     let appointments = db.appointments.filter(
@@ -25,8 +26,34 @@ export class QueueService {
       appointments = appointments.filter(a => a.doctorId === doctorId);
     }
 
-    const queueList = appointments.map(a => {
-      const token = a.tokenId ? db.dailyTokens.find(t => t.id === a.tokenId) : null;
+    const queueList = appointments.map((a, idx) => {
+      let token = a.tokenId ? db.dailyTokens.find(t => t.id === a.tokenId) : null;
+      let tokenNumber = token?.tokenNumber || 0;
+
+      // Self-healing guarantee: never return 0 or unassigned tokens in live queue
+      if (tokenNumber <= 0) {
+        const tokensForDoctorDay = db.dailyTokens.filter(
+          t => t.doctorId === a.doctorId && t.date === a.appointmentDate
+        );
+        const maxSeq = tokensForDoctorDay.reduce((max, t) => Math.max(max, t.tokenNumber || 0), 0);
+        tokenNumber = maxSeq + 1;
+        if (token) {
+          token.tokenNumber = tokenNumber;
+        } else {
+          token = {
+            id: `tok-auto-${a.id.slice(0, 12)}`,
+            doctorId: a.doctorId,
+            date: a.appointmentDate,
+            tokenNumber,
+            status: a.status === 'CONFIRMED' ? 'ACTIVE' : 'RESERVED',
+            isDemo: a.isDemo,
+            createdAt: a.createdAt || new Date().toISOString()
+          };
+          db.dailyTokens.push(token);
+          a.tokenId = token.id;
+        }
+      }
+
       const patient = db.patients.find(p => p.id === a.patientId);
       const doctor = db.doctors.find(d => d.id === a.doctorId);
       const service = a.serviceId ? db.services.find(s => s.id === a.serviceId) : null;
@@ -35,7 +62,7 @@ export class QueueService {
       return {
         appointmentId: a.id,
         queueEntryId: queue?.id,
-        tokenNumber: token?.tokenNumber || 0,
+        tokenNumber,
         tokenStatus: token?.status || 'RESERVED',
         patientId: a.patientId,
         patientName: patient?.fullName || 'N/A',
@@ -52,8 +79,22 @@ export class QueueService {
       };
     });
 
-    // Sort by token number ASC
-    return queueList.sort((a, b) => a.tokenNumber - b.tokenNumber);
+    // Intelligent Sorting:
+    // Active clinical consultations & called patients first, then waiting queue in sequence, then others
+    const statusPriority: Record<string, number> = {
+      IN_CONSULTATION: 1,
+      CALLED: 2,
+      WAITING: 3,
+      NOT_CHECKED_IN: 4,
+      COMPLETED: 5,
+      NO_SHOW: 6
+    };
+
+    return queueList.sort((a, b) => {
+      const pDiff = (statusPriority[a.queueStatus] || 99) - (statusPriority[b.queueStatus] || 99);
+      if (pDiff !== 0) return pDiff;
+      return a.tokenNumber - b.tokenNumber;
+    });
   }
 
   /**

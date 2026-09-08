@@ -61,11 +61,12 @@ export const LiveQueueTable: React.FC<LiveQueueTableProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-[#2D3923] text-sm">
-            {queue.map((item) => {
+            {queue.map((item, idx) => {
               const isCalled = item.queueStatus === 'CALLED';
               const isInConsultation = item.queueStatus === 'IN_CONSULTATION';
               const isCompleted = item.queueStatus === 'COMPLETED';
               const isNotCheckedIn = item.queueStatus === 'NOT_CHECKED_IN';
+              const realTokenNum = item.tokenNumber && item.tokenNumber > 0 ? item.tokenNumber : (idx + 1);
 
               return (
                 <tr
@@ -81,7 +82,7 @@ export const LiveQueueTable: React.FC<LiveQueueTableProps> = ({
                   {/* Token Number */}
                   <td className="py-3.5 px-5">
                     <span className="font-mono font-extrabold text-sm px-2.5 py-1 rounded-md border border-slate-200 dark:border-[#414833] bg-slate-100 dark:bg-[#2D3923] text-slate-900 dark:text-white">
-                      #{String(item.tokenNumber).padStart(2, '0')}
+                      #{String(realTokenNum).padStart(2, '0')}
                     </span>
                   </td>
 

@@ -19,11 +19,13 @@ import {
   CreditCard,
   ArrowUpRight,
   Command,
-  ChevronRight,
-  Users
+  Users,
+  Palette,
+  Check
 } from 'lucide-react';
 import { ALL_HOSPITAL_MODULES, getStoredHierarchy, ModuleNavDef } from './StructuralRailNav';
 import { api } from '../../services/api';
+import { THEME_COLOR_OPTIONS, getStoredThemeColor, applyThemeColor } from '../../utils/themePalette';
 
 export interface HospitalNotification {
   id: string;
@@ -270,6 +272,42 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isSearchOpen]);
+
+  // Color Palette Popover State & Listener
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const paletteContainerRef = useRef<HTMLDivElement>(null);
+  const [activeColorId, setActiveColorId] = useState<string>(getStoredThemeColor);
+
+  useEffect(() => {
+    const handlePaletteEvent = (e: any) => {
+      if (e.detail?.id) {
+        setActiveColorId(e.detail.id);
+      }
+    };
+    window.addEventListener('hospital_theme_color_changed', handlePaletteEvent);
+    return () => window.removeEventListener('hospital_theme_color_changed', handlePaletteEvent);
+  }, []);
+
+  // Click outside to close palette popover
+  useEffect(() => {
+    const handleClickOutsidePalette = (event: MouseEvent) => {
+      if (paletteContainerRef.current && !paletteContainerRef.current.contains(event.target as Node)) {
+        setIsPaletteOpen(false);
+      }
+    };
+    if (isPaletteOpen) {
+      document.addEventListener('mousedown', handleClickOutsidePalette);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutsidePalette);
+  }, [isPaletteOpen]);
+
+  const handleSelectColor = (colorId: string) => {
+    setActiveColorId(colorId);
+    applyThemeColor(colorId);
+    setIsPaletteOpen(false);
+  };
+
+  const currentPalette = THEME_COLOR_OPTIONS.find(c => c.id === activeColorId) || THEME_COLOR_OPTIONS[0];
 
   // Search Items Universe for Admin Omnibar
   const allSearchItems = useMemo(() => {
@@ -747,6 +785,87 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             )}
           </div>
         )}
+
+        {/* Color Palette Popover between Search Bar and Bell Icon */}
+        <div className="relative flex items-center" ref={paletteContainerRef}>
+          <button
+            id="header-color-palette-btn"
+            type="button"
+            onClick={() => setIsPaletteOpen(prev => !prev)}
+            className={`relative w-9 h-9 rounded-xl border flex items-center justify-center transition-all duration-200 shadow-2xs cursor-pointer active:scale-95 group ${
+              isPaletteOpen ? 'ring-2 ring-emerald-500/50' : 'hover:border-[#2D6A4F] dark:hover:border-[#A4AC86]'
+            }`}
+            style={{
+              backgroundColor: isDark ? '#2D3923' : '#FFFFFF',
+              borderColor: isPaletteOpen ? (isDark ? '#52796F' : '#2D6A4F') : (isDark ? '#414833' : '#E2E6D8'),
+              color: isDark ? '#F6F7F2' : '#1F291E'
+            }}
+            title={`Color Palette (${currentPalette.name})`}
+            aria-label="Theme Color Palette"
+          >
+            <Palette className="w-4 h-4 transition-transform group-hover:rotate-12" style={{ color: currentPalette.dotColor }} />
+            <span 
+              className="absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-[#2D3923] shadow-xs"
+              style={{ backgroundColor: currentPalette.dotColor }}
+            />
+          </button>
+
+          {/* Palette Dropdown Popover */}
+          {isPaletteOpen && (
+            <div 
+              className="absolute right-0 top-full mt-2 w-64 rounded-2xl border shadow-xl p-3 space-y-2.5 z-50 animate-fade-in select-none"
+              style={{
+                backgroundColor: isDark ? '#1F2718' : '#FFFFFF',
+                borderColor: isDark ? '#3D5235' : '#DDE3D5'
+              }}
+            >
+              <div className="flex items-center justify-between pb-2 border-b border-brand-200 dark:border-[#2F3E29]">
+                <div className="flex items-center gap-1.5">
+                  <Palette className="w-3.5 h-3.5" style={{ color: currentPalette.dotColor }} />
+                  <span className="font-bold text-xs text-[#1F291E] dark:text-[#F6F7F2]">Theme Color Palette</span>
+                </div>
+                <span className="text-[10px] font-mono text-[#656D4A] dark:text-[#A4AC86]">
+                  {currentPalette.name.split('&')[0].trim()}
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                {THEME_COLOR_OPTIONS.map(c => {
+                  const isSelected = activeColorId === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => handleSelectColor(c.id)}
+                      className={`w-full p-2 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-2.5 ${
+                        isSelected
+                          ? 'border-brand-600 bg-brand-100/50 dark:bg-[#232E1D] shadow-xs'
+                          : 'border-transparent hover:border-brand-200 dark:hover:border-[#2F3E29] hover:bg-brand-50/60 dark:hover:bg-[#151D12]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div 
+                          className="w-5 h-5 rounded-full shadow-xs shrink-0 flex items-center justify-center text-white"
+                          style={{ background: `linear-gradient(135deg, ${c.gradientStart} 0%, ${c.gradientEnd} 100%)` }}
+                        >
+                          {isSelected && <Check className="w-3 h-3 text-white" />}
+                        </div>
+                        <div className="truncate">
+                          <div className="text-xs font-bold text-[#1F291E] dark:text-[#F6F7F2] truncate">
+                            {c.name}
+                          </div>
+                          <div className="text-[10px] text-[#656D4A] dark:text-[#A4AC86] truncate">
+                            {c.description}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Right: Bell Icon with Interactive Sub-Window Popover */}
         <div className="relative flex items-center" ref={popoverRef}>

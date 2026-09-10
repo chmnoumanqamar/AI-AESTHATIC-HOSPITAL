@@ -73,7 +73,7 @@ export const ALL_HOSPITAL_MODULES: ModuleNavDef[] = [
   { id: 'admin_queue', label: 'Live System Queue Monitor', category: 'ADMIN', categoryLabel: 'System Administration', icon: Activity },
   { id: 'admin_reports', label: 'Executive Analytics & BI', category: 'ADMIN', categoryLabel: 'System Administration', icon: BarChart3 },
   { id: 'admin_database', label: 'Database Clear & Reset', category: 'ADMIN', categoryLabel: 'System Administration', icon: Database },
-  { id: 'admin_config', label: 'Settings & Window Formatting', category: 'ADMIN', categoryLabel: 'System Administration', icon: Settings },
+  { id: 'admin_config', label: 'System Policies', category: 'ADMIN', categoryLabel: 'System Administration', icon: Settings },
   { id: 'admin_ledger', label: 'Hospital Ledger', category: 'ADMIN', categoryLabel: 'System Administration', icon: CreditCard },
 ];
 

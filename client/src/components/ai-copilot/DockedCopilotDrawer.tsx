@@ -3,7 +3,6 @@ import {
   Send,
   Sparkles,
   X,
-  RotateCcw,
   Plus,
   Paperclip,
   Mic,
@@ -554,14 +553,6 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
             <History className="w-4 h-4" />
           </button>
 
-          {/* New Chat Button */}
-          <button
-            onClick={handleNewChat}
-            className="p-1.5 rounded-lg text-emerald-100 hover:text-white hover:bg-white/15 transition-all cursor-pointer"
-            title="Start New Conversation"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
 
           {/* Maximize / Studio Toggle Button */}
           {onToggleMaximize && (

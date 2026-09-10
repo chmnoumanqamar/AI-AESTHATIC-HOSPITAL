@@ -23,7 +23,9 @@ import {
   Palette,
   Check,
   SlidersHorizontal,
-  RotateCcw
+  RotateCcw,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { ALL_HOSPITAL_MODULES, getStoredHierarchy, ModuleNavDef } from './StructuralRailNav';
 import { api } from '../../services/api';
@@ -190,6 +192,19 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
     window.addEventListener('hospital_theme_changed', handleThemeEvent);
     return () => window.removeEventListener('hospital_theme_changed', handleThemeEvent);
   }, []);
+
+  const toggleTheme = () => {
+    const nextDark = !isDark;
+    setIsDark(nextDark);
+    if (nextDark) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('hospital_theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('hospital_theme', 'light');
+    }
+    window.dispatchEvent(new CustomEvent('hospital_theme_changed', { detail: nextDark ? 'dark' : 'light' }));
+  };
 
   useEffect(() => {
     try {
@@ -1269,6 +1284,27 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           </div>
         )}
         </div>
+
+        {/* Theme Change Option: Light / Dark Mode Toggle just right of Bell Icon */}
+        <button
+          id="header-theme-toggle-btn"
+          type="button"
+          onClick={toggleTheme}
+          className="relative w-9 h-9 rounded-xl border flex items-center justify-center transition-all duration-200 shadow-2xs cursor-pointer active:scale-95 group hover:border-[#2D6A4F] dark:hover:border-[#A4AC86]"
+          style={{
+            backgroundColor: isDark ? '#2D3923' : '#FFFFFF',
+            borderColor: isDark ? '#414833' : '#E2E6D8',
+            color: isDark ? '#F6F7F2' : '#1F291E'
+          }}
+          title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          aria-label={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+        >
+          {isDark ? (
+            <Sun className="w-4 h-4 text-amber-400 transition-transform group-hover:rotate-45" />
+          ) : (
+            <Moon className="w-4 h-4 text-indigo-600 transition-transform group-hover:-rotate-12" />
+          )}
+        </button>
       </div>
     </header>
   );

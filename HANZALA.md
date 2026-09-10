@@ -22,15 +22,20 @@ For the complete, itemized technical changelog, see [HANZALA_CHANGES.md](file://
 3. **Dynamic Sidebar Hover Expansion**:
    - Defaults to compact `w-16` icon rail.
    - Expands to `w-64` on cursor hover (`onMouseEnter`).
-   - Sleek 22px bottom strip with drop-up menu for theme toggle and sign-out.
+   - Clean, unobstructed vertical layout with no redundant drop-ups.
 
-4. **Project-Wide Strict 14px Font Ceiling**:
+4. **Theme Change Option in HeaderBar**:
+   - Positioned directly **to the right of the notification bell icon** in the header.
+   - 36x36px icon button displaying `Sun` (light mode switch) or `Moon` (dark mode switch) with responsive micro-animations.
+   - Immediately dispatches `hospital_theme_changed` and updates `localStorage` and DOM `dark` class.
+
+5. **Project-Wide Strict 14px Font Ceiling**:
    - All components, headings, and tables strictly capped at $\le$ 14px across Tailwind and global styles.
 
-5. **Cleaned Header & Greetings**:
+6. **Cleaned Header & Greetings**:
    - Removed redundant "Attending Physician" and portal welcome greetings.
    - Window titles elevated with clean icons and bold typography.
 
-6. **Footer Sign Out Action Button**:
+7. **Direct Sidebar Footer Sign Out Action Button**:
    - Integrated a direct sign-out action button (`<LogOut />`) on the right side of the user profile & active department label in the sidebar footer card.
    - In collapsed mode, the footer avatar tile switches to a sign-out trigger on hover with direct confirmation prompt.

@@ -63,10 +63,21 @@ This document provides a comprehensive record of all features, UI/UX enhancement
   ```tsx
   const effectiveExpanded = isExpanded || isHovered;
   ```
-- **Half-Centimeter Preferences Strip**:
-  - A discreet 22px toggle strip at the bottom of the navigation rail.
-  - Houses a smooth drop-up menu containing the light/dark theme toggle, user profile info, and sign-out action.
-- **Department Footer Indicator**: Displays active user role and hospital department.
+- **Direct Footer Profile & Sign Out**: Clean footer displaying resolved user name and department label, paired with a dedicated `<LogOut />` action button that prompts a confirmation modal.
+- **Removed Arrow Strip & Drop-Up**: The 22px bottom arrow strip and its drop-up menu have been completely removed in favor of direct footer controls and header-level theme switching.
+
+---
+
+### 2.3.1 Theme Change Option in HeaderBar
+- **Placement**: Positioned immediately **to the right of the notification bell icon**:
+  ```
+  [ Search Bar (Ctrl+K) ] ──► [ 🎨 Palette Picker ] ──► [ 🔔 Notification Bell ] ──► [ ☀️/🌙 Theme Toggle ]
+  ```
+- **Design & Behavior**:
+  - Consistent 36x36px icon button matching the Palette Picker and Notification Bell.
+  - Dynamically displays `Sun` in dark mode (to switch to light) and `Moon` in light mode (to switch to dark).
+  - Micro-animations: rotates on hover and scales on active click.
+  - Instant dispatch of `hospital_theme_changed` event and persistence to `localStorage`.
 
 ---
 

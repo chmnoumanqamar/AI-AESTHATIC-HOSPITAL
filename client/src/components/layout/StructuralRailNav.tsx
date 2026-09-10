@@ -26,9 +26,6 @@ import {
   ShoppingCart,
   ShieldAlert,
   Truck,
-  ChevronUp,
-  Sun,
-  Moon,
   User
 } from 'lucide-react';
 import { api } from '../../services/api';
@@ -131,12 +128,7 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
   // When pinned it stays expanded; otherwise expands dynamically on cursor hover and hides on leave
   const effectiveExpanded = isExpanded || isHovered;
 
-  // Drop-Up State (Preferences & Sign Out)
-  const [isDropUpOpen, setIsDropUpOpen] = useState(false);
-  const dropUpRef = useRef<HTMLDivElement>(null);
-  const stripRef = useRef<HTMLButtonElement>(null);
-
-  // Theme State
+  // Theme State (synced with global hospital_theme_changed)
   const [isDark, setIsDark] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('hospital_theme');
@@ -145,19 +137,6 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
     }
     return false;
   });
-
-  const toggleTheme = () => {
-    const nextDark = !isDark;
-    setIsDark(nextDark);
-    if (nextDark) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('hospital_theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('hospital_theme', 'light');
-    }
-    window.dispatchEvent(new CustomEvent('hospital_theme_changed', { detail: nextDark ? 'dark' : 'light' }));
-  };
 
   useEffect(() => {
     const handleThemeEvent = (e: any) => {
@@ -181,31 +160,6 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
     window.addEventListener('hospital_theme_color_changed', handleColorEvent);
     return () => window.removeEventListener('hospital_theme_color_changed', handleColorEvent);
   }, []);
-
-  // Click outside & Escape key handler to close drop-up
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        dropUpRef.current && 
-        !dropUpRef.current.contains(e.target as Node) &&
-        stripRef.current &&
-        !stripRef.current.contains(e.target as Node)
-      ) {
-        setIsDropUpOpen(false);
-      }
-    };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsDropUpOpen(false);
-    };
-    if (isDropUpOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleKeyDown);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isDropUpOpen]);
 
   // Drag & Drop State in Sidebar
   const [draggedSidebarItem, setDraggedSidebarItem] = useState<ModuleNavDef | null>(null);
@@ -432,10 +386,7 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
   return (
     <aside
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        setIsDropUpOpen(false);
-      }}
+      onMouseLeave={() => setIsHovered(false)}
       className={`h-screen flex flex-col justify-between transition-all duration-300 z-30 shrink-0 select-none shadow-sm bg-white dark:bg-[#1A2215] text-[#1F291E] dark:text-[#F6F7F2] border-r border-[#E2E6D8] dark:border-[#333D29] ${
         effectiveExpanded ? 'w-64 shadow-xl' : 'w-16'
       }`}
@@ -566,77 +517,6 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
         </nav>
       </div>
 
-      {/* Half-Centimeter Arrow Strip & Drop-Up Menu */}
-      <div className="relative border-t border-[#E2E6D8] dark:border-[#333D29]">
-        {/* The Sleek Half-Centimeter Strip */}
-        <button
-          ref={stripRef}
-          type="button"
-          onClick={() => setIsDropUpOpen(prev => !prev)}
-          style={{ height: '22px' }}
-          className={`w-full flex items-center justify-center transition-all duration-200 cursor-pointer select-none group ${
-            isDropUpOpen 
-              ? 'bg-[#E3EBE0] dark:bg-[#27351F]' 
-              : 'bg-[#F6F8F4] hover:bg-[#EAEFE6] dark:bg-[#1A2315] dark:hover:bg-[#232F1A]'
-          }`}
-          title={isDropUpOpen ? "Close preferences" : "Theme & Sign Out Options"}
-          aria-label="Toggle Preferences and Sign Out Drop-Up"
-        >
-          <ChevronUp 
-            className={`w-3.5 h-3.5 text-[#656D4A] dark:text-[#A4AC86] transition-transform duration-200 group-hover:scale-110 group-hover:text-[#1B4332] dark:group-hover:text-white ${
-              isDropUpOpen ? 'rotate-180 text-[#2D6A4F] dark:text-[#52B788]' : ''
-            }`}
-          />
-        </button>
-
-        {/* Drop-Up Menu (Opens Upward Above Strip) */}
-        {isDropUpOpen && (
-          <div 
-            ref={dropUpRef}
-            className={`absolute bottom-full mb-1.5 z-50 bg-white dark:bg-[#1E2718] border border-[#D4DCD0] dark:border-[#333D29] rounded-2xl shadow-2xl p-1.5 space-y-1 animate-in fade-in slide-in-from-bottom-2 duration-150 ${
-              effectiveExpanded 
-                ? 'left-2 right-2' 
-                : 'left-2 w-52'
-            }`}
-          >
-            {/* Theme Toggle Button (Light / Dark Mode) */}
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-[#4A5543] dark:text-[#C2C5AA] hover:text-[#1F291E] dark:hover:text-white hover:bg-[#F4F6F0] dark:hover:bg-[#2D3923] transition-colors cursor-pointer"
-            >
-              <div className="flex items-center gap-2.5">
-                {isDark ? (
-                  <Sun className="w-4 h-4 text-amber-500 shrink-0" />
-                ) : (
-                  <Moon className="w-4 h-4 text-indigo-500 shrink-0" />
-                )}
-                <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
-              </div>
-              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#EAEFE6] dark:bg-[#151D10] text-[#2D6A4F] dark:text-[#52B788]">
-                {isDark ? 'DARK' : 'LIGHT'}
-              </span>
-            </button>
-
-            {/* Separator line */}
-            <div className="border-t border-[#E8ECE3] dark:border-[#2D3923] my-1" />
-
-            {/* Sign Out Button */}
-            <button
-              type="button"
-              onClick={() => {
-                setIsDropUpOpen(false);
-                setShowLogoutConfirm(true);
-              }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-            >
-              <LogOut className="w-4 h-4 shrink-0" />
-              <span>Sign Out</span>
-            </button>
-          </div>
-        )}
-      </div>
-
       {/* Footer Area: Active Department & User Profile Info */}
       <div className="p-2 border-t border-[#E2E6D8] dark:border-[#333D29] bg-[#FAFBF8] dark:bg-[#192215]">
         {effectiveExpanded ? (
@@ -717,7 +597,7 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
                 <LogOut className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
                   Sign Out Confirmation
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-[#A4AC86] mt-1.5 leading-relaxed">

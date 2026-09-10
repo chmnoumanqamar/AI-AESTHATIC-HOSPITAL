@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { User, Sparkles, CheckCheck, Copy, Check, Volume2, VolumeX, RotateCcw, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { InteractiveActionCard } from './InteractiveActionCard';
 import { GeminiThinkingStream } from './GeminiThinkingStream';
-import { GeminiSourceGrounding } from './GeminiSourceGrounding';
 import { GeminiResponseTuner } from './GeminiResponseTuner';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { PackageSessionCard } from './PackageSessionCard';
@@ -192,13 +191,6 @@ export const AIChatMessageList: React.FC<AIChatMessageListProps> = ({
                       </div>
                     )}
 
-                    {/* Grounding Source Citations Pills */}
-                    {msg.groundingSources && msg.groundingSources.length > 0 && (
-                      <GeminiSourceGrounding
-                        sources={msg.groundingSources}
-                        onSelectTab={onSelectTab}
-                      />
-                    )}
                   </div>
                 )}
 

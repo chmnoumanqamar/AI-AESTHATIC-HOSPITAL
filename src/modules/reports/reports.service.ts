@@ -1,7 +1,7 @@
 import { db, DbPayment } from '../../common/data/mock-db';
 
 export interface ReportsAnalyticsResult {
-  period: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  period: 'daily' | 'yesterday' | 'weekly' | 'monthly' | 'yearly' | 'custom';
   dateRange: {
     startDate: string;
     endDate: string;
@@ -65,13 +65,21 @@ export interface ReportsAnalyticsResult {
 }
 
 export class ReportsService {
-  async getAnalytics(period: 'daily' | 'weekly' | 'monthly' | 'yearly' = 'daily', doctorId?: string): Promise<ReportsAnalyticsResult> {
+  async getAnalytics(
+    period: 'daily' | 'yesterday' | 'weekly' | 'monthly' | 'yearly' | 'custom' = 'daily',
+    doctorId?: string,
+    customRange?: { startDate: string; endDate: string }
+  ): Promise<ReportsAnalyticsResult> {
     const now = new Date();
     let startDate: Date;
     let endDate: Date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     let formattedLabel = '';
 
-    if (period === 'daily') {
+    if (period === 'yesterday') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+      formattedLabel = `Yesterday • ${startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}`;
+    } else if (period === 'daily') {
       startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
       formattedLabel = `Today • ${now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}`;
     } else if (period === 'weekly') {
@@ -82,6 +90,12 @@ export class ReportsService {
       startDate = new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000);
       startDate.setHours(0, 0, 0, 0);
       formattedLabel = `Last 30 Days • ${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    } else if (period === 'custom' && customRange) {
+      startDate = new Date(customRange.startDate);
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(customRange.endDate);
+      endDate.setHours(23, 59, 59, 999);
+      formattedLabel = `Custom Range • ${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
     } else {
       // Yearly
       startDate = new Date(now.getFullYear() - 1, now.getMonth() + 1, 1, 0, 0, 0, 0);

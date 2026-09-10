@@ -6,6 +6,10 @@ import { requestReschedule } from './reschedule.tool';
 import { getPatientClinicalHistory } from './patient-history.tool';
 import { getBasicPaymentStatus } from './basic-billing.tool';
 import { checkPharmacyStock } from './pharmacy-lookup.tool';
+import { checkPatientPackages, bookPackageSession } from './packages-tracker.tool';
+import { checkAssignedLabTests, updateLabTestStatus } from './lab-tests-tracker.tool';
+import { generateHospitalReport } from './reports-generator.tool';
+import { resolveNavigationTarget } from './navigation.tool';
 
 export const AI_TOOL_DEFINITIONS = [
   {
@@ -105,6 +109,64 @@ export const AI_TOOL_DEFINITIONS = [
         category: { type: 'string', description: 'Category (e.g. Antibiotics, Cardiology, Analgesics, Aesthetics)' }
       }
     }
+  },
+  {
+    name: 'checkPatientPackages',
+    description: 'Retrieves patient purchased aesthetic and clinical treatment packages/deals, total sessions, and remaining sessions count.',
+    parameters: {
+      type: 'object',
+      properties: {}
+    }
+  },
+  {
+    name: 'bookPackageSession',
+    description: 'Schedules a remaining session from a purchased deal/package with zero additional consultation fee.',
+    parameters: {
+      type: 'object',
+      properties: {
+        packageId: { type: 'string', description: 'ID of the patient package deal' },
+        doctorId: { type: 'string', description: 'Target Doctor ID' },
+        date: { type: 'string', description: 'Appointment date (YYYY-MM-DD)' }
+      },
+      required: ['packageId', 'doctorId', 'date']
+    }
+  },
+  {
+    name: 'checkAssignedLabTests',
+    description: 'Retrieves diagnostic lab tests prescribed to the patient by hospital doctors, due dates, fasting instructions, and completion status.',
+    parameters: {
+      type: 'object',
+      properties: {}
+    }
+  },
+  {
+    name: 'generateHospitalReport',
+    description: 'Generates comprehensive hospital analytics reports for any timeframe (yesterday, today, last_week, last_month, or custom).',
+    parameters: {
+      type: 'object',
+      properties: {
+        period: { type: 'string', enum: ['yesterday', 'daily', 'weekly', 'monthly', 'yearly', 'custom'], description: 'Report timeframe' },
+        doctorId: { type: 'string', description: 'Optional doctor UUID for doctor-specific report' },
+        customRange: {
+          type: 'object',
+          properties: {
+            startDate: { type: 'string', description: 'Start date YYYY-MM-DD' },
+            endDate: { type: 'string', description: 'End date YYYY-MM-DD' }
+          }
+        }
+      }
+    }
+  },
+  {
+    name: 'resolveNavigationTarget',
+    description: 'Resolves hospital module navigation requests to open pages across all 24 clinical, reception, patient, pharmacy, and admin tabs.',
+    parameters: {
+      type: 'object',
+      properties: {
+        targetPhrase: { type: 'string', description: 'Name or description of the page to open' }
+      },
+      required: ['targetPhrase']
+    }
   }
 ];
 
@@ -117,5 +179,11 @@ export const toolHandlers = {
   requestReschedule,
   getPatientClinicalHistory,
   getBasicPaymentStatus,
-  checkPharmacyStock
+  checkPharmacyStock,
+  checkPatientPackages,
+  bookPackageSession,
+  checkAssignedLabTests,
+  updateLabTestStatus,
+  generateHospitalReport,
+  resolveNavigationTarget
 };

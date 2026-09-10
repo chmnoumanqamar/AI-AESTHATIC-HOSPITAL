@@ -271,12 +271,50 @@ export interface DbAppointment {
   bookingSource: string;
   approvedByReceptionistId?: string;
   reminderSentAt?: string;
+  dispatchedReminderTiers?: string[];
   followUpDate?: string;
   chiefComplaint?: string;
   notes?: string;
   isDemo?: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface DbPatientPackage {
+  id: string;
+  patientId: string;
+  packageName: string;
+  category: 'AESTHETICS' | 'DERMATOLOGY' | 'DENTAL' | 'GENERAL';
+  totalSessions: number;
+  completedSessions: number;
+  remainingSessions: number;
+  purchasedDate: string;
+  expiryDate: string;
+  lastSessionDate?: string;
+  nextRecommendedDate?: string;
+  status: 'ACTIVE' | 'COMPLETED' | 'EXPIRED';
+  pricePKR: number;
+  notes?: string;
+  isDemo?: boolean;
+}
+
+export interface DbAssignedLabTest {
+  id: string;
+  patientId: string;
+  doctorId: string;
+  doctorName: string;
+  testName: string;
+  category: 'HEMATOLOGY' | 'BIOCHEMISTRY' | 'HORMONES' | 'PATHOLOGY' | 'RADIOLOGY' | 'ALLERGY';
+  assignedDate: string;
+  dueDate: string;
+  instructions?: string;
+  status: 'ASSIGNED' | 'PENDING_SAMPLE' | 'SAMPLE_COLLECTED' | 'COMPLETED' | 'CANCELLED';
+  reportUrl?: string;
+  reportSummary?: string;
+  reminderSentCount: number;
+  lastReminderSentAt?: string;
+  isDemo?: boolean;
+  createdAt: string;
 }
 
 export interface DbQueueEntry {
@@ -500,6 +538,8 @@ class InMemoryHospitalDatabase {
   dispenseRecords: DbDispenseRecord[] = [];
   pharmacySales: DbPharmacySale[] = [];
   procurementOrders: DbProcurementOrder[] = [];
+  patientPackages: DbPatientPackage[] = [];
+  assignedLabTests: DbAssignedLabTest[] = [];
   moduleHierarchy: HospitalModuleDef[] = ORIGINAL_HOSPITAL_MODULES.map(m => ({ ...m }));
   rolePermissions: HospitalRoleDefinition[] = JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS));
   systemSettings: DbSystemSettings = {
@@ -624,6 +664,20 @@ class InMemoryHospitalDatabase {
             }
           }
         }
+        if (parsed.patientPackages && Array.isArray(parsed.patientPackages)) {
+          for (const pkg of parsed.patientPackages) {
+            if (!this.patientPackages.some(existing => existing.id === pkg.id)) {
+              this.patientPackages.push(pkg);
+            }
+          }
+        }
+        if (parsed.assignedLabTests && Array.isArray(parsed.assignedLabTests)) {
+          for (const t of parsed.assignedLabTests) {
+            if (!this.assignedLabTests.some(existing => existing.id === t.id)) {
+              this.assignedLabTests.push(t);
+            }
+          }
+        }
         if (parsed.moduleHierarchy && Array.isArray(parsed.moduleHierarchy)) {
           this.moduleHierarchy = parsed.moduleHierarchy;
         }
@@ -649,6 +703,8 @@ class InMemoryHospitalDatabase {
         clinicalRecords: this.clinicalRecords,
         prescriptions: this.prescriptions,
         prescriptionVersions: this.prescriptionVersions,
+        patientPackages: this.patientPackages,
+        assignedLabTests: this.assignedLabTests,
         dispenseRecords: this.dispenseRecords,
         pharmacySales: this.pharmacySales,
         moduleHierarchy: this.moduleHierarchy,
@@ -1723,6 +1779,96 @@ class InMemoryHospitalDatabase {
       }
     );
 
+    // 11.1 Patient Aesthetic Packages & Treatment Deals
+    this.patientPackages = [
+      {
+        id: 'pkg-01',
+        patientId: 'pat-01',
+        packageName: 'HydraFacial Glow Deal - 3 Sessions',
+        category: 'AESTHETICS',
+        totalSessions: 3,
+        completedSessions: 2,
+        remainingSessions: 1,
+        purchasedDate: '2026-08-15',
+        expiryDate: '2026-11-15',
+        lastSessionDate: '2026-08-28',
+        nextRecommendedDate: today,
+        status: 'ACTIVE',
+        pricePKR: 18000,
+        notes: 'Special summer aesthetics deal. Session #3 remaining for final glow booster.',
+        isDemo: true
+      },
+      {
+        id: 'pkg-02',
+        patientId: 'pat-01',
+        packageName: 'PRP Hair Rejuvenation - 4 Sessions Deal',
+        category: 'DERMATOLOGY',
+        totalSessions: 4,
+        completedSessions: 1,
+        remainingSessions: 3,
+        purchasedDate: '2026-08-20',
+        expiryDate: '2026-12-20',
+        lastSessionDate: '2026-08-20',
+        nextRecommendedDate: '2026-09-18',
+        status: 'ACTIVE',
+        pricePKR: 35000,
+        notes: 'Monthly scalp PRP therapy with micro-needling.',
+        isDemo: true
+      },
+      {
+        id: 'pkg-03',
+        patientId: 'pat-02',
+        packageName: 'Full Laser Hair Reduction - 6 Sessions',
+        category: 'AESTHETICS',
+        totalSessions: 6,
+        completedSessions: 4,
+        remainingSessions: 2,
+        purchasedDate: '2026-05-10',
+        expiryDate: '2026-11-30',
+        lastSessionDate: '2026-08-14',
+        nextRecommendedDate: today,
+        status: 'ACTIVE',
+        pricePKR: 45000,
+        notes: 'Session #5 due for arms and underarms.',
+        isDemo: true
+      }
+    ];
+
+    // 11.2 Doctor-Assigned Diagnostic Lab Tests
+    this.assignedLabTests = [
+      {
+        id: 'lab-01',
+        patientId: 'pat-01',
+        doctorId: 'doc-01',
+        doctorName: 'Dr. Aisha Khan',
+        testName: 'Complete Blood Count (CBC) & Serum Ferritin',
+        category: 'HEMATOLOGY',
+        assignedDate: '2026-09-08',
+        dueDate: today,
+        instructions: '12-hour fasting required before morning sample collection at the main lab.',
+        status: 'ASSIGNED',
+        reminderSentCount: 1,
+        lastReminderSentAt: today + 'T07:00:00Z',
+        isDemo: true,
+        createdAt: '2026-09-08T10:30:00Z'
+      },
+      {
+        id: 'lab-02',
+        patientId: 'pat-02',
+        doctorId: 'doc-02',
+        doctorName: 'Dr. Marcus Vance',
+        testName: 'Hormonal Panel (Thyroid TSH, FSH, Serum LH)',
+        category: 'HORMONES',
+        assignedDate: '2026-09-09',
+        dueDate: today,
+        instructions: 'Sample should be collected early morning between 08:00 AM - 10:00 AM.',
+        status: 'PENDING_SAMPLE',
+        reminderSentCount: 0,
+        isDemo: true,
+        createdAt: '2026-09-09T14:15:00Z'
+      }
+    ];
+
     // 12. Seed Historical Data for Multi-Period Reports (Daily, Weekly, Monthly, Yearly)
     const seedHistoricalReportsData = () => {
       const now = new Date();
@@ -2015,7 +2161,9 @@ class InMemoryHospitalDatabase {
       receptionists: this.receptionists.length,
       services: this.services.length,
       medicines: this.medicines.length,
-      dispenseRecords: this.dispenseRecords.length
+      dispenseRecords: this.dispenseRecords.length,
+      patientPackages: this.patientPackages.length,
+      assignedLabTests: this.assignedLabTests.length
     };
   }
 
@@ -2086,6 +2234,8 @@ class InMemoryHospitalDatabase {
     this.dispenseRecords = [];
     this.pharmacySales = [];
     this.procurementOrders = [];
+    this.patientPackages = [];
+    this.assignedLabTests = [];
 
     this.seedDefaultData();
     this.saveToDisk();

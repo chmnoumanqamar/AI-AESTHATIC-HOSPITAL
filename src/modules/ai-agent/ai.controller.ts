@@ -6,7 +6,7 @@ import { db } from '../../common/data/mock-db';
 export class AiController {
   async chat(req: Request, res: Response, next: NextFunction) {
     try {
-      const { message, history = [], sessionId } = req.body;
+      const { message, history = [], sessionId, attachments = [] } = req.body;
       if (!message || typeof message !== 'string') {
         throw AppError.badRequest('message string is required');
       }
@@ -30,7 +30,7 @@ export class AiController {
         sessionId: activeSessionId
       };
 
-      const response = await aiAgentOrchestrator.processMessage(message, history, context);
+      const response = await aiAgentOrchestrator.processMessage(message, history, context, attachments);
 
 
       res.json({

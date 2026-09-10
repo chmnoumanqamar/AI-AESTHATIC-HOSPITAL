@@ -27,6 +27,7 @@ export const CommandDeckShell: React.FC<CommandDeckShellProps> = ({
 }) => {
   const [isRailExpanded, setIsRailExpanded] = useState(true);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
+  const [isCopilotMaximized, setIsCopilotMaximized] = useState(false);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#F8F9FA] dark:bg-[#1A2215]">
@@ -63,13 +64,19 @@ export const CommandDeckShell: React.FC<CommandDeckShellProps> = ({
         {/* Floating Chat Window Modal */}
         {isCopilotOpen && (
           <div 
-            className="w-[370px] sm:w-[430px] h-[550px] max-h-[82vh] rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)] border flex flex-col overflow-hidden animate-fade-in transition-all duration-300 border-[#DDE2D5] dark:border-[#2D4026] bg-white dark:bg-[#171F13] z-50"
+            className={`rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)] border flex flex-col overflow-hidden animate-fade-in transition-all duration-300 border-[#DDE2D5] dark:border-[#2D4026] bg-white dark:bg-[#171F13] z-50 ${
+              isCopilotMaximized 
+                ? 'w-[94vw] sm:w-[860px] max-w-4xl h-[86vh] max-h-[90vh]' 
+                : 'w-[370px] sm:w-[430px] h-[580px] max-h-[82vh]'
+            }`}
           >
             <DockedCopilotDrawer
               isDocked={false}
               onToggleDock={() => setIsCopilotOpen(false)}
               currentUser={currentUser}
               onSelectTab={onSelectTab}
+              isMaximized={isCopilotMaximized}
+              onToggleMaximize={() => setIsCopilotMaximized(!isCopilotMaximized)}
             />
           </div>
         )}
@@ -77,7 +84,9 @@ export const CommandDeckShell: React.FC<CommandDeckShellProps> = ({
         {/* Floating Bot Action Button (FAB) - Prominent Circular ("Gol") Design */}
         <button
           onClick={() => setIsCopilotOpen(!isCopilotOpen)}
-          className="group relative flex items-center justify-center rounded-full shadow-2xl hover:shadow-[0_12px_36px_rgba(45,106,79,0.55)] transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer text-white shrink-0"
+          className={`group relative flex items-center justify-center rounded-full shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer text-white shrink-0 chatbot-fab-button ${
+            isCopilotOpen ? 'is-open' : ''
+          }`}
           style={{
             width: '64px',
             height: '64px',

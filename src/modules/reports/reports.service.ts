@@ -85,11 +85,11 @@ export class ReportsService {
     } else if (period === 'weekly') {
       startDate = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000);
       startDate.setHours(0, 0, 0, 0);
-      formattedLabel = `Last 7 Days • ${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      formattedLabel = `Weekly (Last 7 Days) • ${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
     } else if (period === 'monthly') {
       startDate = new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000);
       startDate.setHours(0, 0, 0, 0);
-      formattedLabel = `Last 30 Days • ${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      formattedLabel = `Monthly (Last 30 Days) • ${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
     } else if (period === 'custom' && customRange) {
       startDate = new Date(customRange.startDate);
       startDate.setHours(0, 0, 0, 0);

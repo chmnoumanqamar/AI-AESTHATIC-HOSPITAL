@@ -120,7 +120,7 @@ export class AppointmentReminderService {
    * Scan all confirmed appointments and dispatch progressive countdown alerts
    * (24h -> 12h -> 6h -> 3h -> 1h) without duplicate nagging
    */
-  async scanAndDispatchUpcomingReminders() {
+  async scanAndDispatchUpcomingReminders(daysAhead: number = 2) {
     const confirmedAppointments = db.appointments.filter(a => a.status === 'CONFIRMED');
     const dispatched: UpcomingReminderItem[] = [];
 
@@ -150,6 +150,9 @@ export class AppointmentReminderService {
         shouldDispatch = true;
         targetTier = '12H';
       } else if (countdown.tier === '24H' && !dispatchedTiers.includes('24H')) {
+        shouldDispatch = true;
+        targetTier = '24H';
+      } else if (countdown.daysRemaining <= daysAhead && !dispatchedTiers.includes('24H') && !app.reminderSentAt) {
         shouldDispatch = true;
         targetTier = '24H';
       }

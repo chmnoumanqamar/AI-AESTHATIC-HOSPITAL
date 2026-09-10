@@ -183,7 +183,7 @@ export function resolveNavigationTarget(input: string): NavigationDestination | 
   if (lower.includes('audit') || lower.includes('vault') || lower.includes('security log')) {
     return MODULE_MAP.admin_audit;
   }
-  if (lower.includes('doctor queue') || lower.includes('today queue') || lower.includes('clinical queue') || lower.includes('aaj ka queue') || lower.includes('waiting room')) {
+  if (lower.includes('doctor queue') || lower.includes('today queue') || lower.includes('clinical queue') || lower.includes('queue management') || lower.includes('queue') || lower.includes('aaj ka queue') || lower.includes('waiting room')) {
     return MODULE_MAP.doctor_queue;
   }
   if (lower.includes('consultation') || lower.includes('prescriptions') || lower.includes('rx workspace') || lower.includes('doctor notes')) {

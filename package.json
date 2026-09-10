@@ -11,7 +11,9 @@
     "dev:ports": "node client/multi-port-server.js",
     "dev:all": "concurrently -n \"BACKEND,VITE,PORTS\" -c \"cyan,green,yellow\" \"npm run dev\" \"npm run dev:client\" \"npm run dev:ports\"",
     "seed": "ts-node prisma/seed.ts",
-    "test": "ts-node test/system.test.ts",
+    "test": "ts-node test/system.test.ts && ts-node --transpile-only test/gemini-copilot.test.ts",
+    "test:system": "ts-node test/system.test.ts",
+    "test:copilot": "ts-node --transpile-only test/gemini-copilot.test.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"
   },

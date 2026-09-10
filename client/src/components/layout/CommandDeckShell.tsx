@@ -25,7 +25,7 @@ export const CommandDeckShell: React.FC<CommandDeckShellProps> = ({
   isolatedPort,
   children
 }) => {
-  const [isRailExpanded, setIsRailExpanded] = useState(true);
+  const [isRailExpanded, setIsRailExpanded] = useState(false);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
 
   return (

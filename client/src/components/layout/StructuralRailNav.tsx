@@ -73,7 +73,7 @@ export const ALL_HOSPITAL_MODULES: ModuleNavDef[] = [
   { id: 'admin_queue', label: 'Live System Queue Monitor', category: 'ADMIN', categoryLabel: 'System Administration', icon: Activity },
   { id: 'admin_reports', label: 'Executive Analytics & BI', category: 'ADMIN', categoryLabel: 'System Administration', icon: BarChart3 },
   { id: 'admin_database', label: 'Database Clear & Reset', category: 'ADMIN', categoryLabel: 'System Administration', icon: Database },
-  { id: 'admin_config', label: 'System Policies', category: 'ADMIN', categoryLabel: 'System Administration', icon: Settings },
+  { id: 'admin_config', label: 'Settings & Window Formatting', category: 'ADMIN', categoryLabel: 'System Administration', icon: Settings },
   { id: 'admin_ledger', label: 'Hospital Ledger', category: 'ADMIN', categoryLabel: 'System Administration', icon: CreditCard },
 ];
 
@@ -125,6 +125,10 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
 }) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [modulesRegistry, setModulesRegistry] = useState<ModuleNavDef[]>(getStoredHierarchy);
+  const [isHovered, setIsHovered] = useState(false);
+
+  // When pinned it stays expanded; otherwise expands dynamically on cursor hover and hides on leave
+  const effectiveExpanded = isExpanded || isHovered;
 
   // Drop-Up State (Preferences & Sign Out)
   const [isDropUpOpen, setIsDropUpOpen] = useState(false);
@@ -413,16 +417,21 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
 
   return (
     <aside
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        setIsDropUpOpen(false);
+      }}
       className={`h-screen flex flex-col justify-between transition-all duration-300 z-30 shrink-0 select-none shadow-sm bg-white dark:bg-[#1A2215] text-[#1F291E] dark:text-[#F6F7F2] border-r border-[#E2E6D8] dark:border-[#333D29] ${
-        isExpanded ? 'w-64' : 'w-16'
+        effectiveExpanded ? 'w-64 shadow-xl' : 'w-16'
       }`}
     >
       {/* Brand Header with Top 3-Lines Toggle */}
       <div className="flex flex-col min-h-0 flex-1">
         <div 
-          className={`h-16 flex items-center border-b border-[#E2E6D8] dark:border-[#333D29] shrink-0 ${isExpanded ? 'justify-between px-3.5' : 'justify-center'}`}
+          className={`h-16 flex items-center border-b border-[#E2E6D8] dark:border-[#333D29] shrink-0 ${effectiveExpanded ? 'justify-between px-3.5' : 'justify-center'}`}
         >
-          {isExpanded ? (
+          {effectiveExpanded ? (
             <>
               <div className="flex items-center gap-2.5 overflow-hidden">
                 <div 
@@ -453,7 +462,7 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
               <button
                 onClick={onToggleExpand}
                 className="p-1.5 rounded-lg text-[#656D4A] hover:text-[#1F291E] hover:bg-[#F0F3EB] dark:text-[#C2C5AA] dark:hover:text-white dark:hover:bg-[#2D3923] transition-colors shrink-0 cursor-pointer"
-                title="Collapse Sidebar"
+                title={isExpanded ? "Lock in dynamic auto-collapse mode" : "Lock in permanently expanded mode"}
               >
                 <Menu className="w-5 h-5" />
               </button>
@@ -487,7 +496,7 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
                 }`}
               >
                 {/* Category Header */}
-                {isExpanded && hasMultipleCategories && (
+                {effectiveExpanded && hasMultipleCategories && (
                   <div className="px-2.5 pt-2 pb-1 text-[10px] font-extrabold uppercase tracking-wider text-[#656D4A] dark:text-[#A4AC86] flex items-center justify-between border-t border-[#E2E6D8]/40 dark:border-[#333D29]/40 first:border-0 first:pt-0">
                     <span>{cat.label}</span>
                     <span className="text-[9px] font-mono opacity-60">({cat.items.length})</span>
@@ -511,14 +520,14 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
                           ? 'bg-[#E8F3EB] dark:bg-[#2D3923] text-[#1B4332] dark:text-white font-bold border border-[#A7D7C5] dark:border-[#406343] shadow-xs'
                           : 'text-[#4A5543] hover:text-[#1F291E] hover:bg-[#F4F6F0] dark:text-[#C2C5AA] dark:hover:text-white dark:hover:bg-[#2D3923]/60'
                       } ${isItemDragged ? 'opacity-40 scale-95' : ''}`}
-                      title={!isExpanded ? `${item.label} (${cat.label})` : undefined}
+                      title={!effectiveExpanded ? `${item.label} (${cat.label})` : undefined}
                     >
                       <Icon 
                         className="w-4 h-4 shrink-0 transition-colors" 
                         style={{ color: isActive ? '#2D6A4F' : undefined }}
                       />
-                      {isExpanded && <span className="truncate text-left flex-1">{item.label}</span>}
-                      {isExpanded && currentRole === 'ADMIN' && (
+                      {effectiveExpanded && <span className="truncate text-left flex-1">{item.label}</span>}
+                      {effectiveExpanded && currentRole === 'ADMIN' && (
                         <GripVertical className="w-3 h-3 text-slate-300 dark:text-[#4A5543] opacity-0 hover:opacity-100 shrink-0" />
                       )}
                     </button>
@@ -564,7 +573,7 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
           <div 
             ref={dropUpRef}
             className={`absolute bottom-full mb-1.5 z-50 bg-white dark:bg-[#1E2718] border border-[#D4DCD0] dark:border-[#333D29] rounded-2xl shadow-2xl p-1.5 space-y-1 animate-in fade-in slide-in-from-bottom-2 duration-150 ${
-              isExpanded 
+              effectiveExpanded 
                 ? 'left-2 right-2' 
                 : 'left-2 w-52'
             }`}
@@ -609,7 +618,7 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
 
       {/* Footer Area: Active Department & User Profile Info */}
       <div className="p-2 border-t border-[#E2E6D8] dark:border-[#333D29] bg-[#FAFBF8] dark:bg-[#192215]">
-        {isExpanded ? (
+        {effectiveExpanded ? (
           <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-white dark:bg-[#1F291B] border border-[#E2E6D8] dark:border-[#2D3923] shadow-xs select-none">
             {/* Department / User Avatar Tile */}
             <div className="relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-[#E8F3EB] dark:bg-[#253723] text-[#2D6A4F] dark:text-[#74C69D] border border-[#C2DEC9] dark:border-[#3A5337]">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Bell, 
   CheckCheck, 
@@ -10,9 +10,20 @@ import {
   Settings, 
   FileText, 
   X,
-  Sparkles
+  Sparkles,
+  Search,
+  User,
+  BarChart3,
+  Layers,
+  Database,
+  CreditCard,
+  ArrowUpRight,
+  Command,
+  ChevronRight,
+  Users
 } from 'lucide-react';
-import { ALL_HOSPITAL_MODULES, getStoredHierarchy } from './StructuralRailNav';
+import { ALL_HOSPITAL_MODULES, getStoredHierarchy, ModuleNavDef } from './StructuralRailNav';
+import { api } from '../../services/api';
 
 export interface HospitalNotification {
   id: string;
@@ -177,6 +188,51 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
     }
   }, [notifications]);
 
+  // Dynamic Omnibar Search State for Admin Panel
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [selectedSearchIndex, setSelectedSearchIndex] = useState(0);
+  const [searchCategory, setSearchCategory] = useState<'ALL' | 'WINDOW' | 'PATIENT' | 'REPORT' | 'SYSTEM'>('ALL');
+  const [patients, setPatients] = useState<any[]>([]);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Load patients from API or fallback
+  useEffect(() => {
+    let isMounted = true;
+    const fetchPatients = async () => {
+      try {
+        const res = await api.get('/patient');
+        if (isMounted && res.data?.data && Array.isArray(res.data.data)) {
+          setPatients(res.data.data);
+        }
+      } catch {
+        if (isMounted) {
+          setPatients([
+            { id: 'pat-01', fullName: 'John Doe', cnic: '35201-1234567-1', phone: '+15551234567', gender: 'Male' },
+            { id: 'pat-02', fullName: 'Sarah Connor', cnic: '35201-7654321-2', phone: '+15559876543', gender: 'Female' },
+            { id: 'pat-03', fullName: 'Robert Taylor', cnic: '35201-9988776-3', phone: '+15559990003', gender: 'Male' }
+          ]);
+        }
+      }
+    };
+    fetchPatients();
+    return () => { isMounted = false; };
+  }, []);
+
+  // Global Ctrl+K / Cmd+K listener
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        setIsSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
   // Click outside to close notification window
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -201,6 +257,169 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen]);
+
+  // Click outside to close search popover
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setIsSearchOpen(false);
+      }
+    };
+    if (isSearchOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isSearchOpen]);
+
+  // Search Items Universe for Admin Omnibar
+  const allSearchItems = useMemo(() => {
+    const items: Array<{
+      id: string;
+      title: string;
+      subtitle: string;
+      category: 'WINDOW' | 'PATIENT' | 'REPORT' | 'SYSTEM';
+      categoryLabel: string;
+      targetTab: string;
+      icon: any;
+      badge?: string;
+      keywords?: string[];
+      patientData?: any;
+    }> = [];
+
+    // 1. All Navigation Windows & Modules
+    let currentModules: ModuleNavDef[] = ALL_HOSPITAL_MODULES;
+    try {
+      currentModules = getStoredHierarchy();
+    } catch {}
+
+    currentModules.forEach(m => {
+      const extraKeywords = m.id === 'admin_config' 
+        ? ['format', 'color', 'font', 'theme', 'appearance', 'settings', 'window format', 'typography', 'customization'] 
+        : [];
+      items.push({
+        id: `window-${m.id}`,
+        title: m.label,
+        subtitle: `${m.categoryLabel} • Switch to window`,
+        category: 'WINDOW',
+        categoryLabel: 'Windows',
+        targetTab: m.id,
+        icon: m.icon || Layers,
+        badge: m.category,
+        keywords: [m.id, m.categoryLabel, 'window', 'view', 'module', 'deck', 'tab', ...extraKeywords]
+      });
+    });
+
+    // 2. Predefined Reports & BI Analytics
+    const reportsDef = [
+      { id: 'rep-rev', title: 'Daily Revenue & Billing Analytics', subtitle: 'POS collections, cash vs card & fiscal receipts', tab: 'admin_reports', icon: BarChart3, badge: 'Revenue' },
+      { id: 'rep-tokens', title: 'Patient Inflow & Token Turnaround', subtitle: 'Hourly patient arrival, wait times & bottlenecks', tab: 'admin_reports', icon: Activity, badge: 'Flow' },
+      { id: 'rep-dept', title: 'Department & Specialist Performance', subtitle: 'Doctor consultation volume & triage KPIs', tab: 'admin_reports', icon: BarChart3, badge: 'Clinical' },
+      { id: 'rep-bed', title: 'Bed Occupancy & Ward Ratios', subtitle: 'Inpatient admission capacity & discharge rates', tab: 'admin_reports', icon: FileText, badge: 'Wards' },
+      { id: 'rep-ledger', title: 'Hospital Double-Entry Ledger', subtitle: 'General accounts, debit/credit journal entries', tab: 'admin_ledger', icon: CreditCard, badge: 'Finance' },
+      { id: 'rep-audit', title: 'Audit Trail Cryptographic Logs', subtitle: 'Immutable SHA-256 ledger tamper-proof records', tab: 'admin_audit', icon: ShieldCheck, badge: 'Security' }
+    ];
+
+    reportsDef.forEach(r => {
+      items.push({
+        id: r.id,
+        title: r.title,
+        subtitle: r.subtitle,
+        category: 'REPORT',
+        categoryLabel: 'Reports & BI',
+        targetTab: r.tab,
+        icon: r.icon,
+        badge: r.badge,
+        keywords: ['report', 'analytics', 'bi', 'chart', 'metric', 'export', 'summary', 'data', 'finance']
+      });
+    });
+
+    // 3. System Tools & Policies
+    const systemTools = [
+      { id: 'sys-users', title: 'User Access Control Vault', subtitle: 'Manage staff credentials, RBAC roles & accounts', tab: 'admin_users', icon: Users, badge: 'Staff' },
+      { id: 'sys-studio', title: 'Module & Page Studio', subtitle: 'Drag-and-drop structural hierarchy & sidebar', tab: 'admin_studio', icon: Layers, badge: 'Studio' },
+      { id: 'sys-policy', title: 'Hospital Policies & Quotas', subtitle: 'Token thresholds, cancellation rules & timing', tab: 'admin_config', icon: Settings, badge: 'Policy' },
+      { id: 'sys-db', title: 'Database Clear & System Maintenance', subtitle: 'Inspect table counts, verify hashes & factory reset', tab: 'admin_database', icon: Database, badge: 'Database' },
+      { id: 'sys-queue', title: 'Live System Queue Monitor', subtitle: 'Real-time multi-department waiting queue matrix', tab: 'admin_queue', icon: Activity, badge: 'Queue' }
+    ];
+
+    systemTools.forEach(s => {
+      items.push({
+        id: s.id,
+        title: s.title,
+        subtitle: s.subtitle,
+        category: 'SYSTEM',
+        categoryLabel: 'System & Tools',
+        targetTab: s.tab,
+        icon: s.icon,
+        badge: s.badge,
+        keywords: ['system', 'config', 'security', 'tool', 'setting', 'admin', 'maintenance', 'reset']
+      });
+    });
+
+    // 4. Patients
+    patients.forEach(p => {
+      items.push({
+        id: `pat-${p.id || p.cnic}`,
+        title: p.fullName || 'Registered Patient',
+        subtitle: `MRN: ${p.cnic || p.id} • Phone: ${p.phone || p.emergencyContact || 'N/A'}`,
+        category: 'PATIENT',
+        categoryLabel: 'Patients',
+        targetTab: 'admin_queue',
+        icon: User,
+        badge: p.gender || 'Patient',
+        keywords: [p.fullName, p.cnic, p.phone, p.emergencyContact, 'patient', 'medical', 'record', 'token', 'triage'],
+        patientData: p
+      });
+    });
+
+    return items;
+  }, [patients]);
+
+  const filteredResults = useMemo(() => {
+    let list = allSearchItems;
+    if (searchCategory !== 'ALL') {
+      list = list.filter(item => item.category === searchCategory);
+    }
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) {
+      return list.slice(0, 8);
+    }
+
+    return list.filter(item => {
+      const matchTitle = item.title.toLowerCase().includes(q);
+      const matchSub = item.subtitle.toLowerCase().includes(q);
+      const matchBadge = item.badge?.toLowerCase().includes(q);
+      const matchTab = item.targetTab.toLowerCase().includes(q);
+      const matchKeywords = item.keywords?.some(k => k && k.toLowerCase().includes(q));
+      return matchTitle || matchSub || matchBadge || matchTab || matchKeywords;
+    }).slice(0, 15);
+  }, [allSearchItems, searchQuery, searchCategory]);
+
+  const handleSelectSearchItem = (item: any) => {
+    if (onSelectTab && item.targetTab) {
+      onSelectTab(item.targetTab);
+    }
+    setIsSearchOpen(false);
+    setSearchQuery('');
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedSearchIndex(prev => (prev + 1) % (filteredResults.length || 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedSearchIndex(prev => (prev - 1 + (filteredResults.length || 1)) % (filteredResults.length || 1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (filteredResults[selectedSearchIndex]) {
+        handleSelectSearchItem(filteredResults[selectedSearchIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      setIsSearchOpen(false);
+      searchInputRef.current?.blur();
+    }
+  };
 
   const getFeatureDetails = () => {
     if (currentTab === 'admin_users') {
@@ -289,41 +508,248 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
       }}
     >
       {/* Left: Feature Window Title */}
-      <div className="flex items-center gap-3">
-        <div 
-          className="flex items-center gap-3 px-4 py-2 rounded-2xl border transition-all duration-200 select-none shadow-xs"
-          style={{
-            backgroundColor: isDark ? '#232F1C' : '#FFFFFF',
-            borderColor: isDark ? '#3D5033' : '#D4DCD0',
-            boxShadow: isDark ? '0 2px 10px rgba(0,0,0,0.3)' : '0 2px 10px rgba(45,106,79,0.06)'
-          }}
-        >
-          {FeatureIcon && (
-            <div 
-              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border"
-              style={{
-                backgroundColor: isDark ? '#1B2615' : '#EBF4EE',
-                borderColor: isDark ? '#3D5235' : '#C7DDCF',
-                color: isDark ? '#74C69D' : '#2D6A4F'
+      <div className="flex items-center gap-2.5 shrink-0">
+        {(currentRole === 'ADMIN' || currentTab?.startsWith('admin_')) ? (
+          <div className="flex items-center gap-2.5 select-text">
+            {FeatureIcon && (
+              <FeatureIcon 
+                className="w-5 h-5 shrink-0" 
+                style={{ color: isDark ? '#A4AC86' : '#2D6A4F' }} 
+              />
+            )}
+            <span 
+              className="text-base sm:text-lg font-black tracking-tight select-text"
+              style={{ 
+                color: isDark ? '#FFFFFF' : '#111827',
+                letterSpacing: '-0.02em'
               }}
             >
-              <FeatureIcon className="w-4.5 h-4.5" />
-            </div>
-          )}
-          <span 
-            className="text-base sm:text-lg font-black tracking-tight select-text"
-            style={{ 
-              color: isDark ? '#FFFFFF' : '#111827',
-              letterSpacing: '-0.02em'
+              {feature.label}
+            </span>
+          </div>
+        ) : (
+          <div 
+            className="flex items-center gap-3 px-4 py-2 rounded-2xl border transition-all duration-200 select-none shadow-xs"
+            style={{
+              backgroundColor: isDark ? '#232F1C' : '#FFFFFF',
+              borderColor: isDark ? '#3D5033' : '#D4DCD0',
+              boxShadow: isDark ? '0 2px 10px rgba(0,0,0,0.3)' : '0 2px 10px rgba(45,106,79,0.06)'
             }}
           >
-            {feature.label}
-          </span>
-        </div>
+            {FeatureIcon && (
+              <div 
+                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border"
+                style={{
+                  backgroundColor: isDark ? '#1B2615' : '#EBF4EE',
+                  borderColor: isDark ? '#3D5235' : '#C7DDCF',
+                  color: isDark ? '#74C69D' : '#2D6A4F'
+                }}
+              >
+                <FeatureIcon className="w-4.5 h-4.5" />
+              </div>
+            )}
+            <span 
+              className="text-base sm:text-lg font-black tracking-tight select-text"
+              style={{ 
+                color: isDark ? '#FFFFFF' : '#111827',
+                letterSpacing: '-0.02em'
+              }}
+            >
+              {feature.label}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Right: Bell Icon with Interactive Sub-Window Popover */}
-      <div className="relative flex items-center" ref={popoverRef}>
+      {/* Right Section: Dynamic Search Bar (just left of bell) + Notification Bell */}
+      <div className="flex items-center gap-3 shrink-0 ml-auto">
+        {(currentRole === 'ADMIN' || currentTab?.startsWith('admin_')) && (
+          <div className="w-64 sm:w-80 md:w-96 relative" ref={searchContainerRef}>
+            <div className="relative flex items-center">
+              <Search 
+                className="absolute left-3 w-4 h-4 pointer-events-none transition-colors" 
+                style={{ color: isDark ? '#A4AC86' : '#656D4A' }}
+              />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={e => {
+                  setSearchQuery(e.target.value);
+                  setSelectedSearchIndex(0);
+                  setIsSearchOpen(true);
+                }}
+                onFocus={() => setIsSearchOpen(true)}
+                onKeyDown={handleSearchKeyDown}
+                placeholder="Search windows, patients, reports... (Ctrl+K)"
+                className="w-full pl-9 pr-16 py-1.5 rounded-xl border text-xs font-medium transition-all duration-200 focus:outline-none shadow-2xs"
+                style={{
+                  backgroundColor: isDark ? '#26311E' : '#F6F7F2',
+                  borderColor: isDark ? (isSearchOpen ? '#656D4A' : '#3E4D34') : (isSearchOpen ? '#2D6A4F' : '#DDE3D5'),
+                  color: isDark ? '#FFFFFF' : '#111827',
+                  boxShadow: isSearchOpen ? (isDark ? '0 0 0 3px rgba(101,109,74,0.25)' : '0 0 0 3px rgba(45,106,79,0.15)') : 'none'
+                }}
+              />
+              <div className="absolute right-2.5 flex items-center gap-1.5 pointer-events-none">
+                {searchQuery ? (
+                  <button
+                    type="button"
+                    onClick={e => {
+                      e.stopPropagation();
+                      setSearchQuery('');
+                    }}
+                    className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 pointer-events-auto cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <span 
+                    className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold rounded border font-mono"
+                    style={{
+                      backgroundColor: isDark ? '#1C2416' : '#FFFFFF',
+                      borderColor: isDark ? '#3D5235' : '#D0D7C9',
+                      color: isDark ? '#A4AC86' : '#656D4A'
+                    }}
+                  >
+                    <kbd>Ctrl</kbd> <kbd>K</kbd>
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Search Results Dropdown Popover */}
+            {isSearchOpen && (
+              <div 
+                className="absolute right-0 top-12 w-[380px] sm:w-[440px] rounded-2xl shadow-2xl border flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150 max-h-[460px]"
+                style={{
+                  backgroundColor: isDark ? '#1F2718' : '#FFFFFF',
+                  borderColor: isDark ? '#3E4D34' : '#DDE3D5'
+                }}
+              >
+                {/* Category Filter Tabs */}
+                <div 
+                  className="p-2 px-3 border-b flex items-center gap-1.5 overflow-x-auto text-[11px] font-semibold shrink-0"
+                  style={{
+                    backgroundColor: isDark ? '#26311E' : '#FAFBF8',
+                    borderColor: isDark ? '#3E4D34' : '#E8ECE3'
+                  }}
+                >
+                  {[
+                    { id: 'ALL', label: 'All' },
+                    { id: 'WINDOW', label: 'Windows' },
+                    { id: 'PATIENT', label: 'Patients' },
+                    { id: 'REPORT', label: 'Reports' },
+                    { id: 'SYSTEM', label: 'System' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setSearchCategory(tab.id as any)}
+                      className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                        searchCategory === tab.id
+                          ? 'bg-emerald-600 text-white font-bold shadow-2xs'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2F3C26]'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Result List */}
+                <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-[#2F3C26] max-h-[350px]">
+                  {filteredResults.length === 0 ? (
+                    <div className="py-10 px-4 text-center text-slate-400 dark:text-slate-500 text-xs">
+                      No results found for <span className="font-bold text-slate-700 dark:text-slate-300">"{searchQuery}"</span>
+                    </div>
+                  ) : (
+                    filteredResults.map((item, idx) => {
+                      const ItemIcon = item.icon || Layers;
+                      const isSelected = idx === selectedSearchIndex;
+                      return (
+                        <div
+                          key={item.id}
+                          onClick={() => handleSelectSearchItem(item)}
+                          onMouseEnter={() => setSelectedSearchIndex(idx)}
+                          className={`p-3 px-4 transition-all duration-150 cursor-pointer flex items-center gap-3 group ${
+                            isSelected
+                              ? 'bg-emerald-50/70 dark:bg-[#283823]'
+                              : 'hover:bg-slate-50 dark:hover:bg-[#232D1C]'
+                          }`}
+                        >
+                          <div 
+                            className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border transition-all"
+                            style={{
+                              backgroundColor: isSelected 
+                                ? (isDark ? '#2D3F28' : '#E8F3EB') 
+                                : (isDark ? '#1A2214' : '#F6F7F2'),
+                              borderColor: isSelected 
+                                ? (isDark ? '#52B788' : '#74C69D') 
+                                : (isDark ? '#2F3C26' : '#E2E6D8'),
+                              color: isDark ? '#A4AC86' : '#2D6A4F'
+                            }}
+                          >
+                            <ItemIcon className="w-4 h-4" />
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span 
+                                className={`text-xs font-bold truncate ${
+                                  isSelected ? 'text-emerald-900 dark:text-emerald-100' : 'text-slate-800 dark:text-slate-200'
+                                }`}
+                              >
+                                {item.title}
+                              </span>
+                              {item.badge && (
+                                <span 
+                                  className="text-[10px] font-bold px-1.5 py-0.2 rounded font-mono uppercase shrink-0"
+                                  style={{
+                                    backgroundColor: isDark ? '#2F3C26' : '#E8ECE3',
+                                    color: isDark ? '#C2C5AA' : '#414833'
+                                  }}
+                                >
+                                  {item.badge}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                              {item.subtitle}
+                            </p>
+                          </div>
+
+                          <div className="shrink-0 flex items-center gap-1.5 text-slate-400 dark:text-slate-500 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
+                            <span className="text-[10px] font-semibold hidden group-hover:inline">Open</span>
+                            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Footer Guide */}
+                <div 
+                  className="p-2 px-4 border-t flex items-center justify-between text-[10.5px] font-medium text-slate-400 dark:text-slate-500 shrink-0"
+                  style={{
+                    backgroundColor: isDark ? '#232D1B' : '#F9FAF7',
+                    borderColor: isDark ? '#3E4D34' : '#E8ECE3'
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span>Use <kbd className="px-1 py-0.2 rounded border bg-white dark:bg-[#1E2718] font-mono text-[10px]">↑</kbd> <kbd className="px-1 py-0.2 rounded border bg-white dark:bg-[#1E2718] font-mono text-[10px]">↓</kbd> to navigate</span>
+                    <span>•</span>
+                    <span><kbd className="px-1 py-0.2 rounded border bg-white dark:bg-[#1E2718] font-mono text-[10px]">↵</kbd> to select</span>
+                  </div>
+                  <span><kbd className="px-1 py-0.2 rounded border bg-white dark:bg-[#1E2718] font-mono text-[10px]">Esc</kbd> to close</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Right: Bell Icon with Interactive Sub-Window Popover */}
+        <div className="relative flex items-center" ref={popoverRef}>
         <button
           id="header-notification-btn"
           onClick={() => setIsOpen(prev => !prev)}
@@ -480,6 +906,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             </div>
           </div>
         )}
+        </div>
       </div>
     </header>
   );

@@ -551,8 +551,8 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           <div className="flex items-center gap-2.5 select-text">
             {FeatureIcon && (
               <FeatureIcon 
-                className="w-5 h-5 shrink-0" 
-                style={{ color: isDark ? '#A4AC86' : '#2D6A4F' }} 
+                className="w-5 h-5 shrink-0 header-window-icon" 
+                style={{ color: isDark ? currentPalette.badgeTextDark : currentPalette.accent }} 
               />
             )}
             <span 
@@ -580,7 +580,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
                 style={{
                   backgroundColor: isDark ? '#1B2615' : '#EBF4EE',
                   borderColor: isDark ? '#3D5235' : '#C7DDCF',
-                  color: isDark ? '#74C69D' : '#2D6A4F'
+                  color: isDark ? currentPalette.badgeTextDark : currentPalette.accent
                 }}
               >
                 <FeatureIcon className="w-4.5 h-4.5" />
@@ -606,7 +606,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             <div className="relative flex items-center">
               <Search 
                 className="absolute left-3 w-4 h-4 pointer-events-none transition-colors" 
-                style={{ color: isDark ? '#A4AC86' : '#656D4A' }}
+                style={{ color: isDark ? currentPalette.badgeTextDark : currentPalette.accent }} 
               />
               <input
                 ref={searchInputRef}
@@ -623,9 +623,9 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
                 className="w-full pl-9 pr-16 py-1.5 rounded-xl border text-xs font-medium transition-all duration-200 focus:outline-none shadow-2xs"
                 style={{
                   backgroundColor: isDark ? '#26311E' : '#F6F7F2',
-                  borderColor: isDark ? (isSearchOpen ? '#656D4A' : '#3E4D34') : (isSearchOpen ? '#2D6A4F' : '#DDE3D5'),
+                  borderColor: isDark ? (isSearchOpen ? currentPalette.accent : '#3E4D34') : (isSearchOpen ? currentPalette.accent : '#DDE3D5'),
                   color: isDark ? '#FFFFFF' : '#111827',
-                  boxShadow: isSearchOpen ? (isDark ? '0 0 0 3px rgba(101,109,74,0.25)' : '0 0 0 3px rgba(45,106,79,0.15)') : 'none'
+                  boxShadow: isSearchOpen ? (isDark ? `0 0 0 3px ${currentPalette.accent}40` : `0 0 0 3px ${currentPalette.accent}25`) : 'none'
                 }}
               />
               <div className="absolute right-2.5 flex items-center gap-1.5 pointer-events-none">
@@ -884,11 +884,14 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           aria-label="Notifications"
           aria-expanded={isOpen}
         >
-          <Bell className="w-4 h-4 transition-transform group-hover:rotate-12" style={{ color: isDark ? '#A4AC86' : '#2D6A4F' }} />
+          <Bell className="w-4 h-4 transition-transform group-hover:rotate-12" style={{ color: isDark ? currentPalette.badgeTextDark : currentPalette.accent }} />
           
           {/* Dynamic Unread Badge */}
           {unreadCount > 0 ? (
-            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-emerald-600 dark:bg-emerald-500 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-xs ring-2 ring-white dark:ring-[#1F2718] animate-pulse">
+            <span 
+              className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-xs ring-2 ring-white dark:ring-[#1F2718] animate-pulse"
+              style={{ backgroundColor: currentPalette.accent }}
+            >
               {unreadCount}
             </span>
           ) : (

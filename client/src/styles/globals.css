@@ -271,7 +271,7 @@ body {
 }
 
 .clinical-button-primary {
-  background: linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%) !important;
+  background: linear-gradient(135deg, var(--primary-gradient-start, #2D6A4F) 0%, var(--primary-gradient-end, #1B4332) 100%) !important;
   color: #FFFFFF !important;
   font-weight: 600;
   font-size: 12px !important;
@@ -287,7 +287,7 @@ body {
 }
 
 .clinical-button-primary:hover {
-  background: linear-gradient(135deg, #388463 0%, #225640 100%) !important;
+  background: linear-gradient(135deg, var(--primary-gradient-hover-start, #388463) 0%, var(--primary-gradient-hover-end, #225640) 100%) !important;
   transform: translateY(-1px);
   box-shadow: 0 4px 14px rgba(45, 106, 79, 0.35);
 }
@@ -590,12 +590,12 @@ html.dark .clinical-input:focus {
 }
 
 html.dark .clinical-button-primary {
-  background-color: #656D4A !important;
+  background: linear-gradient(135deg, var(--primary-gradient-start, #2D6A4F) 0%, var(--primary-gradient-end, #1B4332) 100%) !important;
   color: #FFFFFF !important;
 }
 
 html.dark .clinical-button-primary:hover {
-  background-color: #7F4F24 !important;
+  background: linear-gradient(135deg, var(--primary-gradient-hover-start, #388463) 0%, var(--primary-gradient-hover-end, #225640) 100%) !important;
 }
 
 html.dark .clinical-button-secondary {

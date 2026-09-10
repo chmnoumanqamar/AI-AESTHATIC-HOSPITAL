@@ -8,6 +8,7 @@ import { MarkdownRenderer } from './MarkdownRenderer';
 import { PackageSessionCard } from './PackageSessionCard';
 import { LabTestReminderCard } from './LabTestReminderCard';
 import { ReportVisualCard } from './ReportVisualCard';
+import { CountdownReminderBanner } from './CountdownReminderBanner';
 import { FileAttachmentDock, AttachedFileItem } from './FileAttachmentDock';
 
 export interface ChatMessage {
@@ -162,7 +163,12 @@ export const AIChatMessageList: React.FC<AIChatMessageListProps> = ({
                     {/* Specialized Interactive Widgets & Cards */}
                     {msg.cardData && (
                       <div className="mt-3 pt-2.5 border-t border-slate-200/70 dark:border-[#2F3F28]">
-                        {msg.cardData.type === 'HOSPITAL_REPORT' || msg.cardData.kpis ? (
+                        {msg.cardData.type === 'APPOINTMENT_REMINDER' || msg.cardData.type === 'TOKEN_STATUS' || (msg.cardData.tokenNumber && msg.cardData.appointmentDate) ? (
+                          <CountdownReminderBanner
+                            reminder={msg.cardData}
+                            onActionClick={prompt => onConfirmAction?.(prompt)}
+                          />
+                        ) : msg.cardData.type === 'HOSPITAL_REPORT' || msg.cardData.kpis ? (
                           <ReportVisualCard cardData={msg.cardData} />
                         ) : msg.cardData.type === 'PATIENT_PACKAGES' || msg.cardData.packages ? (
                           <PackageSessionCard

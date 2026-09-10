@@ -25,7 +25,7 @@ export const CountdownReminderBanner: React.FC<CountdownReminderBannerProps> = (
   const isOneHour = reminder.countdownTier === '1H' || (reminder.hoursRemaining !== undefined && reminder.hoursRemaining <= 1);
 
   return (
-    <div className={`mx-3 mt-3 p-3 rounded-2xl shadow-xs border transition-all animate-in fade-in duration-200 ${
+    <div className={`w-full mt-1.5 p-3 rounded-xl shadow-xs border transition-all animate-in fade-in duration-200 ${
       isOneHour
         ? 'bg-gradient-to-r from-red-50 to-amber-50 dark:from-red-950/40 dark:to-amber-950/40 border-red-300 dark:border-red-800/60'
         : isUrgent

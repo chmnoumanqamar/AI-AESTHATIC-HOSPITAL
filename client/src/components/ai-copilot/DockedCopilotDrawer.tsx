@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { AIChatMessageList, ChatMessage } from './AIChatMessageList';
 import { FileAttachmentDock, AttachedFileItem } from './FileAttachmentDock';
-import { CountdownReminderBanner } from './CountdownReminderBanner';
 import { ChatHistoryDrawer } from './ChatHistoryDrawer';
 import { chatSessionService, ChatSession } from '../../services/chat-session.service';
 import { api } from '../../services/api';
@@ -52,7 +51,6 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [activeReminder, setActiveReminder] = useState<any>(null);
 
   // Sync active theme palette
   const [activePalette, setActivePalette] = useState<ThemeColorOption>(getCurrentPalette);
@@ -130,26 +128,6 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
     }
   }, [inputText]);
 
-  // Load upcoming 5-tier reminders for patient
-  useEffect(() => {
-    const fetchUpcomingReminders = async () => {
-      try {
-        const userRes = await api.get('/auth/me');
-        const user = userRes.data?.data;
-        const patientId = user?.profileId || (currentUser?.role === 'PATIENT' ? currentUser.id : 'pat-01');
-        if (patientId) {
-          const remRes = await api.get(`/appointments/reminders/patient/${patientId}`);
-          const list = remRes.data?.data;
-          if (list && list.length > 0) {
-            setActiveReminder(list[0]);
-          }
-        }
-      } catch {
-        // Silently skip if guest or non-patient
-      }
-    };
-    fetchUpcomingReminders();
-  }, [currentUser]);
 
   // Clipboard Paste (Ctrl+V) listener for screenshots and images
   useEffect(() => {
@@ -621,13 +599,6 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
         onClearAll={handleClearAllSessions}
       />
 
-      {/* Progressive 5-Tier Appointment Countdown Banner (24h -> 12h -> 6h -> 3h -> 1h) */}
-      {activeReminder && (
-        <CountdownReminderBanner
-          reminder={activeReminder}
-          onActionClick={prompt => sendMessage(prompt)}
-        />
-      )}
 
       {/* Scrollable Message Stream */}
       <div

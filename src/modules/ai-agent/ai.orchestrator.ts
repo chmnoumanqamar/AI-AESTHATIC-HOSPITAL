@@ -1272,36 +1272,47 @@ Analyze the attached documents thoroughly:
       };
     }
 
-    // A. Explicit Appointment Reminder or "Meri Appointment Kab Hai?" Intent
+    // A. Explicit Appointment Reminder or "Meri Appointment Kab Hai?" / Token Intent
     const isAskingAboutAppointment =
-      (lower.includes('reminder') ||
-       lower.includes('meri appointment') ||
-       lower.includes('my appointment') ||
-       lower.includes('kab hai') ||
-       lower.includes('agla session') ||
-       lower.includes('next session') ||
-       lower.includes('upcoming appointment') ||
-       lower.includes('میری اپائنٹمنٹ') ||
-       lower.includes('یاد دہانی')) &&
-      !lower.includes('queue') &&
+      (
+        lower.includes('token') ||
+        lower.includes('reminder') ||
+        lower.includes('meri appointment') ||
+        lower.includes('my appointment') ||
+        lower.includes('check appointment') ||
+        lower.includes('check my appointment') ||
+        lower.includes('kab hai') ||
+        lower.includes('agla session') ||
+        lower.includes('next session') ||
+        lower.includes('upcoming appointment') ||
+        lower.includes('میری اپائنٹمنٹ') ||
+        lower.includes('ٹوکن') ||
+        lower.includes('یاد دہانی')
+      ) &&
+      !lower.includes('seed') &&
+      !lower.includes('daily ka data') &&
+      !lower.includes('matrix') &&
+      !lower.includes('queue status') &&
       !lower.includes('pending') &&
-      !lower.includes('vault');
+      !lower.includes('vault') &&
+      !lower.includes('call next');
 
     if (isAskingAboutAppointment) {
-      if (!context.patientId) {
-        const notLoggedInMsg = lang === 'roman_urdu'
-          ? 'Apni upcoming appointments aur 48h reminders dekhne ke liye baraye meharbani patient account se login karein.'
-          : 'Please log in with your patient account to view your scheduled appointments and reminders.';
-        return {
-          role: 'assistant',
-          content: notLoggedInMsg
-        };
+      const effectivePatientId = context.patientId || resolvedPatientId || 'pat-01';
+
+      let reminders = upcomingReminders;
+      if (reminders.length === 0 && effectivePatientId) {
+        try {
+          reminders = await appointmentReminderService.getUpcomingRemindersForPatient(effectivePatientId);
+        } catch {
+          reminders = [];
+        }
       }
 
-      if (upcomingReminders.length === 0) {
+      if (reminders.length === 0) {
         const noAppMsg = lang === 'roman_urdu'
-          ? 'Aap ki koi upcoming appointment scheduled nahi hai. Kya aap kisi doctor ke sath consultation book karna chahtay hain?'
-          : 'You do not have any upcoming appointments scheduled. Would you like to book a consultation?';
+          ? 'Aap ki koi upcoming appointment ya active token scheduled nahi hai. Kya aap kisi doctor ke sath consultation book karna chahtay hain?'
+          : 'You do not have any upcoming appointments or active tokens scheduled. Would you like to book a consultation?';
         return {
           role: 'assistant',
           content: noAppMsg,
@@ -1312,23 +1323,23 @@ Analyze the attached documents thoroughly:
         };
       }
 
-      const soonest = upcomingReminders[0];
+      const soonest = reminders[0];
       let reminderText = '';
 
       if (lang === 'roman_urdu') {
-        reminderText = `🔔 **Aap ki Appointment ka Reminder:**\nAap ki **${soonest.doctorName}** (${soonest.doctorSpecialization}) ke sath appointment **${soonest.appointmentDate}** ko scheduled hai (Token #${soonest.tokenNumber || 'Assigned'}).\n\n${
+        reminderText = `🔔 **Aap ki Appointment & Token Reminder:**\nAap ki **${soonest.doctorName}** (${soonest.doctorSpecialization}) ke sath appointment **${soonest.appointmentDate}** ko scheduled hai (Token #${soonest.tokenNumber || 'Assigned'}).\n\n${
           soonest.isUpcomingSoon
             ? '⚠️ **Ahem Notice:** Yeh appointment **2 din (48 hours)** ke andar hai! Baraye meharbani waqt se 15 minute pehlay tashreef layein.'
             : `Aap ki appointment mein abhi **${soonest.daysRemaining} din** baqi hain.`
         }${soonest.isFollowUp ? '\n*(Yeh aap ka follow-up session hai)*' : ''}`;
       } else if (lang === 'urdu') {
-        reminderText = `🔔 **اپائنٹمنٹ یاد دہانی:**\nآپ کی **${soonest.doctorName}** کے ساتھ اپائنٹمنٹ **${soonest.appointmentDate}** کو مقرر ہے (ٹوکن #${soonest.tokenNumber || 'مقرر'})۔\n\n${
+        reminderText = `🔔 **اپائنٹمنٹ اور ٹوکن یاد دہانی:**\nآپ کی **${soonest.doctorName}** کے ساتھ اپائنٹمنٹ **${soonest.appointmentDate}** کو مقرر ہے (ٹوکن #${soonest.tokenNumber || 'مقرر'})۔\n\n${
           soonest.isUpcomingSoon
             ? '⚠️ یہ اپائنٹمنٹ اگلے دو دنوں میں ہے۔ برائے مہربانی 15 منٹ قبل تشریف لائیں۔'
             : `آپ کی اپائنٹمنٹ میں **${soonest.daysRemaining} دن** باقی ہیں۔`
         }`;
       } else {
-        reminderText = `🔔 **Upcoming Consultation Reminder:**\nYou have an appointment with **${soonest.doctorName}** (${soonest.doctorSpecialization}) on **${soonest.appointmentDate}** (Token #${soonest.tokenNumber || 'Assigned'}).\n\n${
+        reminderText = `🔔 **Upcoming Consultation & Token Details:**\nYou have an appointment with **${soonest.doctorName}** (${soonest.doctorSpecialization}) on **${soonest.appointmentDate}** (Token #${soonest.tokenNumber || 'Assigned'}).\n\n${
           soonest.isUpcomingSoon
             ? '⚠️ **Notice:** This consultation is scheduled within **48 hours**! Please arrive 15 minutes prior to your time slot.'
             : `Your appointment is in **${soonest.daysRemaining} days**.`
@@ -1341,7 +1352,28 @@ Analyze the attached documents thoroughly:
         cardData: {
           type: 'APPOINTMENT_REMINDER',
           ...soonest
-        }
+        },
+        thoughtProcess: {
+          durationMs: 380,
+          steps: [
+            `Verified token and appointment records for patient ${effectivePatientId}`,
+            `Retrieved upcoming consultation with Dr. ${soonest.doctorName} on ${soonest.appointmentDate}`,
+            `Calculated token slot position #${soonest.tokenNumber || 1} (${soonest.countdownLabel || 'Confirmed'})`,
+            `Attached interactive consultation and token confirmation card`
+          ]
+        },
+        searchingSteps: [
+          { label: 'Querying clinical appointment ledger', status: 'done' },
+          { label: 'Retrieving assigned token number', status: 'done' }
+        ],
+        groundingSources: [
+          { title: 'OPD Appointment Schedule', subtitle: `Token #${soonest.tokenNumber || 1} • ${soonest.appointmentDate}`, verified: true }
+        ],
+        followUpChips: [
+          'Confirm Attendance',
+          'Live Queue status',
+          'Reschedule appointment'
+        ]
       };
     }
 

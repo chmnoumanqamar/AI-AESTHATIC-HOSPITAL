@@ -120,6 +120,92 @@ export const THEME_COLOR_OPTIONS: ThemeColorOption[] = [
   }
 ];
 
+export const CUSTOM_STORAGE_KEY = 'hospital_custom_palette';
+
+// Color utilities for deriving harmonized palettes from any primary/secondary color
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  let c = hex.replace('#', '').trim();
+  if (c.length === 3) {
+    c = c.split('').map(x => x + x).join('');
+  }
+  const num = parseInt(c, 16);
+  if (isNaN(num)) return { r: 45, g: 106, b: 79 };
+  return {
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255
+  };
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
+  return '#' + [r, g, b].map(v => clamp(v).toString(16).padStart(2, '0')).join('').toUpperCase();
+}
+
+function adjustBrightness(hex: string, percent: number): string {
+  const { r, g, b } = hexToRgb(hex);
+  const factor = 1 + percent / 100;
+  return rgbToHex(r * factor, g * factor, b * factor);
+}
+
+function blendWithWhite(hex: string, percentWhite: number): string {
+  const { r, g, b } = hexToRgb(hex);
+  const w = percentWhite / 100;
+  return rgbToHex(r * (1 - w) + 255 * w, g * (1 - w) + 255 * w, b * (1 - w) + 255 * w);
+}
+
+function blendWithBlack(hex: string, percentBlack: number): string {
+  const { r, g, b } = hexToRgb(hex);
+  const k = percentBlack / 100;
+  return rgbToHex(r * (1 - k), g * (1 - k), b * (1 - k));
+}
+
+export function createCustomPalette(primaryHex: string, secondaryHex?: string, name?: string): ThemeColorOption {
+  const cleanPrimary = primaryHex.startsWith('#') ? primaryHex : `#${primaryHex}`;
+  const cleanSecondary = secondaryHex 
+    ? (secondaryHex.startsWith('#') ? secondaryHex : `#${secondaryHex}`)
+    : adjustBrightness(cleanPrimary, -25);
+
+  return {
+    id: 'custom',
+    name: name || 'Custom Studio Palette',
+    description: `User defined (${cleanPrimary} → ${cleanSecondary})`,
+    gradientStart: cleanPrimary,
+    gradientEnd: cleanSecondary,
+    hoverStart: adjustBrightness(cleanPrimary, 12),
+    hoverEnd: adjustBrightness(cleanSecondary, 8),
+    accent: cleanPrimary,
+    accentHover: adjustBrightness(cleanPrimary, -15),
+    badgeBgLight: blendWithWhite(cleanPrimary, 88),
+    badgeTextLight: adjustBrightness(cleanPrimary, -35),
+    badgeBgDark: blendWithBlack(cleanPrimary, 75),
+    badgeTextDark: blendWithWhite(cleanPrimary, 45),
+    dotColor: cleanPrimary
+  };
+}
+
+export function getCustomThemePalette(): ThemeColorOption {
+  if (typeof window === 'undefined') return createCustomPalette('#8B5CF6', '#6D28D9', 'Custom Studio Palette');
+  try {
+    const saved = localStorage.getItem(CUSTOM_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed.primary) {
+        return createCustomPalette(parsed.primary, parsed.secondary, parsed.name || 'Custom Studio Palette');
+      }
+    }
+  } catch {}
+  return createCustomPalette('#8B5CF6', '#6D28D9', 'Custom Studio Palette');
+}
+
+export function getCurrentPalette(): ThemeColorOption {
+  const colorId = getStoredThemeColor();
+  if (colorId === 'custom') {
+    return getCustomThemePalette();
+  }
+  return THEME_COLOR_OPTIONS.find(c => c.id === colorId) || THEME_COLOR_OPTIONS[0];
+}
+
 const STORAGE_KEY = 'hospital_theme_color';
 const STYLE_TAG_ID = 'hospital-theme-palette-styles';
 
@@ -128,10 +214,23 @@ export function getStoredThemeColor(): string {
   return localStorage.getItem(STORAGE_KEY) || 'moss';
 }
 
-export function applyThemeColor(colorId: string): void {
+export function applyThemeColor(colorId: string, customPaletteOption?: ThemeColorOption): void {
   if (typeof document === 'undefined') return;
 
-  const color = THEME_COLOR_OPTIONS.find(c => c.id === colorId) || THEME_COLOR_OPTIONS[0];
+  let color: ThemeColorOption;
+  if (colorId === 'custom') {
+    color = customPaletteOption || getCustomThemePalette();
+    try {
+      localStorage.setItem(CUSTOM_STORAGE_KEY, JSON.stringify({
+        primary: color.gradientStart,
+        secondary: color.gradientEnd,
+        name: color.name
+      }));
+    } catch {}
+  } else {
+    color = THEME_COLOR_OPTIONS.find(c => c.id === colorId) || THEME_COLOR_OPTIONS[0];
+  }
+
   const root = document.documentElement;
 
   // Set CSS Custom Properties on Root

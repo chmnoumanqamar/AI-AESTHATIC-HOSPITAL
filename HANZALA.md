@@ -8,11 +8,12 @@ For the complete, itemized technical changelog, see [HANZALA_CHANGES.md](file://
 
 ## Quick Feature Summary
 
-1. **Color Palette Picker**:
-   - Located in the Admin HeaderBar between the dynamic search bar and the notification bell.
+1. **Color Palette Picker & Custom Color Studio**:
+   - Located in the HeaderBar between the dynamic search bar and the notification bell.
    - 6 curated palettes: Moss Olive (Default), Warm Walnut & Bronze, Nordic Blue, Teal Marina, Amethyst Plum, and Deep Forest.
-   - Comprehensively styles all buttons (`clinical-button-primary`, `.bg-[#2D6A4F]`, `.bg-emerald-*`), badges, labels, headings, active sidebar tabs, and borders.
-   - Persists in `localStorage` (`hospital_theme_color`).
+   - **Interactive Custom Studio**: Allows picking custom primary and gradient end colors with native color wheel picker (`<input type="color">`), hex inputs, 8 quick inspiration swatches, and live preview.
+   - Comprehensively styles all buttons (`clinical-button-primary`, `.bg-[#2D6A4F]`, `.bg-emerald-*`), Brand Header (sidebar & headerbar), Chatbot FAB & drawer, badges, labels, active sidebar tabs, and borders.
+   - Persists in `localStorage` (`hospital_theme_color`, `hospital_custom_palette`).
 
 2. **Dynamic Omnibar Search**:
    - `Ctrl+K` shortcut bar in HeaderBar aligned to the left of the notification bell.

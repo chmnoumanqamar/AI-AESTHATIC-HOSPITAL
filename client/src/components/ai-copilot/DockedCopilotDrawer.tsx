@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Sparkles, X, Bell, RotateCcw } from 'lucide-react';
 import { AIChatMessageList, ChatMessage } from './AIChatMessageList';
 import { api } from '../../services/api';
-import { getStoredThemeColor, THEME_COLOR_OPTIONS, ThemeColorOption } from '../../utils/themePalette';
+import { getStoredThemeColor, THEME_COLOR_OPTIONS, ThemeColorOption, getCurrentPalette } from '../../utils/themePalette';
 
 interface DockedCopilotDrawerProps {
   isDocked?: boolean;
@@ -33,16 +33,12 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Sync active theme palette
-  const [activePalette, setActivePalette] = useState<ThemeColorOption>(() => {
-    const id = getStoredThemeColor();
-    return THEME_COLOR_OPTIONS.find(c => c.id === id) || THEME_COLOR_OPTIONS[0];
-  });
+  const [activePalette, setActivePalette] = useState<ThemeColorOption>(getCurrentPalette);
 
   useEffect(() => {
     const handleColorEvent = (e: any) => {
-      if (e.detail?.id) {
-        const found = THEME_COLOR_OPTIONS.find(c => c.id === e.detail.id);
-        if (found) setActivePalette(found);
+      if (e.detail?.gradientStart) {
+        setActivePalette(e.detail);
       }
     };
     window.addEventListener('hospital_theme_color_changed', handleColorEvent);

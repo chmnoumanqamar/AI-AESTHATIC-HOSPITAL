@@ -32,7 +32,7 @@ import {
   User
 } from 'lucide-react';
 import { api } from '../../services/api';
-import { getStoredThemeColor, THEME_COLOR_OPTIONS, ThemeColorOption } from '../../utils/themePalette';
+import { getStoredThemeColor, THEME_COLOR_OPTIONS, ThemeColorOption, getCurrentPalette } from '../../utils/themePalette';
 
 export interface ModuleNavDef {
   id: string;
@@ -170,16 +170,12 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
   }, []);
 
   // Real-time synced theme palette for Brand Header & Sidebar
-  const [activePalette, setActivePalette] = useState<ThemeColorOption>(() => {
-    const id = getStoredThemeColor();
-    return THEME_COLOR_OPTIONS.find(c => c.id === id) || THEME_COLOR_OPTIONS[0];
-  });
+  const [activePalette, setActivePalette] = useState<ThemeColorOption>(getCurrentPalette);
 
   useEffect(() => {
     const handleColorEvent = (e: any) => {
-      if (e.detail?.id) {
-        const found = THEME_COLOR_OPTIONS.find(c => c.id === e.detail.id);
-        if (found) setActivePalette(found);
+      if (e.detail?.gradientStart) {
+        setActivePalette(e.detail);
       }
     };
     window.addEventListener('hospital_theme_color_changed', handleColorEvent);

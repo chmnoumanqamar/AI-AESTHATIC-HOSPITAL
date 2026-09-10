@@ -3,7 +3,7 @@ import { StructuralRailNav } from './StructuralRailNav';
 import { HeaderBar } from './HeaderBar';
 import { DockedCopilotDrawer } from '../ai-copilot/DockedCopilotDrawer';
 import { Bot, Sparkles, X } from 'lucide-react';
-import { getStoredThemeColor, THEME_COLOR_OPTIONS, ThemeColorOption } from '../../utils/themePalette';
+import { getStoredThemeColor, THEME_COLOR_OPTIONS, ThemeColorOption, getCurrentPalette } from '../../utils/themePalette';
 
 interface CommandDeckShellProps {
   currentRole: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST';
@@ -30,16 +30,12 @@ export const CommandDeckShell: React.FC<CommandDeckShellProps> = ({
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
 
   // Sync active theme palette for Chatbot FAB
-  const [activePalette, setActivePalette] = useState<ThemeColorOption>(() => {
-    const id = getStoredThemeColor();
-    return THEME_COLOR_OPTIONS.find(c => c.id === id) || THEME_COLOR_OPTIONS[0];
-  });
+  const [activePalette, setActivePalette] = useState<ThemeColorOption>(getCurrentPalette);
 
   useEffect(() => {
     const handleColorEvent = (e: any) => {
-      if (e.detail?.id) {
-        const found = THEME_COLOR_OPTIONS.find(c => c.id === e.detail.id);
-        if (found) setActivePalette(found);
+      if (e.detail?.gradientStart) {
+        setActivePalette(e.detail);
       }
     };
     window.addEventListener('hospital_theme_color_changed', handleColorEvent);

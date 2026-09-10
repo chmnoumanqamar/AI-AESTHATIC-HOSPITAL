@@ -21,11 +21,20 @@ import {
   Command,
   Users,
   Palette,
-  Check
+  Check,
+  SlidersHorizontal,
+  RotateCcw
 } from 'lucide-react';
 import { ALL_HOSPITAL_MODULES, getStoredHierarchy, ModuleNavDef } from './StructuralRailNav';
 import { api } from '../../services/api';
-import { THEME_COLOR_OPTIONS, getStoredThemeColor, applyThemeColor } from '../../utils/themePalette';
+import { 
+  THEME_COLOR_OPTIONS, 
+  getStoredThemeColor, 
+  applyThemeColor, 
+  getCustomThemePalette, 
+  createCustomPalette, 
+  ThemeColorOption 
+} from '../../utils/themePalette';
 
 export interface HospitalNotification {
   id: string;
@@ -275,13 +284,26 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 
   // Color Palette Popover State & Listener
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const [paletteTab, setPaletteTab] = useState<'curated' | 'custom'>('curated');
   const paletteContainerRef = useRef<HTMLDivElement>(null);
   const [activeColorId, setActiveColorId] = useState<string>(getStoredThemeColor);
+  const [customPalette, setCustomPalette] = useState<ThemeColorOption>(getCustomThemePalette);
+
+  // Custom Palette Builder local state
+  const [customPrimary, setCustomPrimary] = useState<string>(() => customPalette.gradientStart);
+  const [customSecondary, setCustomSecondary] = useState<string>(() => customPalette.gradientEnd);
+  const [customName, setCustomName] = useState<string>(() => customPalette.name);
 
   useEffect(() => {
     const handlePaletteEvent = (e: any) => {
       if (e.detail?.id) {
         setActiveColorId(e.detail.id);
+        if (e.detail.id === 'custom') {
+          setCustomPalette(e.detail);
+          setCustomPrimary(e.detail.gradientStart);
+          setCustomSecondary(e.detail.gradientEnd);
+          setCustomName(e.detail.name);
+        }
       }
     };
     window.addEventListener('hospital_theme_color_changed', handlePaletteEvent);
@@ -303,11 +325,36 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 
   const handleSelectColor = (colorId: string) => {
     setActiveColorId(colorId);
-    applyThemeColor(colorId);
+    if (colorId === 'custom') {
+      applyThemeColor('custom', customPalette);
+    } else {
+      applyThemeColor(colorId);
+    }
     setIsPaletteOpen(false);
   };
 
-  const currentPalette = THEME_COLOR_OPTIONS.find(c => c.id === activeColorId) || THEME_COLOR_OPTIONS[0];
+  const handleApplyCustomPalette = () => {
+    const newCustom = createCustomPalette(customPrimary, customSecondary, customName || 'Custom Studio Palette');
+    setCustomPalette(newCustom);
+    setActiveColorId('custom');
+    applyThemeColor('custom', newCustom);
+    setIsPaletteOpen(false);
+  };
+
+  const currentPalette = activeColorId === 'custom' 
+    ? customPalette 
+    : (THEME_COLOR_OPTIONS.find(c => c.id === activeColorId) || THEME_COLOR_OPTIONS[0]);
+
+  const QUICK_CUSTOM_SWATCHES = [
+    { name: 'Crimson Ruby', primary: '#E63946', secondary: '#9B2226' },
+    { name: 'Royal Sapphire', primary: '#2563EB', secondary: '#1E3A8A' },
+    { name: 'Cyber Violet', primary: '#8B5CF6', secondary: '#5B21B6' },
+    { name: 'Sunset Tangerine', primary: '#EA580C', secondary: '#9A3412' },
+    { name: 'Fuchsia Orchid', primary: '#D946EF', secondary: '#86198F' },
+    { name: 'Clinical Mint', primary: '#10B981', secondary: '#065F46' },
+    { name: 'Golden Honey', primary: '#D97706', secondary: '#78350F' },
+    { name: 'Midnight Slate', primary: '#334155', secondary: '#0F172A' },
+  ];
 
   // Search Items Universe for Admin Omnibar
   const allSearchItems = useMemo(() => {
@@ -814,12 +861,13 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           {/* Palette Dropdown Popover */}
           {isPaletteOpen && (
             <div 
-              className="absolute right-0 top-full mt-2 w-64 rounded-2xl border shadow-xl p-3 space-y-2.5 z-50 animate-fade-in select-none"
+              className="absolute right-0 top-full mt-2 w-72 sm:w-80 rounded-2xl border shadow-2xl p-3.5 space-y-3 z-50 animate-fade-in select-none"
               style={{
                 backgroundColor: isDark ? '#1F2718' : '#FFFFFF',
                 borderColor: isDark ? '#3D5235' : '#DDE3D5'
               }}
             >
+              {/* Header with Title and Mode Switcher */}
               <div className="flex items-center justify-between pb-2 border-b border-brand-200 dark:border-[#2F3E29]">
                 <div className="flex items-center gap-1.5">
                   <Palette className="w-3.5 h-3.5" style={{ color: currentPalette.dotColor }} />
@@ -830,40 +878,231 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
                 </span>
               </div>
 
-              <div className="space-y-1">
-                {THEME_COLOR_OPTIONS.map(c => {
-                  const isSelected = activeColorId === c.id;
-                  return (
+              {/* Segmented Control: Curated vs Custom Studio */}
+              <div className="flex p-0.5 rounded-lg bg-brand-100/70 dark:bg-[#151D12] border border-brand-200 dark:border-[#2F3E29]">
+                <button
+                  type="button"
+                  onClick={() => setPaletteTab('curated')}
+                  className={`flex-1 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                    paletteTab === 'curated'
+                      ? 'bg-white dark:bg-[#283620] text-[#1F291E] dark:text-white shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                  }`}
+                >
+                  Curated ({THEME_COLOR_OPTIONS.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaletteTab('custom')}
+                  className={`flex-1 py-1 rounded-md text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    paletteTab === 'custom'
+                      ? 'bg-white dark:bg-[#283620] text-[#1F291E] dark:text-white shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                  }`}
+                >
+                  <Sparkles className="w-3 h-3 text-amber-500" />
+                  <span>Custom Studio</span>
+                </button>
+              </div>
+
+              {paletteTab === 'curated' ? (
+                <div className="space-y-1">
+                  {THEME_COLOR_OPTIONS.map(c => {
+                    const isSelected = activeColorId === c.id;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => handleSelectColor(c.id)}
+                        className={`w-full p-2 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-2.5 ${
+                          isSelected
+                            ? 'border-brand-600 bg-brand-100/50 dark:bg-[#232E1D] shadow-xs'
+                            : 'border-transparent hover:border-brand-200 dark:hover:border-[#2F3E29] hover:bg-brand-50/60 dark:hover:bg-[#151D12]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div 
+                            className="w-5 h-5 rounded-full shadow-xs shrink-0 flex items-center justify-center text-white"
+                            style={{ background: `linear-gradient(135deg, ${c.gradientStart} 0%, ${c.gradientEnd} 100%)` }}
+                          >
+                            {isSelected && <Check className="w-3 h-3 text-white" />}
+                          </div>
+                          <div className="truncate">
+                            <div className="text-xs font-bold text-[#1F291E] dark:text-[#F6F7F2] truncate">
+                              {c.name}
+                            </div>
+                            <div className="text-[10px] text-[#656D4A] dark:text-[#A4AC86] truncate">
+                              {c.description}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+
+                  {/* Quick Shortcut to Custom Studio at bottom of curated list */}
+                  <div className="pt-1.5 border-t border-brand-200 dark:border-[#2F3E29]">
                     <button
-                      key={c.id}
                       type="button"
-                      onClick={() => handleSelectColor(c.id)}
+                      onClick={() => {
+                        if (activeColorId === 'custom') {
+                          setPaletteTab('custom');
+                        } else {
+                          handleSelectColor('custom');
+                        }
+                      }}
                       className={`w-full p-2 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-2.5 ${
-                        isSelected
+                        activeColorId === 'custom'
                           ? 'border-brand-600 bg-brand-100/50 dark:bg-[#232E1D] shadow-xs'
-                          : 'border-transparent hover:border-brand-200 dark:hover:border-[#2F3E29] hover:bg-brand-50/60 dark:hover:bg-[#151D12]'
+                          : 'border-dashed border-brand-300 hover:border-brand-500 dark:border-brand-700 hover:bg-brand-50/60 dark:hover:bg-[#151D12]'
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div 
                           className="w-5 h-5 rounded-full shadow-xs shrink-0 flex items-center justify-center text-white"
-                          style={{ background: `linear-gradient(135deg, ${c.gradientStart} 0%, ${c.gradientEnd} 100%)` }}
+                          style={{ background: `linear-gradient(135deg, ${customPalette.gradientStart} 0%, ${customPalette.gradientEnd} 100%)` }}
                         >
-                          {isSelected && <Check className="w-3 h-3 text-white" />}
+                          {activeColorId === 'custom' ? <Check className="w-3 h-3 text-white" /> : <Sparkles className="w-3 h-3 text-white" />}
                         </div>
                         <div className="truncate">
-                          <div className="text-xs font-bold text-[#1F291E] dark:text-[#F6F7F2] truncate">
-                            {c.name}
+                          <div className="text-xs font-bold text-[#1F291E] dark:text-[#F6F7F2] truncate flex items-center gap-1.5">
+                            <span>{customPalette.name}</span>
+                            <span className="text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                              Custom
+                            </span>
                           </div>
                           <div className="text-[10px] text-[#656D4A] dark:text-[#A4AC86] truncate">
-                            {c.description}
+                            {customPalette.gradientStart} → {customPalette.gradientEnd}
                           </div>
                         </div>
                       </div>
+                      <span 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPaletteTab('custom');
+                        }}
+                        className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        title="Customize color studio"
+                      >
+                        <SlidersHorizontal className="w-3.5 h-3.5" />
+                      </span>
                     </button>
-                  );
-                })}
-              </div>
+                  </div>
+                </div>
+              ) : (
+                /* Custom Color Studio Panel */
+                <div className="space-y-3">
+                  {/* Live Mini Preview Box */}
+                  <div 
+                    className="p-2.5 rounded-xl border flex items-center justify-between"
+                    style={{ 
+                      backgroundColor: isDark ? '#151D12' : '#F9FAF7', 
+                      borderColor: isDark ? '#2E3D27' : '#E2E6D8' 
+                    }}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div 
+                        className="w-8 h-8 rounded-lg shadow-xs flex items-center justify-center text-white font-black text-xs shrink-0"
+                        style={{ background: `linear-gradient(135deg, ${customPrimary} 0%, ${customSecondary} 100%)` }}
+                      >
+                        Aa
+                      </div>
+                      <div className="truncate">
+                        <div className="text-xs font-bold truncate text-[#1F291E] dark:text-white">
+                          Live Studio Preview
+                        </div>
+                        <div className="text-[10px] font-mono text-slate-400 truncate">
+                          {customPrimary} → {customSecondary}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Pickers: Primary & Gradient End */}
+                  <div className="space-y-2 p-2.5 rounded-xl bg-slate-50 dark:bg-[#161F13] border border-slate-200 dark:border-[#2D3C26]">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                        Primary Color
+                      </label>
+                      <div className="flex items-center gap-1.5">
+                        <input 
+                          type="color" 
+                          value={customPrimary}
+                          onChange={(e) => setCustomPrimary(e.target.value)}
+                          className="w-6 h-6 rounded-md border-0 cursor-pointer p-0 bg-transparent"
+                          title="Click to open color picker"
+                        />
+                        <input 
+                          type="text" 
+                          value={customPrimary}
+                          onChange={(e) => setCustomPrimary(e.target.value)}
+                          className="w-20 px-2 py-0.5 rounded border text-[11px] font-mono uppercase bg-white dark:bg-[#1F2818] text-[#1F291E] dark:text-white border-slate-300 dark:border-slate-700 text-center font-bold"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                        Gradient End
+                      </label>
+                      <div className="flex items-center gap-1.5">
+                        <input 
+                          type="color" 
+                          value={customSecondary}
+                          onChange={(e) => setCustomSecondary(e.target.value)}
+                          className="w-6 h-6 rounded-md border-0 cursor-pointer p-0 bg-transparent"
+                          title="Click to open gradient end picker"
+                        />
+                        <input 
+                          type="text" 
+                          value={customSecondary}
+                          onChange={(e) => setCustomSecondary(e.target.value)}
+                          className="w-20 px-2 py-0.5 rounded border text-[11px] font-mono uppercase bg-white dark:bg-[#1F2818] text-[#1F291E] dark:text-white border-slate-300 dark:border-slate-700 text-center font-bold"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick Color Swatches */}
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                      Quick Swatches
+                    </div>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {QUICK_CUSTOM_SWATCHES.map(s => (
+                        <button
+                          key={s.name}
+                          type="button"
+                          onClick={() => {
+                            setCustomPrimary(s.primary);
+                            setCustomSecondary(s.secondary);
+                            setCustomName(s.name);
+                          }}
+                          className="p-1 rounded-lg border text-left flex items-center gap-1.5 hover:scale-102 transition-transform cursor-pointer border-slate-200 dark:border-slate-800 hover:border-slate-400 bg-white dark:bg-[#1A2315]"
+                          title={`${s.name} (${s.primary} → ${s.secondary})`}
+                        >
+                          <span 
+                            className="w-3.5 h-3.5 rounded-full shrink-0 shadow-2xs" 
+                            style={{ background: `linear-gradient(135deg, ${s.primary} 0%, ${s.secondary} 100%)` }} 
+                          />
+                          <span className="text-[9.5px] font-medium truncate text-slate-700 dark:text-slate-300">{s.name.split(' ')[0]}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Apply Custom Palette Action */}
+                  <button
+                    type="button"
+                    onClick={handleApplyCustomPalette}
+                    className="w-full py-2 rounded-xl text-xs font-bold text-white shadow-md hover:opacity-95 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    style={{ background: `linear-gradient(135deg, ${customPrimary} 0%, ${customSecondary} 100%)` }}
+                  >
+                    <Check className="w-3.5 h-3.5 text-white" />
+                    <span>Apply Custom Palette</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

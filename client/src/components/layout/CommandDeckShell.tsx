@@ -29,7 +29,7 @@ export const CommandDeckShell: React.FC<CommandDeckShellProps> = ({
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#F8F9FA] dark:bg-[#1A2215]">
+    <div className="flex h-screen w-screen overflow-hidden window-canvas-bg bg-[#F8F9FA] dark:bg-[#1A2215]">
       {/* Column 1: Structural Navigation Rail */}
       <StructuralRailNav
         currentRole={currentRole}
@@ -42,7 +42,7 @@ export const CommandDeckShell: React.FC<CommandDeckShellProps> = ({
       />
 
       {/* Main Workspace Area */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0 bg-[#F8F9FA] dark:bg-[#1A2215]">
+      <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0 window-canvas-bg bg-[#F8F9FA] dark:bg-[#1A2215]">
         <HeaderBar
           currentUser={currentUser}
           currentRole={currentRole}

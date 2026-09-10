@@ -27,7 +27,10 @@ import {
   Monitor,
   CheckCircle,
   SlidersHorizontal,
-  RefreshCw
+  RefreshCw,
+  Eye as EyeIcon,
+  XCircle,
+  Undo2
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { WhatsAppSimulatorModal } from '../../components/common/WhatsAppSimulatorModal';
@@ -35,6 +38,7 @@ import {
   getStoredWindowFormatting, 
   saveWindowFormatting, 
   resetWindowFormatting,
+  applyWindowFormatting,
   THEME_COLOR_OPTIONS,
   FONT_FAMILY_OPTIONS,
   FONT_SIZE_OPTIONS,
@@ -49,10 +53,15 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
   // Settings Tab Navigation State
   const [activeTab, setActiveTab] = useState<SettingsTab>('formatting');
 
-  // Window Formatting State
-  const [formatting, setFormatting] = useState<WindowFormattingConfig>(getStoredWindowFormatting);
-  const [formattingSaved, setFormattingSaved] = useState(false);
+  // Window Formatting Staged States
+  const [savedFormatting, setSavedFormatting] = useState<WindowFormattingConfig>(getStoredWindowFormatting);
+  const [draftFormatting, setDraftFormatting] = useState<WindowFormattingConfig>(getStoredWindowFormatting);
+  const [isFullWindowPreview, setIsFullWindowPreview] = useState(false);
+  const [formattingSavedNotice, setFormattingSavedNotice] = useState(false);
   const [resetNotice, setResetNotice] = useState(false);
+
+  // Check if draft has unsaved changes compared to stored formatting
+  const hasFormattingChanges = JSON.stringify(draftFormatting) !== JSON.stringify(savedFormatting);
 
   // Policies State
   const [policies, setPolicies] = useState({
@@ -106,19 +115,58 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
     fetchWaConfig();
   }, []);
 
-  const handleUpdateFormatting = (partial: Partial<WindowFormattingConfig>) => {
-    const updated = { ...formatting, ...partial };
-    setFormatting(updated);
-    saveWindowFormatting(updated);
-    setFormattingSaved(true);
-    setTimeout(() => setFormattingSaved(false), 2500);
+  // Cleanup: When unmounting or leaving, restore saved formatting if full-window preview was active
+  useEffect(() => {
+    return () => {
+      applyWindowFormatting(getStoredWindowFormatting());
+    };
+  }, []);
+
+  // Modify draft without saving to permanent storage yet
+  const handleUpdateDraft = (partial: Partial<WindowFormattingConfig>) => {
+    const updated = { ...draftFormatting, ...partial };
+    setDraftFormatting(updated);
+    if (isFullWindowPreview) {
+      applyWindowFormatting(updated);
+    }
   };
 
+  // Toggle Live Full-Window Preview
+  const handleToggleFullWindowPreview = () => {
+    const nextState = !isFullWindowPreview;
+    setIsFullWindowPreview(nextState);
+    if (nextState) {
+      applyWindowFormatting(draftFormatting);
+    } else {
+      applyWindowFormatting(savedFormatting);
+    }
+  };
+
+  // Apply Changes to Complete Window (User explicit apply button)
+  const handleApplyToWindow = () => {
+    saveWindowFormatting(draftFormatting);
+    applyWindowFormatting(draftFormatting);
+    setSavedFormatting(draftFormatting);
+    setIsFullWindowPreview(false);
+    setFormattingSavedNotice(true);
+    setTimeout(() => setFormattingSavedNotice(false), 3000);
+  };
+
+  // Discard Draft and Revert Preview
+  const handleDiscardDraft = () => {
+    setDraftFormatting(savedFormatting);
+    applyWindowFormatting(savedFormatting);
+    setIsFullWindowPreview(false);
+  };
+
+  // Reset to Factory Hospital Defaults
   const handleResetFormatting = () => {
     const defaults = resetWindowFormatting();
-    setFormatting(defaults);
+    setSavedFormatting(defaults);
+    setDraftFormatting(defaults);
+    setIsFullWindowPreview(false);
     setResetNotice(true);
-    setTimeout(() => setResetNotice(false), 2500);
+    setTimeout(() => setResetNotice(false), 3000);
   };
 
   const handleSaveWhatsApp = async (e: React.FormEvent) => {
@@ -151,13 +199,47 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
     setTimeout(() => setSaved(false), 3000);
   };
 
-  const activeColor = THEME_COLOR_OPTIONS.find(c => c.id === formatting.themeColorId) || THEME_COLOR_OPTIONS[0];
-  const activeFont = FONT_FAMILY_OPTIONS.find(f => f.id === formatting.fontFamilyId) || FONT_FAMILY_OPTIONS[0];
-  const activeSize = FONT_SIZE_OPTIONS.find(s => s.id === formatting.fontSizeId) || FONT_SIZE_OPTIONS[2];
-  const activeRadius = BORDER_RADIUS_OPTIONS.find(r => r.id === formatting.borderRadiusId) || BORDER_RADIUS_OPTIONS[1];
+  // Active Draft Items for Live Real-Time Studio Rendering
+  const activeColor = THEME_COLOR_OPTIONS.find(c => c.id === draftFormatting.themeColorId) || THEME_COLOR_OPTIONS[0];
+  const activeFont = FONT_FAMILY_OPTIONS.find(f => f.id === draftFormatting.fontFamilyId) || FONT_FAMILY_OPTIONS[0];
+  const activeSize = FONT_SIZE_OPTIONS.find(s => s.id === draftFormatting.fontSizeId) || FONT_SIZE_OPTIONS[2];
+  const activeRadius = BORDER_RADIUS_OPTIONS.find(r => r.id === draftFormatting.borderRadiusId) || BORDER_RADIUS_OPTIONS[1];
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
+      {/* Full-Window Interactive Preview Notification Banner (Visible when admin toggles full window preview) */}
+      {isFullWindowPreview && (
+        <div className="sticky top-0 z-40 -mt-2 p-3.5 rounded-xl bg-brand-900 text-white shadow-lg border border-brand-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
+          <div className="flex items-center gap-2.5 text-xs">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <div>
+              <span className="font-bold">Full Window Preview Active:</span>{' '}
+              <span className="text-brand-200">
+                {activeColor.name} • {activeFont.name} ({activeSize.px}px) • {activeRadius.name}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleDiscardDraft}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/20 text-white cursor-pointer transition-all flex items-center gap-1"
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+              <span>Exit Preview</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleApplyToWindow}
+              className="clinical-button-primary px-3.5 py-1.5 text-xs font-bold shadow-md cursor-pointer flex items-center gap-1.5"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+              <span>Apply to Window</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Settings Navigation Sub-Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-brand-200 dark:border-[#2F3E29]">
         {/* Tab Selection Switcher */}
@@ -202,18 +284,65 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
           </button>
         </div>
 
-        {/* Global Action Status */}
-        <div className="flex items-center gap-2">
+        {/* Global Action Controls */}
+        <div className="flex items-center gap-2 flex-wrap">
           {activeTab === 'formatting' && (
-            <button
-              type="button"
-              onClick={handleResetFormatting}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-50 dark:bg-[#151D12] text-[#656D4A] dark:text-[#A4AC86] hover:bg-brand-100 dark:hover:bg-[#232E1D] border border-brand-200 dark:border-[#2F3E29] flex items-center gap-1.5 cursor-pointer transition-all"
-              title="Reset formatting to hospital defaults"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>{resetNotice ? 'Defaults Restored!' : 'Reset Defaults'}</span>
-            </button>
+            <>
+              {hasFormattingChanges && (
+                <button
+                  type="button"
+                  onClick={handleDiscardDraft}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-900/60 flex items-center gap-1.5 cursor-pointer transition-all"
+                  title="Discard pending changes"
+                >
+                  <Undo2 className="w-3.5 h-3.5" />
+                  <span>Discard Changes</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={handleToggleFullWindowPreview}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border flex items-center gap-1.5 cursor-pointer transition-all ${
+                  isFullWindowPreview
+                    ? 'bg-brand-900 text-white border-brand-900 shadow-xs'
+                    : 'bg-brand-50 dark:bg-[#151D12] text-[#656D4A] dark:text-[#A4AC86] hover:bg-brand-100 dark:hover:bg-[#232E1D] border-brand-200 dark:border-[#2F3E29]'
+                }`}
+                title="Preview changes on the complete actual window"
+              >
+                <EyeIcon className="w-3.5 h-3.5" />
+                <span>{isFullWindowPreview ? 'Viewing Full Window' : 'Preview on Window'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResetFormatting}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-50 dark:bg-[#151D12] text-[#656D4A] dark:text-[#A4AC86] hover:bg-brand-100 dark:hover:bg-[#232E1D] border border-brand-200 dark:border-[#2F3E29] flex items-center gap-1.5 cursor-pointer transition-all"
+                title="Reset formatting to factory defaults"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>{resetNotice ? 'Defaults Restored!' : 'Reset Defaults'}</span>
+              </button>
+
+              {/* PRIMARY ACTION BUTTON: APPLY TO WINDOW */}
+              <button
+                type="button"
+                onClick={handleApplyToWindow}
+                className={`clinical-button-primary flex items-center gap-2 text-xs font-bold cursor-pointer transition-all ${
+                  hasFormattingChanges ? 'ring-2 ring-emerald-400 ring-offset-1 shadow-md scale-105' : 'shadow-xs'
+                }`}
+                title="Save and apply formatting to the complete window"
+              >
+                {formattingSavedNotice ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
+                <span>
+                  {formattingSavedNotice ? 'Applied to Window!' : hasFormattingChanges ? 'Apply to Window' : 'Apply to Window'}
+                </span>
+              </button>
+            </>
           )}
 
           {activeTab === 'policies' && (
@@ -240,11 +369,11 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
       </div>
 
       {/* =========================================================================
-          TAB 1: WINDOW FORMATTING & APPEARANCE (NEW REQUESTED FEATURE)
+          TAB 1: WINDOW FORMATTING & APPEARANCE STUDIO
           ========================================================================= */}
       {activeTab === 'formatting' && (
         <div className="space-y-6 animate-fade-in">
-          {/* Quick Info & Save Confirmation Banner */}
+          {/* Quick Info, Presets & Apply Status Bar */}
           <div className="p-4 rounded-xl bg-brand-50/80 dark:bg-[#1E2718] border border-brand-200 dark:border-[#2F3E29] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <span 
@@ -256,14 +385,18 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
               <div>
                 <h4 className="text-xs font-bold text-[#1F291E] dark:text-[#F6F7F2] flex items-center gap-2">
                   <span>Hospital Window & Interface Formatting Studio</span>
-                  {formattingSaved && (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 animate-fade-in">
-                      ✓ Instant Live Synced
+                  {hasFormattingChanges ? (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 animate-pulse">
+                      Pending Preview • Click &quot;Apply to Window&quot;
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300">
+                      ✓ In Sync with Window
                     </span>
                   )}
                 </h4>
                 <p className="text-[11px] text-[#656D4A] dark:text-[#A4AC86] mt-0.5">
-                  Format window theme colors, typography fonts, sizing scales (max 12px enforced), and corner radii across all clinical dashboards.
+                  Format window theme colors, typography fonts, sizing scales (max 12px enforced), and corner radii across the complete window.
                 </p>
               </div>
             </div>
@@ -277,12 +410,12 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => handleUpdateFormatting({ themeColorId: c.id })}
+                  onClick={() => handleUpdateDraft({ themeColorId: c.id })}
                   className="px-2.5 py-1 rounded-md text-[10px] font-bold border transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
                   style={{
-                    backgroundColor: formatting.themeColorId === c.id ? c.badgeBgLight : 'transparent',
-                    color: formatting.themeColorId === c.id ? c.badgeTextLight : '#656D4A',
-                    borderColor: formatting.themeColorId === c.id ? c.accent : 'rgba(101, 109, 74, 0.25)'
+                    backgroundColor: draftFormatting.themeColorId === c.id ? c.badgeBgLight : 'transparent',
+                    color: draftFormatting.themeColorId === c.id ? c.badgeTextLight : '#656D4A',
+                    borderColor: draftFormatting.themeColorId === c.id ? c.accent : 'rgba(101, 109, 74, 0.25)'
                   }}
                 >
                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c.dotColor }} />
@@ -294,7 +427,7 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
 
           {/* Interactive Formatting Grid & Live Window Preview */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left Controls Column (8 Cols) */}
+            {/* Left Controls Column (7 Cols) */}
             <div className="lg:col-span-7 space-y-5">
               {/* 1. Theme Color & Gradient Palette */}
               <div className="bg-white dark:bg-[#1E2718] border border-brand-200 dark:border-[#2F3E29] rounded-2xl p-5 shadow-xs space-y-3.5">
@@ -306,18 +439,18 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
                     </h3>
                   </div>
                   <span className="text-[10.5px] font-mono text-[#656D4A] dark:text-[#A4AC86]">
-                    Active: {activeColor.name}
+                    Draft: {activeColor.name}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {THEME_COLOR_OPTIONS.map(c => {
-                    const isSelected = formatting.themeColorId === c.id;
+                    const isSelected = draftFormatting.themeColorId === c.id;
                     return (
                       <button
                         key={c.id}
                         type="button"
-                        onClick={() => handleUpdateFormatting({ themeColorId: c.id })}
+                        onClick={() => handleUpdateDraft({ themeColorId: c.id })}
                         className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-3 ${
                           isSelected
                             ? 'ring-2 ring-offset-1 border-transparent shadow-xs'
@@ -359,18 +492,18 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
                     </h3>
                   </div>
                   <span className="text-[10.5px] font-mono text-[#656D4A] dark:text-[#A4AC86]">
-                    Active: {activeFont.name} ({activeFont.category})
+                    Draft: {activeFont.name} ({activeFont.category})
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {FONT_FAMILY_OPTIONS.map(f => {
-                    const isSelected = formatting.fontFamilyId === f.id;
+                    const isSelected = draftFormatting.fontFamilyId === f.id;
                     return (
                       <button
                         key={f.id}
                         type="button"
-                        onClick={() => handleUpdateFormatting({ fontFamilyId: f.id })}
+                        onClick={() => handleUpdateDraft({ fontFamilyId: f.id })}
                         className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
                           isSelected
                             ? 'border-brand-600 bg-brand-100/50 dark:bg-[#232E1D] shadow-xs'
@@ -418,12 +551,12 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
 
                   <div className="space-y-2">
                     {FONT_SIZE_OPTIONS.map(s => {
-                      const isSelected = formatting.fontSizeId === s.id;
+                      const isSelected = draftFormatting.fontSizeId === s.id;
                       return (
                         <button
                           key={s.id}
                           type="button"
-                          onClick={() => handleUpdateFormatting({ fontSizeId: s.id })}
+                          onClick={() => handleUpdateDraft({ fontSizeId: s.id })}
                           className={`w-full p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
                             isSelected
                               ? 'border-brand-600 bg-brand-100/50 dark:bg-[#232E1D] font-bold'
@@ -463,12 +596,12 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
 
                   <div className="space-y-2">
                     {BORDER_RADIUS_OPTIONS.map(r => {
-                      const isSelected = formatting.borderRadiusId === r.id;
+                      const isSelected = draftFormatting.borderRadiusId === r.id;
                       return (
                         <button
                           key={r.id}
                           type="button"
-                          onClick={() => handleUpdateFormatting({ borderRadiusId: r.id })}
+                          onClick={() => handleUpdateDraft({ borderRadiusId: r.id })}
                           className={`w-full p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
                             isSelected
                               ? 'border-brand-600 bg-brand-100/50 dark:bg-[#232E1D] font-bold'
@@ -507,12 +640,12 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {SURFACE_TONE_OPTIONS.map(s => {
-                    const isSelected = formatting.surfaceToneId === s.id;
+                    const isSelected = draftFormatting.surfaceToneId === s.id;
                     return (
                       <button
                         key={s.id}
                         type="button"
-                        onClick={() => handleUpdateFormatting({ surfaceToneId: s.id })}
+                        onClick={() => handleUpdateDraft({ surfaceToneId: s.id })}
                         className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-3 ${
                           isSelected
                             ? 'border-brand-600 bg-brand-100/50 dark:bg-[#232E1D] shadow-xs'
@@ -550,8 +683,8 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
                   </div>
                   <input
                     type="checkbox"
-                    checked={formatting.highContrastBorders}
-                    onChange={e => handleUpdateFormatting({ highContrastBorders: e.target.checked })}
+                    checked={draftFormatting.highContrastBorders}
+                    onChange={e => handleUpdateDraft({ highContrastBorders: e.target.checked })}
                     className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 accent-[#2D6A4F] cursor-pointer"
                   />
                 </div>
@@ -560,7 +693,7 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
 
             {/* Right Live Preview Column (5 Cols) */}
             <div className="lg:col-span-5 space-y-4">
-              <div className="sticky top-4">
+              <div className="sticky top-4 space-y-4">
                 <div className="bg-white dark:bg-[#1E2718] border-2 border-brand-300 dark:border-[#38482E] rounded-2xl p-5 shadow-sm space-y-4">
                   <div className="flex items-center justify-between pb-2 border-b border-brand-200 dark:border-[#2F3E29]">
                     <div className="flex items-center gap-2">
@@ -570,7 +703,7 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
                       </h3>
                     </div>
                     <span className="text-[10px] font-mono font-bold text-[#656D4A] dark:text-[#A4AC86]">
-                      Real-Time Render
+                      Real-Time Draft
                     </span>
                   </div>
 
@@ -581,7 +714,7 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
                       borderRadius: `${activeRadius.px}px`,
                       fontFamily: activeFont.cssFamily,
                       fontSize: `${activeSize.px}px`,
-                      backgroundColor: formatting.surfaceToneId === 'white' ? '#FFFFFF' : '#FAFBF7'
+                      backgroundColor: draftFormatting.surfaceToneId === 'white' ? '#FFFFFF' : '#FAFBF7'
                     }}
                   >
                     {/* Window Header Bar */}
@@ -679,11 +812,32 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
                       <span className="font-bold text-[#1F291E] dark:text-white">{activeRadius.px}px ({activeRadius.name})</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="font-semibold">Palette Start &rarr; End:</span>
+                      <span className="font-semibold">Palette Gradient:</span>
                       <span className="font-mono text-[10px] text-[#1F291E] dark:text-white">
                         {activeColor.gradientStart} &rarr; {activeColor.gradientEnd}
                       </span>
                     </div>
+                  </div>
+
+                  {/* EXPLICIT APPLY BUTTON UNDER PREVIEW */}
+                  <div className="pt-2 border-t border-brand-200 dark:border-[#2F3E29]">
+                    <button
+                      type="button"
+                      onClick={handleApplyToWindow}
+                      className="w-full clinical-button-primary py-2.5 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all active:scale-98"
+                    >
+                      {formattingSavedNotice ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                      ) : (
+                        <Check className="w-4 h-4" />
+                      )}
+                      <span>
+                        {formattingSavedNotice ? 'Applied to Window!' : 'Apply Formatting to Complete Window'}
+                      </span>
+                    </button>
+                    <p className="text-[10.5px] text-center text-[#656D4A] dark:text-[#A4AC86] mt-2">
+                      Clicking apply will update colors, fonts, corners, and surface tone across all admin windows.
+                    </p>
                   </div>
                 </div>
               </div>

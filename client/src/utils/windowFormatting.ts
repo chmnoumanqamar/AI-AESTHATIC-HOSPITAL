@@ -361,11 +361,23 @@ export function applyWindowFormatting(config: WindowFormattingConfig): void {
 
   styleEl.textContent = `
     /* Project-wide custom window formatting */
-    html, body, input, button, select, textarea {
+    *, html, body, #root, input, button, select, textarea, div, p, span, h1, h2, h3, h4, h5, h6, label {
       font-family: ${font.cssFamily} !important;
+    }
+
+    html, body {
       font-size: ${fontSize.px}px !important;
     }
 
+    /* Complete Window Canvas Surface Background */
+    body, #root, .window-canvas-bg, .bg-\\[\\#F8F9FA\\] {
+      background-color: ${surface.bgLight} !important;
+    }
+    html.dark body, html.dark #root, html.dark .window-canvas-bg, html.dark .dark\\:bg-\\[\\#1A2215\\], html.dark .bg-\\[\\#1A2215\\] {
+      background-color: ${surface.bgDark} !important;
+    }
+
+    /* Buttons & Interactive Elements across complete window */
     .clinical-button-primary {
       background: linear-gradient(135deg, ${color.gradientStart} 0%, ${color.gradientEnd} 100%) !important;
       border-radius: ${radius.px}px !important;
@@ -377,6 +389,18 @@ export function applyWindowFormatting(config: WindowFormattingConfig): void {
       box-shadow: 0 4px 14px ${color.gradientStart}60 !important;
     }
 
+    /* Active Sidebar Navigation Pill */
+    .sidebar-active-tab {
+      background-color: ${color.badgeBgLight} !important;
+      color: ${color.badgeTextLight} !important;
+      border-color: ${color.accent}88 !important;
+    }
+    html.dark .sidebar-active-tab {
+      background-color: ${color.badgeBgDark} !important;
+      color: ${color.badgeTextDark} !important;
+      border-color: ${color.accent}88 !important;
+    }
+
     /* Windows & Cards Corner Styling */
     .rounded-2xl {
       border-radius: ${radius.px}px !important;
@@ -386,6 +410,11 @@ export function applyWindowFormatting(config: WindowFormattingConfig): void {
     }
     .rounded-3xl {
       border-radius: ${Math.round(radius.px * 1.5)}px !important;
+    }
+
+    /* Form Controls & Checkboxes */
+    input[type="checkbox"], input[type="radio"] {
+      accent-color: ${color.accent} !important;
     }
 
     /* High contrast borders optional toggle */
@@ -402,7 +431,7 @@ export function applyWindowFormatting(config: WindowFormattingConfig): void {
     .bg-emerald-600, .bg-emerald-700 {
       background-color: ${color.accent} !important;
     }
-    .text-emerald-600, .text-emerald-500 {
+    .text-emerald-600, .text-emerald-500, .header-window-icon {
       color: ${color.accent} !important;
     }
   `;

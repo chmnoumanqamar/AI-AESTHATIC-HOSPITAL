@@ -517,14 +517,14 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
                       onClick={() => onSelectTab(item.id)}
                       className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all cursor-pointer ${
                         isActive
-                          ? 'bg-[#E8F3EB] dark:bg-[#2D3923] text-[#1B4332] dark:text-white font-bold border border-[#A7D7C5] dark:border-[#406343] shadow-xs'
+                          ? 'sidebar-active-tab bg-[#E8F3EB] dark:bg-[#2D3923] text-[#1B4332] dark:text-white font-bold border border-[#A7D7C5] dark:border-[#406343] shadow-xs'
                           : 'text-[#4A5543] hover:text-[#1F291E] hover:bg-[#F4F6F0] dark:text-[#C2C5AA] dark:hover:text-white dark:hover:bg-[#2D3923]/60'
                       } ${isItemDragged ? 'opacity-40 scale-95' : ''}`}
                       title={!effectiveExpanded ? `${item.label} (${cat.label})` : undefined}
                     >
                       <Icon 
                         className="w-4 h-4 shrink-0 transition-colors" 
-                        style={{ color: isActive ? '#2D6A4F' : undefined }}
+                        style={{ color: isActive ? 'var(--primary-accent, #2D6A4F)' : undefined }}
                       />
                       {effectiveExpanded && <span className="truncate text-left flex-1">{item.label}</span>}
                       {effectiveExpanded && currentRole === 'ADMIN' && (

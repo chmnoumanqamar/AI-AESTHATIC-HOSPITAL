@@ -26,12 +26,10 @@ import {
   ShoppingCart,
   ShieldAlert,
   Truck,
-  ChevronUp,
-  Sun,
-  Moon,
   User
 } from 'lucide-react';
 import { api } from '../../services/api';
+import { getStoredThemeColor, THEME_COLOR_OPTIONS, ThemeColorOption, getCurrentPalette } from '../../utils/themePalette';
 
 export interface ModuleNavDef {
   id: string;
@@ -125,13 +123,12 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
 }) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [modulesRegistry, setModulesRegistry] = useState<ModuleNavDef[]>(getStoredHierarchy);
+  const [isHovered, setIsHovered] = useState(false);
 
-  // Drop-Up State (Preferences & Sign Out)
-  const [isDropUpOpen, setIsDropUpOpen] = useState(false);
-  const dropUpRef = useRef<HTMLDivElement>(null);
-  const stripRef = useRef<HTMLButtonElement>(null);
+  // When pinned it stays expanded; otherwise expands dynamically on cursor hover and hides on leave
+  const effectiveExpanded = isExpanded || isHovered;
 
-  // Theme State
+  // Theme State (synced with global hospital_theme_changed)
   const [isDark, setIsDark] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('hospital_theme');
@@ -140,19 +137,6 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
     }
     return false;
   });
-
-  const toggleTheme = () => {
-    const nextDark = !isDark;
-    setIsDark(nextDark);
-    if (nextDark) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('hospital_theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('hospital_theme', 'light');
-    }
-    window.dispatchEvent(new CustomEvent('hospital_theme_changed', { detail: nextDark ? 'dark' : 'light' }));
-  };
 
   useEffect(() => {
     const handleThemeEvent = (e: any) => {
@@ -164,30 +148,18 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
     return () => window.removeEventListener('hospital_theme_changed', handleThemeEvent);
   }, []);
 
-  // Click outside & Escape key handler to close drop-up
+  // Real-time synced theme palette for Brand Header & Sidebar
+  const [activePalette, setActivePalette] = useState<ThemeColorOption>(getCurrentPalette);
+
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        dropUpRef.current && 
-        !dropUpRef.current.contains(e.target as Node) &&
-        stripRef.current &&
-        !stripRef.current.contains(e.target as Node)
-      ) {
-        setIsDropUpOpen(false);
+    const handleColorEvent = (e: any) => {
+      if (e.detail?.gradientStart) {
+        setActivePalette(e.detail);
       }
     };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsDropUpOpen(false);
-    };
-    if (isDropUpOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleKeyDown);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isDropUpOpen]);
+    window.addEventListener('hospital_theme_color_changed', handleColorEvent);
+    return () => window.removeEventListener('hospital_theme_color_changed', handleColorEvent);
+  }, []);
 
   // Drag & Drop State in Sidebar
   const [draggedSidebarItem, setDraggedSidebarItem] = useState<ModuleNavDef | null>(null);
@@ -413,21 +385,23 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
 
   return (
     <aside
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className={`h-screen flex flex-col justify-between transition-all duration-300 z-30 shrink-0 select-none shadow-sm bg-white dark:bg-[#1A2215] text-[#1F291E] dark:text-[#F6F7F2] border-r border-[#E2E6D8] dark:border-[#333D29] ${
-        isExpanded ? 'w-64' : 'w-16'
+        effectiveExpanded ? 'w-64 shadow-xl' : 'w-16'
       }`}
     >
       {/* Brand Header with Top 3-Lines Toggle */}
       <div className="flex flex-col min-h-0 flex-1">
         <div 
-          className={`h-16 flex items-center border-b border-[#E2E6D8] dark:border-[#333D29] shrink-0 ${isExpanded ? 'justify-between px-3.5' : 'justify-center'}`}
+          className={`h-16 flex items-center border-b border-[#E2E6D8] dark:border-[#333D29] shrink-0 ${effectiveExpanded ? 'justify-between px-3.5' : 'justify-center'}`}
         >
-          {isExpanded ? (
+          {effectiveExpanded ? (
             <>
               <div className="flex items-center gap-2.5 overflow-hidden">
                 <div 
-                  className="w-9 h-9 rounded-xl text-white flex items-center justify-center shrink-0 shadow-xs"
-                  style={{ background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)' }}
+                  className="w-9 h-9 rounded-xl text-white flex items-center justify-center shrink-0 shadow-xs brand-header-icon transition-all duration-300"
+                  style={{ background: `linear-gradient(135deg, ${activePalette.gradientStart} 0%, ${activePalette.gradientEnd} 100%)` }}
                 >
                   <Hospital className="w-5 h-5 text-white" />
                 </div>
@@ -436,12 +410,18 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
                     Aesthetic Hospital
                   </span>
                   <span 
-                    className="text-[10px] uppercase tracking-wider font-semibold block flex items-center gap-1"
-                    style={{ color: '#2D6A4F' }}
+                    className="text-[10px] uppercase tracking-wider font-semibold block flex items-center gap-1 brand-header-subtitle transition-colors duration-300"
+                    style={{ color: activePalette.gradientStart }}
                   >
                     <span>{currentRole} WORKSPACE</span>
                     {currentUser?.allowedModules && currentUser.allowedModules.length > 0 && currentRole !== 'ADMIN' && (
-                      <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold">
+                      <span 
+                        className="text-[9px] px-1 py-0.2 rounded font-bold"
+                        style={{
+                          backgroundColor: activePalette.badgeBgLight,
+                          color: activePalette.badgeTextLight
+                        }}
+                      >
                         {visibleModules.length} Modules
                       </span>
                     )}
@@ -453,7 +433,7 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
               <button
                 onClick={onToggleExpand}
                 className="p-1.5 rounded-lg text-[#656D4A] hover:text-[#1F291E] hover:bg-[#F0F3EB] dark:text-[#C2C5AA] dark:hover:text-white dark:hover:bg-[#2D3923] transition-colors shrink-0 cursor-pointer"
-                title="Collapse Sidebar"
+                title={isExpanded ? "Lock in dynamic auto-collapse mode" : "Lock in permanently expanded mode"}
               >
                 <Menu className="w-5 h-5" />
               </button>
@@ -461,10 +441,11 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
           ) : (
             <button
               onClick={onToggleExpand}
-              className="p-2 rounded-lg text-[#656D4A] hover:text-[#1F291E] hover:bg-[#F0F3EB] dark:text-[#C2C5AA] dark:hover:text-white dark:hover:bg-[#2D3923] transition-colors cursor-pointer"
-              title="Expand Sidebar"
+              className="w-9 h-9 rounded-xl text-white flex items-center justify-center shrink-0 shadow-xs cursor-pointer hover:scale-105 transition-all duration-300 brand-header-icon"
+              style={{ background: `linear-gradient(135deg, ${activePalette.gradientStart} 0%, ${activePalette.gradientEnd} 100%)` }}
+              title="Aesthetic Hospital Workspace (Click to expand)"
             >
-              <Menu className="w-5 h-5" />
+              <Hospital className="w-5 h-5 text-white" />
             </button>
           )}
         </div>
@@ -487,7 +468,7 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
                 }`}
               >
                 {/* Category Header */}
-                {isExpanded && hasMultipleCategories && (
+                {effectiveExpanded && hasMultipleCategories && (
                   <div className="px-2.5 pt-2 pb-1 text-[10px] font-extrabold uppercase tracking-wider text-[#656D4A] dark:text-[#A4AC86] flex items-center justify-between border-t border-[#E2E6D8]/40 dark:border-[#333D29]/40 first:border-0 first:pt-0">
                     <span>{cat.label}</span>
                     <span className="text-[9px] font-mono opacity-60">({cat.items.length})</span>
@@ -508,17 +489,17 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
                       onClick={() => onSelectTab(item.id)}
                       className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all cursor-pointer ${
                         isActive
-                          ? 'bg-[#E8F3EB] dark:bg-[#2D3923] text-[#1B4332] dark:text-white font-bold border border-[#A7D7C5] dark:border-[#406343] shadow-xs'
+                          ? 'sidebar-active-tab bg-[#E8F3EB] dark:bg-[#2D3923] text-[#1B4332] dark:text-white font-bold border border-[#A7D7C5] dark:border-[#406343] shadow-xs'
                           : 'text-[#4A5543] hover:text-[#1F291E] hover:bg-[#F4F6F0] dark:text-[#C2C5AA] dark:hover:text-white dark:hover:bg-[#2D3923]/60'
                       } ${isItemDragged ? 'opacity-40 scale-95' : ''}`}
-                      title={!isExpanded ? `${item.label} (${cat.label})` : undefined}
+                      title={!effectiveExpanded ? `${item.label} (${cat.label})` : undefined}
                     >
                       <Icon 
                         className="w-4 h-4 shrink-0 transition-colors" 
-                        style={{ color: isActive ? '#2D6A4F' : undefined }}
+                        style={{ color: isActive ? 'var(--primary-accent, #2D6A4F)' : undefined }}
                       />
-                      {isExpanded && <span className="truncate text-left flex-1">{item.label}</span>}
-                      {isExpanded && currentRole === 'ADMIN' && (
+                      {effectiveExpanded && <span className="truncate text-left flex-1">{item.label}</span>}
+                      {effectiveExpanded && currentRole === 'ADMIN' && (
                         <GripVertical className="w-3 h-3 text-slate-300 dark:text-[#4A5543] opacity-0 hover:opacity-100 shrink-0" />
                       )}
                     </button>
@@ -536,83 +517,19 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
         </nav>
       </div>
 
-      {/* Half-Centimeter Arrow Strip & Drop-Up Menu */}
-      <div className="relative border-t border-[#E2E6D8] dark:border-[#333D29]">
-        {/* The Sleek Half-Centimeter Strip */}
-        <button
-          ref={stripRef}
-          type="button"
-          onClick={() => setIsDropUpOpen(prev => !prev)}
-          style={{ height: '22px' }}
-          className={`w-full flex items-center justify-center transition-all duration-200 cursor-pointer select-none group ${
-            isDropUpOpen 
-              ? 'bg-[#E3EBE0] dark:bg-[#27351F]' 
-              : 'bg-[#F6F8F4] hover:bg-[#EAEFE6] dark:bg-[#1A2315] dark:hover:bg-[#232F1A]'
-          }`}
-          title={isDropUpOpen ? "Close preferences" : "Theme & Sign Out Options"}
-          aria-label="Toggle Preferences and Sign Out Drop-Up"
-        >
-          <ChevronUp 
-            className={`w-3.5 h-3.5 text-[#656D4A] dark:text-[#A4AC86] transition-transform duration-200 group-hover:scale-110 group-hover:text-[#1B4332] dark:group-hover:text-white ${
-              isDropUpOpen ? 'rotate-180 text-[#2D6A4F] dark:text-[#52B788]' : ''
-            }`}
-          />
-        </button>
-
-        {/* Drop-Up Menu (Opens Upward Above Strip) */}
-        {isDropUpOpen && (
-          <div 
-            ref={dropUpRef}
-            className={`absolute bottom-full mb-1.5 z-50 bg-white dark:bg-[#1E2718] border border-[#D4DCD0] dark:border-[#333D29] rounded-2xl shadow-2xl p-1.5 space-y-1 animate-in fade-in slide-in-from-bottom-2 duration-150 ${
-              isExpanded 
-                ? 'left-2 right-2' 
-                : 'left-2 w-52'
-            }`}
-          >
-            {/* Theme Toggle Button (Light / Dark Mode) */}
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-[#4A5543] dark:text-[#C2C5AA] hover:text-[#1F291E] dark:hover:text-white hover:bg-[#F4F6F0] dark:hover:bg-[#2D3923] transition-colors cursor-pointer"
-            >
-              <div className="flex items-center gap-2.5">
-                {isDark ? (
-                  <Sun className="w-4 h-4 text-amber-500 shrink-0" />
-                ) : (
-                  <Moon className="w-4 h-4 text-indigo-500 shrink-0" />
-                )}
-                <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
-              </div>
-              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#EAEFE6] dark:bg-[#151D10] text-[#2D6A4F] dark:text-[#52B788]">
-                {isDark ? 'DARK' : 'LIGHT'}
-              </span>
-            </button>
-
-            {/* Separator line */}
-            <div className="border-t border-[#E8ECE3] dark:border-[#2D3923] my-1" />
-
-            {/* Sign Out Button */}
-            <button
-              type="button"
-              onClick={() => {
-                setIsDropUpOpen(false);
-                setShowLogoutConfirm(true);
-              }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-            >
-              <LogOut className="w-4 h-4 shrink-0" />
-              <span>Sign Out</span>
-            </button>
-          </div>
-        )}
-      </div>
-
       {/* Footer Area: Active Department & User Profile Info */}
       <div className="p-2 border-t border-[#E2E6D8] dark:border-[#333D29] bg-[#FAFBF8] dark:bg-[#192215]">
-        {isExpanded ? (
+        {effectiveExpanded ? (
           <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-white dark:bg-[#1F291B] border border-[#E2E6D8] dark:border-[#2D3923] shadow-xs select-none">
             {/* Department / User Avatar Tile */}
-            <div className="relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-[#E8F3EB] dark:bg-[#253723] text-[#2D6A4F] dark:text-[#74C69D] border border-[#C2DEC9] dark:border-[#3A5337]">
+            <div 
+              className="relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border transition-colors"
+              style={{
+                backgroundColor: isDark ? activePalette.badgeBgDark : activePalette.badgeBgLight,
+                borderColor: isDark ? '#3A5337' : activePalette.badgeBgLight,
+                color: isDark ? activePalette.badgeTextDark : activePalette.gradientStart
+              }}
+            >
               <DepartmentIcon className="w-4 h-4" />
               <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#1F291B]" />
             </div>
@@ -626,16 +543,40 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
                 {departmentLabel}
               </div>
             </div>
+
+            {/* Sign Out Action Button on Right Side of Label */}
+            <button
+              id="sidebar-footer-signout-btn"
+              type="button"
+              onClick={() => setShowLogoutConfirm(true)}
+              className="p-1.5 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:text-rose-300 dark:hover:bg-rose-950/60 transition-all cursor-pointer shrink-0 group active:scale-95"
+              title="Sign Out"
+              aria-label="Sign Out"
+            >
+              <LogOut className="w-4 h-4 transition-transform group-hover:scale-110" />
+            </button>
           </div>
         ) : (
           <div 
             className="flex items-center justify-center py-1 select-none"
-            title={`${resolvedUserName} • ${departmentLabel}`}
+            title={`${resolvedUserName} • ${departmentLabel} (Click to Sign Out)`}
           >
-            <div className="relative w-8 h-8 rounded-lg flex items-center justify-center bg-[#E8F3EB] dark:bg-[#253723] text-[#2D6A4F] dark:text-[#74C69D] border border-[#C2DEC9] dark:border-[#3A5337]">
-              <DepartmentIcon className="w-4 h-4" />
+            <button
+              type="button"
+              onClick={() => setShowLogoutConfirm(true)}
+              className="relative w-8 h-8 rounded-lg flex items-center justify-center border transition-all cursor-pointer hover:scale-105 group"
+              style={{
+                backgroundColor: isDark ? activePalette.badgeBgDark : activePalette.badgeBgLight,
+                borderColor: isDark ? '#3A5337' : activePalette.badgeBgLight,
+                color: isDark ? activePalette.badgeTextDark : activePalette.gradientStart
+              }}
+              title="Sign Out"
+              aria-label="Sign Out"
+            >
+              <DepartmentIcon className="w-4 h-4 group-hover:hidden" />
+              <LogOut className="w-4 h-4 text-rose-500 hidden group-hover:block" />
               <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#1F291B]" />
-            </div>
+            </button>
           </div>
         )}
       </div>
@@ -656,7 +597,7 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
                 <LogOut className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
                   Sign Out Confirmation
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-[#A4AC86] mt-1.5 leading-relaxed">

@@ -6,6 +6,21 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
+    fontSize: {
+      'xs': ['11px', { lineHeight: '15px' }],
+      'sm': ['12px', { lineHeight: '16px' }],
+      'base': ['13px', { lineHeight: '18px' }],
+      'lg': ['14px', { lineHeight: '20px' }],
+      'xl': ['14px', { lineHeight: '20px' }],
+      '2xl': ['14px', { lineHeight: '20px' }],
+      '3xl': ['14px', { lineHeight: '20px' }],
+      '4xl': ['14px', { lineHeight: '20px' }],
+      '5xl': ['14px', { lineHeight: '20px' }],
+      '6xl': ['14px', { lineHeight: '20px' }],
+      '7xl': ['14px', { lineHeight: '20px' }],
+      '8xl': ['14px', { lineHeight: '20px' }],
+      '9xl': ['14px', { lineHeight: '20px' }],
+    },
     extend: {
       colors: {
         // EXACT 10-SWATCH PALETTE REQUESTED BY USER

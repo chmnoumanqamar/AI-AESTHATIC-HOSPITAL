@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Sliders, 
   Shield, 
   Save, 
   CheckCircle2, 
@@ -11,11 +10,9 @@ import {
   Copy,
   Eye,
   EyeOff,
-  Globe,
   Check,
   Smartphone,
-  ExternalLink,
-  QrCode
+  ExternalLink
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { WhatsAppSimulatorModal } from '../../components/common/WhatsAppSimulatorModal';

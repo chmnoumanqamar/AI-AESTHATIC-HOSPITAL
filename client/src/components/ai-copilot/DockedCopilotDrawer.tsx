@@ -20,6 +20,7 @@ import { CountdownReminderBanner } from './CountdownReminderBanner';
 import { ChatHistoryDrawer } from './ChatHistoryDrawer';
 import { chatSessionService, ChatSession } from '../../services/chat-session.service';
 import { api } from '../../services/api';
+import { getStoredThemeColor, THEME_COLOR_OPTIONS, ThemeColorOption, getCurrentPalette } from '../../utils/themePalette';
 
 interface DockedCopilotDrawerProps {
   isDocked?: boolean;
@@ -52,6 +53,19 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
   const [isTyping, setIsTyping] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [activeReminder, setActiveReminder] = useState<any>(null);
+
+  // Sync active theme palette
+  const [activePalette, setActivePalette] = useState<ThemeColorOption>(getCurrentPalette);
+
+  useEffect(() => {
+    const handleColorEvent = (e: any) => {
+      if (e.detail?.gradientStart) {
+        setActivePalette(e.detail);
+      }
+    };
+    window.addEventListener('hospital_theme_color_changed', handleColorEvent);
+    return () => window.removeEventListener('hospital_theme_color_changed', handleColorEvent);
+  }, []);
 
   // Multi-session & History Drawer state
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -526,11 +540,11 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
         </div>
       )}
 
-      {/* Radiant Emerald Medical Header with Studio Controls */}
+      {/* Radiant Emerald / Themed Medical Header with Studio Controls */}
       <div
         className="p-3 sm:p-3.5 border-b flex items-center justify-between shrink-0 shadow-sm chatbot-drawer-header transition-all duration-300"
         style={{
-          background: 'linear-gradient(135deg, #122B1E 0%, #1A3E2C 50%, #2D6A4F 100%)',
+          background: `linear-gradient(135deg, ${activePalette.gradientEnd} 0%, ${activePalette.gradientStart} 100%)`,
           borderBottom: '1px solid rgba(255, 255, 255, 0.15)'
         }}
       >
@@ -737,8 +751,8 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
               disabled={!inputText.trim() && pendingFiles.length === 0}
               className="w-8 h-8 rounded-xl flex items-center justify-center text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs active:scale-95 shrink-0 chatbot-send-button"
               style={{
-                background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)',
-                boxShadow: '0 2px 8px rgba(45, 106, 79, 0.35)'
+                background: `linear-gradient(135deg, ${activePalette.gradientStart} 0%, ${activePalette.gradientEnd} 100%)`,
+                boxShadow: `0 2px 8px ${activePalette.gradientStart}50`
               }}
               title="Send Message"
             >

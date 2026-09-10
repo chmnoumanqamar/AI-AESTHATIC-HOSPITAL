@@ -209,7 +209,12 @@ html:not(.dark) .border-rose-300, html:not(.dark) .border-red-300 { border-color
 .bg-semantic-emergency   { background-color: #DC2626 !important; }
 
 /* BASE APP & SCROLLBAR */
+html {
+  font-size: 14px !important;
+}
+
 body {
+  font-size: 14px !important;
   background-color: #F6F7F2 !important;
   color: #333D29 !important;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -247,7 +252,7 @@ body {
   border: 1.5px solid #DDE2D5 !important;
   color: #1F291E !important;
   border-radius: 10px;
-  font-size: 0.875rem;
+  font-size: 13px !important;
   padding: 0.6rem 0.9rem;
   transition: all 0.2s ease-in-out;
 }
@@ -266,10 +271,10 @@ body {
 }
 
 .clinical-button-primary {
-  background: linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%) !important;
+  background: linear-gradient(135deg, var(--primary-gradient-start, #2D6A4F) 0%, var(--primary-gradient-end, #1B4332) 100%) !important;
   color: #FFFFFF !important;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 13px !important;
   padding: 0.6rem 1.25rem;
   border-radius: 10px;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -282,7 +287,7 @@ body {
 }
 
 .clinical-button-primary:hover {
-  background: linear-gradient(135deg, #388463 0%, #225640 100%) !important;
+  background: linear-gradient(135deg, var(--primary-gradient-hover-start, #388463) 0%, var(--primary-gradient-hover-end, #225640) 100%) !important;
   transform: translateY(-1px);
   box-shadow: 0 4px 14px rgba(45, 106, 79, 0.35);
 }
@@ -296,7 +301,7 @@ body {
   color: #2D4026 !important;
   border: 1px solid #D0D7C2 !important;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 13px !important;
   padding: 0.6rem 1.1rem;
   border-radius: 10px;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -585,12 +590,12 @@ html.dark .clinical-input:focus {
 }
 
 html.dark .clinical-button-primary {
-  background-color: #656D4A !important;
+  background: linear-gradient(135deg, var(--primary-gradient-start, #2D6A4F) 0%, var(--primary-gradient-end, #1B4332) 100%) !important;
   color: #FFFFFF !important;
 }
 
 html.dark .clinical-button-primary:hover {
-  background-color: #7F4F24 !important;
+  background: linear-gradient(135deg, var(--primary-gradient-hover-start, #388463) 0%, var(--primary-gradient-hover-end, #225640) 100%) !important;
 }
 
 html.dark .clinical-button-secondary {
@@ -741,4 +746,43 @@ html.dark .custom-scrollbar::-webkit-scrollbar-thumb {
 html.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(164, 172, 134, 0.7);
 }
+
+/* ==========================================================================
+   GLOBAL MAXIMUM FONT SIZE ENFORCEMENT (14px MAX CAP ACROSS COMPLETE PROJECT)
+   ========================================================================== */
+html,
+body {
+  font-size: 14px !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-size: 14px;
+}
+
+/* Hard cap all font size utility classes at 14px maximum */
+.text-lg,
+.text-xl,
+.text-2xl,
+.text-3xl,
+.text-4xl,
+.text-5xl,
+.text-6xl,
+.text-7xl,
+.text-8xl,
+.text-9xl {
+  font-size: 14px !important;
+}
+
+.text-base {
+  font-size: 13px !important;
+}
+
+.text-sm {
+  font-size: 12px !important;
+}
+
+.text-xs {
+  font-size: 11px !important;
+}
+
 

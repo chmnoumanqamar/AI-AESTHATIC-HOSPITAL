@@ -12,7 +12,7 @@ This document provides a comprehensive record of all features, UI/UX enhancement
 | **Comprehensive Theme Engine** | Dynamic CSS engine overriding buttons, badges, labels, headings, and borders across every page | [`client/src/utils/themePalette.ts`](file:///c:/Users/Honey/Desktop/AI-AESTHATIC-HOSPITAL/client/src/utils/themePalette.ts), [`client/src/styles/globals.css`](file:///c:/Users/Honey/Desktop/AI-AESTHATIC-HOSPITAL/client/src/styles/globals.css), [`client/src/main.tsx`](file:///c:/Users/Honey/Desktop/AI-AESTHATIC-HOSPITAL/client/src/main.tsx) |
 | **Dynamic Omnibar Search** | Integrated `Ctrl+K` / `Cmd+K` global search bar in HeaderBar for windows, patients, reports & system tools | [`client/src/components/layout/HeaderBar.tsx`](file:///c:/Users/Honey/Desktop/AI-AESTHATIC-HOSPITAL/client/src/components/layout/HeaderBar.tsx) |
 | **Dynamic Hover Sidebar** | Sidebar defaults to compact `w-16` icon rail and smoothly expands to `w-64` on cursor hover | [`client/src/components/layout/StructuralRailNav.tsx`](file:///c:/Users/Honey/Desktop/AI-AESTHATIC-HOSPITAL/client/src/components/layout/StructuralRailNav.tsx), [`client/src/components/layout/CommandDeckShell.tsx`](file:///c:/Users/Honey/Desktop/AI-AESTHATIC-HOSPITAL/client/src/components/layout/CommandDeckShell.tsx) |
-| **Strict 12px Font Ceiling** | Enforced project-wide max 12px typography constraint across Tailwind config and CSS | [`client/tailwind.config.js`](file:///c:/Users/Honey/Desktop/AI-AESTHATIC-HOSPITAL/client/tailwind.config.js), [`client/src/styles/globals.css`](file:///c:/Users/Honey/Desktop/AI-AESTHATIC-HOSPITAL/client/src/styles/globals.css) |
+| **Strict 14px Font Ceiling** | Enforced project-wide max 14px typography constraint across Tailwind config and CSS | [`client/tailwind.config.js`](file:///c:/Users/Honey/Desktop/AI-AESTHATIC-HOSPITAL/client/tailwind.config.js), [`client/src/styles/globals.css`](file:///c:/Users/Honey/Desktop/AI-AESTHATIC-HOSPITAL/client/src/styles/globals.css) |
 | **Header Clean-Up** | Removed bulky card container around window title; display clean `FeatureIcon` + bold title | [`client/src/components/layout/HeaderBar.tsx`](file:///c:/Users/Honey/Desktop/AI-AESTHATIC-HOSPITAL/client/src/components/layout/HeaderBar.tsx) |
 | **Portal Greeting De-duplication**| Removed redundant greeting banners across Doctor, Patient, and Receptionist views | [`client/src/pages/doctor/dashboard.tsx`](file:///c:/Users/Honey/Desktop/AI-AESTHATIC-HOSPITAL/client/src/pages/doctor/dashboard.tsx), [`client/src/pages/patient/dashboard.tsx`](file:///c:/Users/Honey/Desktop/AI-AESTHATIC-HOSPITAL/client/src/pages/patient/dashboard.tsx), [`client/src/pages/receptionist/command-center.tsx`](file:///c:/Users/Honey/Desktop/AI-AESTHATIC-HOSPITAL/client/src/pages/receptionist/command-center.tsx) |
 | **Settings Simplification** | Kept clean System Policies & Rules and WhatsApp Meta Cloud API controls in Admin settings | [`client/src/pages/admin/config.tsx`](file:///c:/Users/Honey/Desktop/AI-AESTHATIC-HOSPITAL/client/src/pages/admin/config.tsx) |
@@ -70,24 +70,24 @@ This document provides a comprehensive record of all features, UI/UX enhancement
 
 ---
 
-### 2.4 Strict 12px Maximum Font Size Rule
+### 2.4 Strict 14px Maximum Font Size Rule
 - **Tailwind Configuration** ([`client/tailwind.config.js`](file:///c:/Users/Honey/Desktop/AI-AESTHATIC-HOSPITAL/client/tailwind.config.js)):
-  - Defined explicit fontSize scale capped at `12px`:
+  - Defined explicit fontSize scale capped at `14px`:
     ```js
     fontSize: {
-      'xs': ['10px', { lineHeight: '14px' }],
-      'sm': ['11px', { lineHeight: '15px' }],
-      'base': ['12px', { lineHeight: '16px' }],
-      'lg': ['12px', { lineHeight: '16px' }],
-      'xl': ['12px', { lineHeight: '16px' }],
-      // ... all larger scales capped at 12px
+      'xs': ['11px', { lineHeight: '15px' }],
+      'sm': ['12px', { lineHeight: '16px' }],
+      'base': ['13px', { lineHeight: '18px' }],
+      'lg': ['14px', { lineHeight: '20px' }],
+      'xl': ['14px', { lineHeight: '20px' }],
+      // ... all larger scales capped at 14px
     }
     ```
 - **Root Stylesheet** ([`client/src/styles/globals.css`](file:///c:/Users/Honey/Desktop/AI-AESTHATIC-HOSPITAL/client/src/styles/globals.css)):
-  - `html, body { font-size: 12px !important; }` enforced globally.
-  - Clinical table headers, card titles, badges, and diagnostic inputs scaled appropriately within the 10px–12px bounds.
+  - `html, body { font-size: 14px !important; }` enforced globally.
+  - Clinical table headers, card titles, badges, and diagnostic inputs scaled appropriately within the 11px–14px bounds.
 - **Multi-Port Proxy Server** ([`client/multi-port-server.js`](file:///c:/Users/Honey/Desktop/AI-AESTHATIC-HOSPITAL/client/multi-port-server.js)):
-  - Terminal splash screen cards and fallback notices capped at 12px.
+  - Terminal splash screen cards and fallback notices capped at 14px.
 
 ---
 

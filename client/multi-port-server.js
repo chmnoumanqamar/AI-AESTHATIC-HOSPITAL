@@ -49,8 +49,8 @@ proxy.on('error', (err, req, res) => {
             animation: spin 1s linear infinite;
           }
           @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-          h2 { margin: 0 0 8px; font-size: 12px; }
-          p { margin: 0; font-size: 12px; color: #5C6B73; }
+          h2 { margin: 0 0 8px; font-size: 14px; }
+          p { margin: 0; font-size: 13px; color: #5C6B73; }
         </style>
       </head>
       <body>

@@ -23,8 +23,8 @@ For the complete, itemized technical changelog, see [HANZALA_CHANGES.md](file://
    - Expands to `w-64` on cursor hover (`onMouseEnter`).
    - Sleek 22px bottom strip with drop-up menu for theme toggle and sign-out.
 
-4. **Project-Wide Strict 12px Font Ceiling**:
-   - All components, headings, and tables strictly capped at $\le$ 12px across Tailwind and global styles.
+4. **Project-Wide Strict 14px Font Ceiling**:
+   - All components, headings, and tables strictly capped at $\le$ 14px across Tailwind and global styles.
 
 5. **Cleaned Header & Greetings**:
    - Removed redundant "Attending Physician" and portal welcome greetings.

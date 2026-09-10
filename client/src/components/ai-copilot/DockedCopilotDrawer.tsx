@@ -42,7 +42,7 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
   const initialGreeting: ChatMessage = {
     id: 'm-init',
     sender: 'assistant',
-    text: "✨ Hello! I am your AI Clinical Copilot powered by Google Gemini. How may I assist you with clinical care, appointment schedules, packages, diagnostic test reminders, or operational reports today?",
+    text: "Hello! How can I assist you today?",
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   };
 
@@ -536,7 +536,7 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
               </h3>
               <span className="flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-emerald-400/20 text-emerald-200 border border-emerald-300/30">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>GEMINI</span>
+                <span>ONLINE</span>
               </span>
             </div>
           </div>

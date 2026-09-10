@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StructuralRailNav } from './StructuralRailNav';
 import { HeaderBar } from './HeaderBar';
 import { DockedCopilotDrawer } from '../ai-copilot/DockedCopilotDrawer';
 import { Bot, Sparkles, X } from 'lucide-react';
+import { getStoredThemeColor, THEME_COLOR_OPTIONS, ThemeColorOption } from '../../utils/themePalette';
 
 interface CommandDeckShellProps {
   currentRole: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST';
@@ -27,6 +28,23 @@ export const CommandDeckShell: React.FC<CommandDeckShellProps> = ({
 }) => {
   const [isRailExpanded, setIsRailExpanded] = useState(false);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
+
+  // Sync active theme palette for Chatbot FAB
+  const [activePalette, setActivePalette] = useState<ThemeColorOption>(() => {
+    const id = getStoredThemeColor();
+    return THEME_COLOR_OPTIONS.find(c => c.id === id) || THEME_COLOR_OPTIONS[0];
+  });
+
+  useEffect(() => {
+    const handleColorEvent = (e: any) => {
+      if (e.detail?.id) {
+        const found = THEME_COLOR_OPTIONS.find(c => c.id === e.detail.id);
+        if (found) setActivePalette(found);
+      }
+    };
+    window.addEventListener('hospital_theme_color_changed', handleColorEvent);
+    return () => window.removeEventListener('hospital_theme_color_changed', handleColorEvent);
+  }, []);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden window-canvas-bg bg-[#F8F9FA] dark:bg-[#1A2215]">
@@ -77,7 +95,9 @@ export const CommandDeckShell: React.FC<CommandDeckShellProps> = ({
         {/* Floating Bot Action Button (FAB) - Prominent Circular ("Gol") Design */}
         <button
           onClick={() => setIsCopilotOpen(!isCopilotOpen)}
-          className="group relative flex items-center justify-center rounded-full shadow-2xl hover:shadow-[0_12px_36px_rgba(45,106,79,0.55)] transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer text-white shrink-0"
+          className={`group relative flex items-center justify-center rounded-full shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer text-white shrink-0 chatbot-fab-button ${
+            isCopilotOpen ? 'is-open' : ''
+          }`}
           style={{
             width: '64px',
             height: '64px',
@@ -85,8 +105,10 @@ export const CommandDeckShell: React.FC<CommandDeckShellProps> = ({
             minHeight: '64px',
             background: isCopilotOpen 
               ? 'linear-gradient(135deg, #1F291E 0%, #111827 100%)' 
-              : 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)',
-            boxShadow: '0 10px 30px rgba(45, 106, 79, 0.45)',
+              : `linear-gradient(135deg, ${activePalette.gradientStart} 0%, ${activePalette.gradientEnd} 100%)`,
+            boxShadow: isCopilotOpen 
+              ? '0 10px 30px rgba(0, 0, 0, 0.45)' 
+              : `0 10px 30px ${activePalette.gradientStart}66`,
             border: '2.5px solid rgba(255, 255, 255, 0.35)'
           }}
           title={isCopilotOpen ? 'Close AI Chatbot' : 'Open AI Chatbot'}
@@ -98,8 +120,14 @@ export const CommandDeckShell: React.FC<CommandDeckShellProps> = ({
             <div className="relative flex items-center justify-center">
               <Bot className="w-8 h-8 text-white group-hover:scale-110 transition-transform duration-200" />
               <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-80" />
-                <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-400 border-2 border-white shadow-xs" />
+                <span 
+                  className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-80" 
+                  style={{ backgroundColor: activePalette.hoverStart }}
+                />
+                <span 
+                  className="relative inline-flex rounded-full h-4 w-4 border-2 border-white shadow-xs" 
+                  style={{ backgroundColor: activePalette.gradientStart }}
+                />
               </span>
             </div>
           )}
@@ -108,7 +136,7 @@ export const CommandDeckShell: React.FC<CommandDeckShellProps> = ({
           <span 
             className="absolute right-[76px] text-xs font-bold px-3.5 py-2 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap shadow-2xl bg-slate-900/95 dark:bg-slate-800/95 text-white border border-slate-700/60 backdrop-blur-xs flex items-center gap-2"
           >
-            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+            <Sparkles className="w-3.5 h-3.5" style={{ color: activePalette.hoverStart }} />
             <span>{isCopilotOpen ? 'Close Assistant' : 'AI Clinical Copilot'}</span>
           </span>
         </button>

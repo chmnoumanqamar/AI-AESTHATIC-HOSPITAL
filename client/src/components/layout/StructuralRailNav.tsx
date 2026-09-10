@@ -32,6 +32,7 @@ import {
   User
 } from 'lucide-react';
 import { api } from '../../services/api';
+import { getStoredThemeColor, THEME_COLOR_OPTIONS, ThemeColorOption } from '../../utils/themePalette';
 
 export interface ModuleNavDef {
   id: string;
@@ -166,6 +167,23 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
     };
     window.addEventListener('hospital_theme_changed', handleThemeEvent);
     return () => window.removeEventListener('hospital_theme_changed', handleThemeEvent);
+  }, []);
+
+  // Real-time synced theme palette for Brand Header & Sidebar
+  const [activePalette, setActivePalette] = useState<ThemeColorOption>(() => {
+    const id = getStoredThemeColor();
+    return THEME_COLOR_OPTIONS.find(c => c.id === id) || THEME_COLOR_OPTIONS[0];
+  });
+
+  useEffect(() => {
+    const handleColorEvent = (e: any) => {
+      if (e.detail?.id) {
+        const found = THEME_COLOR_OPTIONS.find(c => c.id === e.detail.id);
+        if (found) setActivePalette(found);
+      }
+    };
+    window.addEventListener('hospital_theme_color_changed', handleColorEvent);
+    return () => window.removeEventListener('hospital_theme_color_changed', handleColorEvent);
   }, []);
 
   // Click outside & Escape key handler to close drop-up
@@ -435,8 +453,8 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
             <>
               <div className="flex items-center gap-2.5 overflow-hidden">
                 <div 
-                  className="w-9 h-9 rounded-xl text-white flex items-center justify-center shrink-0 shadow-xs"
-                  style={{ background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)' }}
+                  className="w-9 h-9 rounded-xl text-white flex items-center justify-center shrink-0 shadow-xs brand-header-icon transition-all duration-300"
+                  style={{ background: `linear-gradient(135deg, ${activePalette.gradientStart} 0%, ${activePalette.gradientEnd} 100%)` }}
                 >
                   <Hospital className="w-5 h-5 text-white" />
                 </div>
@@ -445,12 +463,18 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
                     Aesthetic Hospital
                   </span>
                   <span 
-                    className="text-[10px] uppercase tracking-wider font-semibold block flex items-center gap-1"
-                    style={{ color: '#2D6A4F' }}
+                    className="text-[10px] uppercase tracking-wider font-semibold block flex items-center gap-1 brand-header-subtitle transition-colors duration-300"
+                    style={{ color: activePalette.gradientStart }}
                   >
                     <span>{currentRole} WORKSPACE</span>
                     {currentUser?.allowedModules && currentUser.allowedModules.length > 0 && currentRole !== 'ADMIN' && (
-                      <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold">
+                      <span 
+                        className="text-[9px] px-1 py-0.2 rounded font-bold"
+                        style={{
+                          backgroundColor: activePalette.badgeBgLight,
+                          color: activePalette.badgeTextLight
+                        }}
+                      >
                         {visibleModules.length} Modules
                       </span>
                     )}
@@ -470,10 +494,11 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
           ) : (
             <button
               onClick={onToggleExpand}
-              className="p-2 rounded-lg text-[#656D4A] hover:text-[#1F291E] hover:bg-[#F0F3EB] dark:text-[#C2C5AA] dark:hover:text-white dark:hover:bg-[#2D3923] transition-colors cursor-pointer"
-              title="Expand Sidebar"
+              className="w-9 h-9 rounded-xl text-white flex items-center justify-center shrink-0 shadow-xs cursor-pointer hover:scale-105 transition-all duration-300 brand-header-icon"
+              style={{ background: `linear-gradient(135deg, ${activePalette.gradientStart} 0%, ${activePalette.gradientEnd} 100%)` }}
+              title="Aesthetic Hospital Workspace (Click to expand)"
             >
-              <Menu className="w-5 h-5" />
+              <Hospital className="w-5 h-5 text-white" />
             </button>
           )}
         </div>

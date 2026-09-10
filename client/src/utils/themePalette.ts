@@ -241,6 +241,36 @@ export function applyThemeColor(colorId: string): void {
       color: ${color.accent} !important;
     }
 
+    /* BRAND HEADER (SIDEBAR & HEADER BAR) */
+    .brand-header-icon {
+      background: linear-gradient(135deg, ${color.gradientStart} 0%, ${color.gradientEnd} 100%) !important;
+    }
+    .brand-header-subtitle {
+      color: ${color.gradientStart} !important;
+    }
+    .header-brand-bar {
+      border-top-color: ${color.gradientStart} !important;
+    }
+    .header-window-icon {
+      color: ${color.gradientStart} !important;
+    }
+    html.dark .header-window-icon {
+      color: ${color.badgeTextDark} !important;
+    }
+
+    /* CHATBOT ICON (FAB) & COPILOT DRAWER */
+    .chatbot-fab-button:not(.is-open) {
+      background: linear-gradient(135deg, ${color.gradientStart} 0%, ${color.gradientEnd} 100%) !important;
+      box-shadow: 0 10px 30px ${color.gradientStart}66 !important;
+    }
+    .chatbot-drawer-header {
+      background: linear-gradient(135deg, ${color.gradientEnd} 0%, ${color.gradientStart} 100%) !important;
+    }
+    .chatbot-send-button {
+      background: linear-gradient(135deg, ${color.gradientStart} 0%, ${color.gradientEnd} 100%) !important;
+      box-shadow: 0 2px 8px ${color.gradientStart}50 !important;
+    }
+
     /* Dark mode text accents */
     .dark\\:text-\\[\\#74C69D\\],
     .dark\\:text-\\[\\#52B788\\],
@@ -248,8 +278,7 @@ export function applyThemeColor(colorId: string): void {
     .dark\\:text-emerald-300,
     html.dark .text-\\[\\#2D6A4F\\],
     html.dark .text-emerald-400,
-    html.dark .text-emerald-300,
-    html.dark .header-window-icon {
+    html.dark .text-emerald-300 {
       color: ${color.badgeTextDark} !important;
     }
 

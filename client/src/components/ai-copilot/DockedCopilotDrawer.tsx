@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Sparkles, X, Bell, RotateCcw } from 'lucide-react';
 import { AIChatMessageList, ChatMessage } from './AIChatMessageList';
 import { api } from '../../services/api';
+import { getStoredThemeColor, THEME_COLOR_OPTIONS, ThemeColorOption } from '../../utils/themePalette';
 
 interface DockedCopilotDrawerProps {
   isDocked?: boolean;
@@ -30,6 +31,23 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
   const [isTyping, setIsTyping] = useState(false);
   const [activeReminder, setActiveReminder] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Sync active theme palette
+  const [activePalette, setActivePalette] = useState<ThemeColorOption>(() => {
+    const id = getStoredThemeColor();
+    return THEME_COLOR_OPTIONS.find(c => c.id === id) || THEME_COLOR_OPTIONS[0];
+  });
+
+  useEffect(() => {
+    const handleColorEvent = (e: any) => {
+      if (e.detail?.id) {
+        const found = THEME_COLOR_OPTIONS.find(c => c.id === e.detail.id);
+        if (found) setActivePalette(found);
+      }
+    };
+    window.addEventListener('hospital_theme_color_changed', handleColorEvent);
+    return () => window.removeEventListener('hospital_theme_color_changed', handleColorEvent);
+  }, []);
 
   // Auto-sanitize initial message to ensure fresh short greeting even with hot reload
   useEffect(() => {
@@ -189,17 +207,17 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
 
   return (
     <div className="h-full flex flex-col bg-white dark:bg-[#171F13] text-[#1F291E] dark:text-[#F6F7F2] select-none">
-      {/* Radiant Emerald Medical Header */}
+      {/* Radiant Themed Medical Header */}
       <div 
-        className="p-3.5 sm:p-4 border-b flex items-center justify-between shrink-0 shadow-sm"
+        className="p-3.5 sm:p-4 border-b flex items-center justify-between shrink-0 shadow-sm chatbot-drawer-header transition-all duration-300"
         style={{
-          background: 'linear-gradient(135deg, #143224 0%, #1F4B36 50%, #2D6A4F 100%)',
+          background: `linear-gradient(135deg, ${activePalette.gradientEnd} 0%, ${activePalette.gradientStart} 100%)`,
           borderBottom: '1px solid rgba(255, 255, 255, 0.15)'
         }}
       >
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white bg-white/15 backdrop-blur-md border border-white/25 shadow-xs shrink-0">
-            <Sparkles className="w-5 h-5 text-emerald-200" />
+            <Sparkles className="w-5 h-5 text-white/90" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -325,10 +343,10 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
           <button
             type="submit"
             disabled={!inputText.trim() || isTyping}
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs active:scale-95 shrink-0"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs active:scale-95 shrink-0 chatbot-send-button"
             style={{
-              background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)',
-              boxShadow: '0 2px 8px rgba(45, 106, 79, 0.35)'
+              background: `linear-gradient(135deg, ${activePalette.gradientStart} 0%, ${activePalette.gradientEnd} 100%)`,
+              boxShadow: `0 2px 8px ${activePalette.gradientStart}50`
             }}
             title="Send Message"
           >

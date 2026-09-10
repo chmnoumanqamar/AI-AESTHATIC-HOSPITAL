@@ -539,10 +539,11 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 
   return (
     <header 
-      className="h-16 px-6 flex items-center justify-between shrink-0 select-none border-b shadow-xs z-20 transition-colors duration-200 relative"
+      className="h-16 px-6 flex items-center justify-between shrink-0 select-none border-b shadow-xs z-20 transition-colors duration-200 relative header-brand-bar"
       style={{ 
         backgroundColor: isDark ? '#1F2718' : '#FFFFFF', 
-        borderColor: isDark ? '#333D29' : '#E2E6D8' 
+        borderColor: isDark ? '#333D29' : '#E2E6D8',
+        borderTop: `2.5px solid ${currentPalette.gradientStart}`
       }}
     >
       {/* Left: Feature Window Title */}
@@ -552,7 +553,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             {FeatureIcon && (
               <FeatureIcon 
                 className="w-5 h-5 shrink-0 header-window-icon" 
-                style={{ color: isDark ? currentPalette.badgeTextDark : currentPalette.accent }} 
+                style={{ color: isDark ? currentPalette.badgeTextDark : currentPalette.gradientStart }} 
               />
             )}
             <span 
@@ -571,16 +572,16 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             style={{
               backgroundColor: isDark ? '#232F1C' : '#FFFFFF',
               borderColor: isDark ? '#3D5033' : '#D4DCD0',
-              boxShadow: isDark ? '0 2px 10px rgba(0,0,0,0.3)' : '0 2px 10px rgba(45,106,79,0.06)'
+              boxShadow: isDark ? '0 2px 10px rgba(0,0,0,0.3)' : `0 2px 10px ${currentPalette.gradientStart}18`
             }}
           >
             {FeatureIcon && (
               <div 
                 className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border"
                 style={{
-                  backgroundColor: isDark ? '#1B2615' : '#EBF4EE',
-                  borderColor: isDark ? '#3D5235' : '#C7DDCF',
-                  color: isDark ? currentPalette.badgeTextDark : currentPalette.accent
+                  backgroundColor: isDark ? currentPalette.badgeBgDark : currentPalette.badgeBgLight,
+                  borderColor: isDark ? '#3D5235' : currentPalette.badgeBgLight,
+                  color: isDark ? currentPalette.badgeTextDark : currentPalette.gradientStart
                 }}
               >
                 <FeatureIcon className="w-4.5 h-4.5" />

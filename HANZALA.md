@@ -25,7 +25,7 @@ For the complete, itemized technical changelog, see [HANZALA_CHANGES.md](file://
    - Clean, unobstructed vertical layout with no redundant drop-ups.
 
 4. **Theme Change Option in HeaderBar**:
-   - Positioned directly **to the right of the notification bell icon** in the header.
+   - Positioned directly **between the color palette picker and the notification bell icon** in the header.
    - 36x36px icon button displaying `Sun` (light mode switch) or `Moon` (dark mode switch) with responsive micro-animations.
    - Immediately dispatches `hospital_theme_changed` and updates `localStorage` and DOM `dark` class.
 

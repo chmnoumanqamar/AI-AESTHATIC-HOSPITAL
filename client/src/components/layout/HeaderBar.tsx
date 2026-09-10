@@ -1122,6 +1122,27 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           )}
         </div>
 
+        {/* Theme Change Option: Light / Dark Mode Toggle between Color Palette and Bell Icon */}
+        <button
+          id="header-theme-toggle-btn"
+          type="button"
+          onClick={toggleTheme}
+          className="relative w-9 h-9 rounded-xl border flex items-center justify-center transition-all duration-200 shadow-2xs cursor-pointer active:scale-95 group hover:border-[#2D6A4F] dark:hover:border-[#A4AC86]"
+          style={{
+            backgroundColor: isDark ? '#2D3923' : '#FFFFFF',
+            borderColor: isDark ? '#414833' : '#E2E6D8',
+            color: isDark ? '#F6F7F2' : '#1F291E'
+          }}
+          title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          aria-label={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+        >
+          {isDark ? (
+            <Sun className="w-4 h-4 text-amber-400 transition-transform group-hover:rotate-45" />
+          ) : (
+            <Moon className="w-4 h-4 text-indigo-600 transition-transform group-hover:-rotate-12" />
+          )}
+        </button>
+
         {/* Right: Bell Icon with Interactive Sub-Window Popover */}
         <div className="relative flex items-center" ref={popoverRef}>
         <button
@@ -1284,27 +1305,6 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           </div>
         )}
         </div>
-
-        {/* Theme Change Option: Light / Dark Mode Toggle just right of Bell Icon */}
-        <button
-          id="header-theme-toggle-btn"
-          type="button"
-          onClick={toggleTheme}
-          className="relative w-9 h-9 rounded-xl border flex items-center justify-center transition-all duration-200 shadow-2xs cursor-pointer active:scale-95 group hover:border-[#2D6A4F] dark:hover:border-[#A4AC86]"
-          style={{
-            backgroundColor: isDark ? '#2D3923' : '#FFFFFF',
-            borderColor: isDark ? '#414833' : '#E2E6D8',
-            color: isDark ? '#F6F7F2' : '#1F291E'
-          }}
-          title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-          aria-label={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-        >
-          {isDark ? (
-            <Sun className="w-4 h-4 text-amber-400 transition-transform group-hover:rotate-45" />
-          ) : (
-            <Moon className="w-4 h-4 text-indigo-600 transition-transform group-hover:-rotate-12" />
-          )}
-        </button>
       </div>
     </header>
   );

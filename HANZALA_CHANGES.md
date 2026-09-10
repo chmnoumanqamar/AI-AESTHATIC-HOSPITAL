@@ -69,9 +69,9 @@ This document provides a comprehensive record of all features, UI/UX enhancement
 ---
 
 ### 2.3.1 Theme Change Option in HeaderBar
-- **Placement**: Positioned immediately **to the right of the notification bell icon**:
+- **Placement**: Positioned immediately **between the color palette picker and the notification bell icon**:
   ```
-  [ Search Bar (Ctrl+K) ] ──► [ 🎨 Palette Picker ] ──► [ 🔔 Notification Bell ] ──► [ ☀️/🌙 Theme Toggle ]
+  [ Search Bar (Ctrl+K) ] ──► [ 🎨 Palette Picker ] ──► [ ☀️/🌙 Theme Toggle ] ──► [ 🔔 Notification Bell ]
   ```
 - **Design & Behavior**:
   - Consistent 36x36px icon button matching the Palette Picker and Notification Bell.

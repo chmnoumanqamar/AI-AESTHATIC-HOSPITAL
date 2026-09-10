@@ -30,3 +30,7 @@ For the complete, itemized technical changelog, see [HANZALA_CHANGES.md](file://
 5. **Cleaned Header & Greetings**:
    - Removed redundant "Attending Physician" and portal welcome greetings.
    - Window titles elevated with clean icons and bold typography.
+
+6. **Footer Sign Out Action Button**:
+   - Integrated a direct sign-out action button (`<LogOut />`) on the right side of the user profile & active department label in the sidebar footer card.
+   - In collapsed mode, the footer avatar tile switches to a sign-out trigger on hover with direct confirmation prompt.

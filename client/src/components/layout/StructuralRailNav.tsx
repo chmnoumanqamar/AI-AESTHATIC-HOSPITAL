@@ -642,7 +642,14 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
         {effectiveExpanded ? (
           <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-white dark:bg-[#1F291B] border border-[#E2E6D8] dark:border-[#2D3923] shadow-xs select-none">
             {/* Department / User Avatar Tile */}
-            <div className="relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-[#E8F3EB] dark:bg-[#253723] text-[#2D6A4F] dark:text-[#74C69D] border border-[#C2DEC9] dark:border-[#3A5337]">
+            <div 
+              className="relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border transition-colors"
+              style={{
+                backgroundColor: isDark ? activePalette.badgeBgDark : activePalette.badgeBgLight,
+                borderColor: isDark ? '#3A5337' : activePalette.badgeBgLight,
+                color: isDark ? activePalette.badgeTextDark : activePalette.gradientStart
+              }}
+            >
               <DepartmentIcon className="w-4 h-4" />
               <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#1F291B]" />
             </div>
@@ -656,16 +663,40 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
                 {departmentLabel}
               </div>
             </div>
+
+            {/* Sign Out Action Button on Right Side of Label */}
+            <button
+              id="sidebar-footer-signout-btn"
+              type="button"
+              onClick={() => setShowLogoutConfirm(true)}
+              className="p-1.5 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:text-rose-300 dark:hover:bg-rose-950/60 transition-all cursor-pointer shrink-0 group active:scale-95"
+              title="Sign Out"
+              aria-label="Sign Out"
+            >
+              <LogOut className="w-4 h-4 transition-transform group-hover:scale-110" />
+            </button>
           </div>
         ) : (
           <div 
             className="flex items-center justify-center py-1 select-none"
-            title={`${resolvedUserName} • ${departmentLabel}`}
+            title={`${resolvedUserName} • ${departmentLabel} (Click to Sign Out)`}
           >
-            <div className="relative w-8 h-8 rounded-lg flex items-center justify-center bg-[#E8F3EB] dark:bg-[#253723] text-[#2D6A4F] dark:text-[#74C69D] border border-[#C2DEC9] dark:border-[#3A5337]">
-              <DepartmentIcon className="w-4 h-4" />
+            <button
+              type="button"
+              onClick={() => setShowLogoutConfirm(true)}
+              className="relative w-8 h-8 rounded-lg flex items-center justify-center border transition-all cursor-pointer hover:scale-105 group"
+              style={{
+                backgroundColor: isDark ? activePalette.badgeBgDark : activePalette.badgeBgLight,
+                borderColor: isDark ? '#3A5337' : activePalette.badgeBgLight,
+                color: isDark ? activePalette.badgeTextDark : activePalette.gradientStart
+              }}
+              title="Sign Out"
+              aria-label="Sign Out"
+            >
+              <DepartmentIcon className="w-4 h-4 group-hover:hidden" />
+              <LogOut className="w-4 h-4 text-rose-500 hidden group-hover:block" />
               <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#1F291B]" />
-            </div>
+            </button>
           </div>
         )}
       </div>

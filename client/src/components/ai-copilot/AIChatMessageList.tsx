@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { User, Sparkles, CheckCheck, Copy, Check, Volume2, VolumeX, RotateCcw, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { InteractiveActionCard } from './InteractiveActionCard';
 import { GeminiThinkingStream } from './GeminiThinkingStream';
-import { GeminiResponseTuner } from './GeminiResponseTuner';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { PackageSessionCard } from './PackageSessionCard';
 import { LabTestReminderCard } from './LabTestReminderCard';
@@ -256,10 +255,6 @@ export const AIChatMessageList: React.FC<AIChatMessageListProps> = ({
                     )}
                   </button>
 
-                  {/* Gemini Response Tuner ("Modify Response") */}
-                  {onTuningSelect && (
-                    <GeminiResponseTuner onTuningSelect={onTuningSelect} />
-                  )}
 
                   {/* Regenerate Button */}
                   {onRegenerate && (

@@ -8,8 +8,6 @@ import {
   Mic,
   MicOff,
   History,
-  Maximize2,
-  Minimize2,
   Square,
   UploadCloud
 } from 'lucide-react';
@@ -25,8 +23,7 @@ interface DockedCopilotDrawerProps {
   onToggleDock?: () => void;
   currentUser?: any;
   onSelectTab?: (tab: string) => void;
-  isMaximized?: boolean;
-  onToggleMaximize?: () => void;
+  onHeaderMouseDown?: (e: React.MouseEvent) => void;
 }
 
 export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
@@ -34,8 +31,7 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
   onToggleDock,
   currentUser,
   onSelectTab,
-  isMaximized = false,
-  onToggleMaximize
+  onHeaderMouseDown
 }) => {
   const userRole = currentUser?.role || 'DOCTOR';
 
@@ -519,7 +515,8 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
 
       {/* Radiant Emerald / Themed Medical Header with Studio Controls */}
       <div
-        className="p-3 sm:p-3.5 border-b flex items-center justify-between shrink-0 shadow-sm chatbot-drawer-header transition-all duration-300"
+        onMouseDown={onHeaderMouseDown}
+        className="p-3 sm:p-3.5 border-b flex items-center justify-between shrink-0 shadow-sm chatbot-drawer-header transition-all duration-300 cursor-grab active:cursor-grabbing"
         style={{
           background: `linear-gradient(135deg, ${activePalette.gradientEnd} 0%, ${activePalette.gradientStart} 100%)`,
           borderBottom: '1px solid rgba(255, 255, 255, 0.15)'
@@ -543,7 +540,7 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
         </div>
 
         {/* Top-Right Action Controls */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1" onMouseDown={e => e.stopPropagation()}>
           {/* Top-Right Chat History Button */}
           <button
             onClick={() => setIsHistoryOpen(true)}
@@ -552,18 +549,6 @@ export const DockedCopilotDrawer: React.FC<DockedCopilotDrawerProps> = ({
           >
             <History className="w-4 h-4" />
           </button>
-
-
-          {/* Maximize / Studio Toggle Button */}
-          {onToggleMaximize && (
-            <button
-              onClick={onToggleMaximize}
-              className="p-1.5 rounded-lg text-emerald-100 hover:text-white hover:bg-white/15 transition-all cursor-pointer"
-              title={isMaximized ? 'Minimize Drawer' : 'Expand to Studio'}
-            >
-              {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-            </button>
-          )}
 
           {/* Close Dock Button */}
           {onToggleDock && (

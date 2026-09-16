@@ -17,7 +17,19 @@ import {
   UserCheck,
   TrendingUp,
   Percent,
-  FileText
+  FileText,
+  Plus,
+  Trash2,
+  Package,
+  Tag,
+  Undo2,
+  Stethoscope,
+  Search,
+  ShoppingCart,
+  Check,
+  X,
+  HeartPulse,
+  Download
 } from 'lucide-react';
 
 interface QueueItem {
@@ -47,6 +59,17 @@ interface PatientBillingSummary {
   advanceCredit: number;
   financialStatus: 'CLEAR' | 'PENDING' | 'PARTIAL';
   currency: string;
+  activePackages?: Array<{
+    paymentId: string;
+    invoiceNumber: string;
+    dealName: string;
+    totalSessions: number;
+    sessionsConsumed: number;
+    sessionsRemaining: number;
+    doctorName: string;
+    sessionRemarks: Array<{ sessionNumber: number; date: string; remarks: string; doctorName?: string }>;
+    purchasedAt: string;
+  }>;
   unpaidAppointments: Array<{
     appointmentId: string;
     appointmentDate: string;
@@ -67,12 +90,21 @@ interface PatientBillingSummary {
     status: 'PAID' | 'PENDING' | 'PARTIAL';
     notes?: string;
     createdAt: string;
+    doctorId?: string;
+    doctorName?: string;
+    dealId?: string;
+    dealName?: string;
+    sessionsAllowed?: number;
+    sessionsConsumed?: number;
+    sessionRemarks?: Array<{ sessionNumber: number; date: string; remarks: string; doctorName?: string }>;
+    items?: Array<{ id: string; name: string; type: 'SERVICE' | 'PRODUCT' | 'DEAL'; quantity: number; unitPrice: number; subtotal: number }>;
   }>;
 }
 
 const PAYMENT_METHODS = [
   { id: 'CASH', label: 'Cash (PKR)', icon: Banknote, color: 'text-emerald-700 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/70 border-emerald-300 dark:border-emerald-800' },
   { id: 'CARD', label: 'Debit/Credit Card', icon: CreditCard, color: 'text-sky-700 dark:text-sky-300 bg-sky-100/80 dark:bg-sky-950/70 border-sky-300 dark:border-sky-800' },
+  { id: 'WALLET', label: 'Advance Wallet Credit', icon: Sparkles, color: 'text-emerald-700 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/70 border-emerald-300 dark:border-emerald-800' },
   { id: 'JAZZCASH', label: 'JazzCash', icon: Smartphone, color: 'text-amber-700 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-950/70 border-amber-300 dark:border-amber-800' },
   { id: 'EASYPAISA', label: 'EasyPaisa', icon: Smartphone, color: 'text-teal-700 dark:text-teal-300 bg-teal-100/80 dark:bg-teal-950/70 border-teal-300 dark:border-teal-800' },
   { id: 'BANK_TRANSFER', label: 'Bank (IBFT / Raast)', icon: Building2, color: 'text-indigo-700 dark:text-indigo-300 bg-indigo-100/80 dark:bg-indigo-950/70 border-indigo-300 dark:border-indigo-800' },
@@ -81,10 +113,12 @@ const PAYMENT_METHODS = [
 
 const CATEGORIES = [
   { id: 'CONSULTATION', label: 'Doctor Consultation' },
-  { id: 'PROCEDURE', label: 'Aesthetic / Clinical Procedure' },
+  { id: 'PROCEDURE', label: 'Aesthetic Procedure' },
+  { id: 'PACKAGE', label: 'Multi-Session Package Deal' },
+  { id: 'RETAIL', label: 'Skincare Retail Products' },
   { id: 'LAB_TEST', label: 'Diagnostic / Lab Investigation' },
   { id: 'PHARMACY', label: 'Pharmacy & Medications' },
-  { id: 'EMERGENCY', label: 'Emergency & Triage Copay' }
+  { id: 'EMERGENCY', label: 'Emergency Copay' }
 ];
 
 const PAYMENT_PLANS = [
@@ -103,6 +137,18 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
   const [liveQueue, setLiveQueue] = useState<QueueItem[]>([]);
   const [isLoadingPatients, setIsLoadingPatients] = useState(false);
 
+  // Doctors & Attending Practitioner
+  const [allDoctors, setAllDoctors] = useState<any[]>([]);
+  const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
+
+  // Item Catalog & Cart
+  const [catalogTab, setCatalogTab] = useState<'SERVICES' | 'PACKAGES' | 'PRODUCTS'>('SERVICES');
+  const [allServices, setAllServices] = useState<any[]>([]);
+  const [allDeals, setAllDeals] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [cartItems, setCartItems] = useState<Array<{ id: string; name: string; type: 'SERVICE' | 'PRODUCT' | 'DEAL'; quantity: number; unitPrice: number; sessionsAllowed?: number; sku?: string }>>([]);
+  const [catalogSearch, setCatalogSearch] = useState<string>('');
+
   // Form State
   const [category, setCategory] = useState<string>('CONSULTATION');
   const [paymentMethod, setPaymentMethod] = useState<string>('CASH');
@@ -115,6 +161,36 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
 
   // Receipt Modal
   const [activeReceipt, setActiveReceipt] = useState<any | null>(null);
+
+  // Multi-Session Redemption Modal
+  const [redeemModalPackage, setRedeemModalPackage] = useState<any | null>(null);
+  const [sessionRemarksInput, setSessionRemarksInput] = useState<string>('');
+  const [redeemDoctorName, setRedeemDoctorName] = useState<string>('');
+  const [isRedeeming, setIsRedeeming] = useState<boolean>(false);
+
+  // Patient Wallet Top-up Modal
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState<boolean>(false);
+  const [walletAmount, setWalletAmount] = useState<string>('5000');
+  const [walletPaymentMethod, setWalletPaymentMethod] = useState<string>('CASH');
+  const [isToppingUp, setIsToppingUp] = useState<boolean>(false);
+
+  // Sales Returns & Refunds Modal
+  const [isReturnsModalOpen, setIsReturnsModalOpen] = useState<boolean>(false);
+  const [selectedPaymentForRefund, setSelectedPaymentForRefund] = useState<any | null>(null);
+  const [refundAmountInput, setRefundAmountInput] = useState<string>('');
+  const [refundReasonInput, setRefundReasonInput] = useState<string>('');
+  const [refundMethodInput, setRefundMethodInput] = useState<'CASH' | 'WALLET'>('CASH');
+  const [allReturns, setAllReturns] = useState<any[]>([]);
+  const [isProcessingRefund, setIsProcessingRefund] = useState<boolean>(false);
+
+  // Clinic Profile & Thermal Receipt Info
+  const [clinicProfile, setClinicProfile] = useState<any>({
+    clinicName: 'Skin-Lab Aesthetic Hospital & Institute',
+    clinicPhone: '+92 42 35876543',
+    clinicAddress: 'Plot 14-C, Main Boulevard, Gulberg III, Lahore, Pakistan',
+    taxNumber: 'NTN-7418902-1',
+    receiptFooterNote: 'Thank you for choosing Skin-Lab! All clinical procedures are performed by certified doctors. Retain this invoice for session verification.'
+  });
 
   // Load hospital-wide ledger stats
   const fetchHospitalLedger = async () => {
@@ -147,9 +223,32 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
     }
   };
 
+  // Load doctors, services, deals, products, clinic profile, returns
+  const fetchExtraCatalogs = async () => {
+    try {
+      const [docRes, srvRes, dealRes, prodRes, profRes, retRes] = await Promise.allSettled([
+        api.get('/doctors'),
+        api.get('/services'),
+        api.get('/services/deals'),
+        api.get('/services/products'),
+        api.get('/admin/clinic-profile'),
+        api.get('/billing/returns')
+      ]);
+      if (docRes.status === 'fulfilled' && docRes.value.data?.data) setAllDoctors(docRes.value.data.data);
+      if (srvRes.status === 'fulfilled' && srvRes.value.data?.data) setAllServices(srvRes.value.data.data);
+      if (dealRes.status === 'fulfilled' && dealRes.value.data?.data) setAllDeals(dealRes.value.data.data);
+      if (prodRes.status === 'fulfilled' && prodRes.value.data?.data) setAllProducts(prodRes.value.data.data);
+      if (profRes.status === 'fulfilled' && profRes.value.data?.data) setClinicProfile(profRes.value.data.data);
+      if (retRes.status === 'fulfilled' && retRes.value.data?.data) setAllReturns(retRes.value.data.data);
+    } catch (e) {
+      console.error('Failed to load catalog data:', e);
+    }
+  };
+
   useEffect(() => {
     fetchHospitalLedger();
     fetchPatientsAndQueue();
+    fetchExtraCatalogs();
   }, []);
 
   // Fetch patient billing summary whenever a patient is selected
@@ -165,7 +264,9 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
       setPatientSummary(data);
 
       // Auto-populate default amount based on remaining dues or unpaid appointments
-      if (data.balanceDue > 0) {
+      if (cartItems.length > 0) {
+        // keep cart total
+      } else if (data.balanceDue > 0) {
         setGrossAmount(String(data.balanceDue));
         setDiscount('0');
         setAmountPaid(String(data.balanceDue));
@@ -190,6 +291,52 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
     const val = e.target.value;
     setSelectedPatientId(val);
     fetchPatientSummary(val);
+
+    // Auto select matching doctor from queue if available
+    const matched = (queue || liveQueue).find(q => q.patientId === val);
+    if (matched?.doctorName && allDoctors.length > 0) {
+      const doc = allDoctors.find(d => d.name === matched.doctorName);
+      if (doc) setSelectedDoctorId(doc.id);
+    }
+  };
+
+  // Cart operations
+  const addToCart = (item: { id: string; name: string; type: 'SERVICE' | 'PRODUCT' | 'DEAL'; unitPrice: number; sessionsAllowed?: number; sku?: string }) => {
+    setCartItems(prev => {
+      const existingIdx = prev.findIndex(i => i.id === item.id);
+      let updated: typeof prev;
+      if (existingIdx >= 0) {
+        updated = [...prev];
+        updated[existingIdx].quantity += 1;
+      } else {
+        updated = [...prev, { ...item, quantity: 1 }];
+      }
+      const newGross = updated.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
+      setGrossAmount(String(newGross));
+      setAmountPaid(String(Math.max(0, newGross - (parseFloat(discount) || 0))));
+      if (item.type === 'DEAL') setCategory('PACKAGE');
+      else if (item.type === 'PRODUCT') setCategory('RETAIL');
+      else setCategory('PROCEDURE');
+      return updated;
+    });
+  };
+
+  const removeFromCart = (id: string) => {
+    setCartItems(prev => {
+      const updated = prev.filter(i => i.id !== id);
+      const newGross = updated.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
+      setGrossAmount(String(newGross));
+      setAmountPaid(String(Math.max(0, newGross - (parseFloat(discount) || 0))));
+      return updated;
+    });
+  };
+
+  const clearCart = () => {
+    setCartItems([]);
+    setGrossAmount('2500');
+    setDiscount('0');
+    setAmountPaid('2500');
+    setCategory('CONSULTATION');
   };
 
   // Live Math calculations
@@ -244,13 +391,39 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
       return;
     }
 
-    const matchedQueue = queue.find(q => q.patientId === selectedPatientId);
+    // If paying with wallet, check balance
+    if (paymentMethod === 'WALLET') {
+      const availableWallet = patientSummary?.advanceCredit || 0;
+      if (paidVal > availableWallet) {
+        alert(`Insufficient wallet balance. Available wallet credit: PKR ${availableWallet.toFixed(2)}`);
+        return;
+      }
+    }
+
+    const matchedQueue = (queue || liveQueue).find(q => q.patientId === selectedPatientId);
+    const chosenDoctor = allDoctors.find(d => d.id === selectedDoctorId);
+
+    // Identify if any deal is in the cart
+    const dealInCart = cartItems.find(i => i.type === 'DEAL');
 
     setIsSubmitting(true);
     try {
       const payload = {
         patientId: selectedPatientId,
         appointmentId: matchedQueue?.appointmentId || patientSummary?.unpaidAppointments?.[0]?.appointmentId,
+        doctorId: selectedDoctorId || undefined,
+        doctorName: chosenDoctor?.name || matchedQueue?.doctorName || undefined,
+        dealId: dealInCart?.id || undefined,
+        dealName: dealInCart?.name || undefined,
+        sessionsAllowed: dealInCart?.sessionsAllowed || (category === 'PACKAGE' ? 5 : undefined),
+        items: cartItems.length > 0 ? cartItems.map(c => ({
+          id: c.id,
+          name: c.name,
+          type: c.type,
+          quantity: c.quantity,
+          unitPrice: c.unitPrice,
+          subtotal: c.unitPrice * c.quantity
+        })) : undefined,
         totalAmount: grossVal,
         discount: discountVal,
         amount: paidVal,
@@ -263,9 +436,10 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
       const res = await api.post('/billing/pay', payload);
       const recordedPayment = res.data.data;
 
-      // Refresh Ledger & Patient Summary
+      // Refresh Ledger, Products Stock & Patient Summary
       await fetchPatientSummary(selectedPatientId);
       await fetchHospitalLedger();
+      await fetchExtraCatalogs();
 
       // Open Receipt Modal
       setActiveReceipt({
@@ -273,16 +447,156 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
         patientName: patientSummary?.patientName || matchedQueue?.patientName || 'Patient',
         cnic: patientSummary?.cnic,
         phone: patientSummary?.phone,
-        doctorName: matchedQueue?.doctorName || 'Dr. Specialist',
-        tokenNumber: matchedQueue?.tokenNumber || 'Walk-in'
+        doctorName: chosenDoctor?.name || matchedQueue?.doctorName || 'Attending Doctor',
+        tokenNumber: matchedQueue?.tokenNumber || 'WALK-IN',
+        items: cartItems.length > 0 ? cartItems : undefined
       });
 
       setNotes('');
+      setCartItems([]);
     } catch (err: any) {
       alert(err.response?.data?.error?.message || 'Payment collection failed');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Consume a multi-session package session
+  const handleConfirmRedeemSession = async () => {
+    if (!redeemModalPackage) return;
+    setIsRedeeming(true);
+    try {
+      await api.post(`/billing/packages/${redeemModalPackage.paymentId}/consume-session`, {
+        remarks: sessionRemarksInput || 'Standard clinical procedure session completed.',
+        doctorName: redeemDoctorName || clinicProfile.clinicName || 'Specialist'
+      });
+      alert(`Session ${redeemModalPackage.sessionsConsumed + 1} redeemed successfully!`);
+      setRedeemModalPackage(null);
+      setSessionRemarksInput('');
+      await fetchPatientSummary(selectedPatientId);
+      await fetchHospitalLedger();
+    } catch (err: any) {
+      alert(err.response?.data?.error?.message || 'Failed to redeem package session');
+    } finally {
+      setIsRedeeming(false);
+    }
+  };
+
+  // Top Up Wallet
+  const handleConfirmTopUpWallet = async () => {
+    if (!selectedPatientId || !walletAmount) return;
+    setIsToppingUp(true);
+    try {
+      await api.post('/billing/wallet/topup', {
+        patientId: selectedPatientId,
+        amount: parseFloat(walletAmount),
+        paymentMethod: walletPaymentMethod
+      });
+      alert(`Wallet successfully topped up with PKR ${walletAmount}!`);
+      setIsWalletModalOpen(false);
+      await fetchPatientSummary(selectedPatientId);
+      await fetchHospitalLedger();
+    } catch (err: any) {
+      alert(err.response?.data?.error?.message || 'Wallet top-up failed');
+    } finally {
+      setIsToppingUp(false);
+    }
+  };
+
+  // Process Refund
+  const handleConfirmRefund = async () => {
+    if (!selectedPaymentForRefund || !refundAmountInput || !refundReasonInput) {
+      alert('Please provide refund amount and reason.');
+      return;
+    }
+    setIsProcessingRefund(true);
+    try {
+      await api.post('/billing/refund', {
+        paymentId: selectedPaymentForRefund.id,
+        refundAmount: parseFloat(refundAmountInput),
+        reason: refundReasonInput,
+        refundMethod: refundMethodInput
+      });
+      alert('Refund successfully processed and ledger reversed!');
+      setIsReturnsModalOpen(false);
+      setSelectedPaymentForRefund(null);
+      setRefundAmountInput('');
+      setRefundReasonInput('');
+      await fetchPatientSummary(selectedPatientId);
+      await fetchHospitalLedger();
+      await fetchExtraCatalogs();
+    } catch (err: any) {
+      alert(err.response?.data?.error?.message || 'Refund processing failed');
+    } finally {
+      setIsProcessingRefund(false);
+    }
+  };
+
+  // 1-Click Patient Ledger CSV Export
+  const handleExportPatientLedgerCSV = () => {
+    if (!patientSummary || !patientSummary.payments || patientSummary.payments.length === 0) {
+      alert('No payment ledger records to export for this patient.');
+      return;
+    }
+    const headers = [
+      'Invoice Number',
+      'Date',
+      'Patient Name',
+      'CNIC',
+      'Contact',
+      'Doctor / Specialist',
+      'Category',
+      'Payment Channel',
+      'Payment Plan',
+      'Items / Treatment Detail',
+      'Gross Amount (PKR)',
+      'Discount (PKR)',
+      'Amount Paid (PKR)',
+      'Balance Due (PKR)',
+      'Payment Status',
+      'Clinical Session Remarks'
+    ];
+    const rows = patientSummary.payments.map((p: any) => {
+      const itemsDetail = p.items && Array.isArray(p.items) && p.items.length > 0
+        ? p.items.map((i: any) => `${i.name} (x${i.quantity})`).join('; ')
+        : (p.dealName || p.category || '-');
+      return [
+        p.invoiceNumber || 'INV-REF',
+        new Date(p.createdAt).toLocaleString(),
+        `"${patientSummary.patientName}"`,
+        `"${patientSummary.cnic}"`,
+        `"${patientSummary.phone}"`,
+        `"${p.doctorName || matchedQueueItem?.doctorName || 'Attending Doctor'}"`,
+        p.category || 'CONSULTATION',
+        p.paymentMethod || 'CASH',
+        p.paymentPlan || 'FULL',
+        `"${itemsDetail}"`,
+        p.totalAmount,
+        p.discount || 0,
+        p.amountPaid,
+        p.balanceDue,
+        p.status,
+        `"${p.notes || '-'}"`
+      ];
+    });
+    const csvContent = [
+      `"SkinLab Aesthetic Hospital - Patient Financial Ledger"`,
+      `"Patient: ${patientSummary.patientName} (CNIC: ${patientSummary.cnic})"`,
+      `"Total Billed: PKR ${patientSummary.totalCharges} | Total Paid: PKR ${patientSummary.totalPaid} | Balance Due: PKR ${patientSummary.balanceDue} | Advance Wallet Credit: PKR ${patientSummary.advanceCredit}"`,
+      `"Exported At: ${new Date().toLocaleString()}"`,
+      '',
+      headers.join(','),
+      ...rows.map(r => r.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Patient_Ledger_${patientSummary.patientName.replace(/\\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const effectiveQueue: QueueItem[] = (queue && queue.length > 0) ? queue : liveQueue;
@@ -291,6 +605,12 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
 
   const matchedQueueItem = effectiveQueue.find(q => q.patientId === selectedPatientId);
   const matchedPatientRecord = allPatients.find(p => p.id === selectedPatientId);
+
+  // Filter Catalog (Includes Name, SKU, and Barcode compatibility)
+  const filterQuery = catalogSearch.toLowerCase().trim();
+  const filteredServices = allServices.filter(s => !filterQuery || s.name.toLowerCase().includes(filterQuery));
+  const filteredDeals = allDeals.filter(d => !filterQuery || d.name.toLowerCase().includes(filterQuery));
+  const filteredProducts = allProducts.filter(p => !filterQuery || p.name.toLowerCase().includes(filterQuery) || (p.sku && p.sku.toLowerCase().includes(filterQuery)) || (p.barcode && p.barcode.toLowerCase().includes(filterQuery)));
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -318,7 +638,7 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
               PKR {hospitalLedger?.totalOutstanding?.toLocaleString('en-US', { minimumFractionDigits: 2 }) || '0.00'}
             </div>
             <span className="text-[10px] text-amber-700 dark:text-amber-400 font-medium mt-0.5 block">
-              {hospitalLedger?.partialCount || 0} Partial / {hospitalLedger?.pendingCount || 0} Pending
+              Receivables from Patients
             </span>
           </div>
           <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-amber-600 dark:text-amber-400">
@@ -328,479 +648,529 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
 
         <div className="bg-white dark:bg-[#1E2718] border border-slate-200 dark:border-[#2F3E29] rounded-xl p-4 shadow-sm flex items-center justify-between">
           <div>
-            <span className="text-[11px] font-bold text-slate-500 dark:text-[#A4AC86] uppercase tracking-wider block">Total Discounts Granted</span>
-            <div className="text-xl font-mono font-extrabold text-slate-900 dark:text-white mt-1">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-[#A4AC86] uppercase tracking-wider block">Discounts & Waivers</span>
+            <div className="text-xl font-mono font-extrabold text-slate-700 dark:text-[#C2C5AA] mt-1">
               PKR {hospitalLedger?.totalDiscounts?.toLocaleString('en-US', { minimumFractionDigits: 2 }) || '0.00'}
             </div>
             <span className="text-[10px] text-slate-500 dark:text-[#A4AC86] font-medium mt-0.5 block">
-              Welfare & Institutional Waivers
+              Special clinical waivers
             </span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-teal-950/60 border border-sky-200 dark:border-teal-800 flex items-center justify-center text-sky-600 dark:text-teal-400">
+          <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-[#25331E] border border-slate-200 dark:border-[#38482E] flex items-center justify-center text-slate-600 dark:text-[#C2C5AA]">
             <Percent className="w-5 h-5" />
           </div>
         </div>
 
         <div className="bg-white dark:bg-[#1E2718] border border-slate-200 dark:border-[#2F3E29] rounded-xl p-4 shadow-sm flex items-center justify-between">
           <div>
-            <span className="text-[11px] font-bold text-slate-500 dark:text-[#A4AC86] uppercase tracking-wider block">Receipts Generated</span>
-            <div className="text-xl font-mono font-extrabold text-slate-900 dark:text-white mt-1">
-              {hospitalLedger?.paymentsCount || 0} Invoices
+            <span className="text-[11px] font-bold text-slate-500 dark:text-[#A4AC86] uppercase tracking-wider block">Sales Returns & Refunds</span>
+            <div className="text-xl font-mono font-extrabold text-rose-600 dark:text-rose-400 mt-1">
+              {allReturns.length} <span className="text-xs font-normal">Processed</span>
             </div>
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5 block">
-              {hospitalLedger?.paidCount || 0} Fully Cleared
-            </span>
+            <button
+              onClick={() => setIsReturnsModalOpen(true)}
+              className="text-[10px] text-rose-600 dark:text-rose-400 font-bold hover:underline flex items-center gap-1 mt-0.5 cursor-pointer"
+            >
+              <Undo2 className="w-3 h-3" /> View Returns Log
+            </button>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-            <Receipt className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400">
+            <Undo2 className="w-5 h-5" />
           </div>
         </div>
       </div>
 
-      {/* 2. Patient Selector & Quick Filter Bar */}
-      <div className="bg-white dark:bg-[#1E2718] border border-slate-200 dark:border-[#2F3E29] rounded-xl p-5 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-[#2F3E29]">
-          <div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <UserCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-              <span>Patient Identification & Billing Profile</span>
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-[#A4AC86]">
-              Select an admitted patient or queue entry to instantly inspect dues, credit balances, and payment plans.
-            </p>
-          </div>
-
+      {/* 2. Patient Lookup, Attending Doctor & Dual Wallet Bar */}
+      <div className="bg-white dark:bg-[#1E2718] border border-slate-200 dark:border-[#2F3E29] rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-100 dark:border-[#2F3E29] pb-4">
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={fetchPatientsAndQueue}
-              disabled={isLoadingPatients}
-              className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#38482E] text-slate-600 dark:text-[#C2C5AA] hover:bg-slate-50 dark:hover:bg-[#25331E] transition-all cursor-pointer"
-              title="Refresh patient list"
-            >
-              <RotateCcw className={`w-3.5 h-3.5 ${isLoadingPatients ? 'animate-spin' : ''}`} />
-              <span>Reload Directory</span>
-            </button>
+            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+              <Receipt className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Front-Desk Aesthetic POS & Cash Counter</h3>
+              <p className="text-xs text-slate-500 dark:text-[#A4AC86]">Single & multi-session treatment billing, retail skincare checkout, and doctor attribution.</p>
+            </div>
+          </div>
 
-            {selectedPatientId && (
-              <button
-                onClick={() => fetchPatientSummary(selectedPatientId)}
-                disabled={isLoadingSummary}
-                className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition-all cursor-pointer"
+          {/* Attending Doctor Selector */}
+          <div className="w-full md:w-auto flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-600 dark:text-[#A4AC86] whitespace-nowrap flex items-center gap-1">
+              <Stethoscope className="w-3.5 h-3.5 text-emerald-600" /> Attending Doctor:
+            </span>
+            <select
+              value={selectedDoctorId}
+              onChange={e => setSelectedDoctorId(e.target.value)}
+              className="text-xs font-semibold py-1.5 px-3 rounded-lg border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+            >
+              <option value="">-- Direct Counter / Walk-in --</option>
+              {allDoctors.map(d => (
+                <option key={d.id} value={d.id}>{d.name} ({d.specialization})</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Patient Selection Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+          <div className="lg:col-span-8">
+            <label className="text-xs font-bold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+              Select Patient (Queue Check-in or Registered Directory) <span className="text-rose-500">*</span>
+            </label>
+            <div className="relative">
+              <select
+                value={selectedPatientId}
+                onChange={handlePatientSelect}
+                className="w-full text-xs font-semibold py-2.5 pl-3 pr-8 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
               >
-                <RotateCcw className={`w-3.5 h-3.5 ${isLoadingSummary ? 'animate-spin' : ''}`} />
-                <span>Refresh Patient Dues</span>
-              </button>
+                <option value="">-- Choose patient to begin checkout --</option>
+                {effectiveQueue.length > 0 && (
+                  <optgroup label="Live Queue Patients (Checked-in)">
+                    {effectiveQueue.map(q => (
+                      <option key={q.patientId} value={q.patientId}>
+                        Token #{q.tokenNumber} - {q.patientName} ({q.doctorName || 'OPD'})
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {otherPatients.length > 0 && (
+                  <optgroup label="Registered Patient Directory">
+                    {otherPatients.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.fullName} | CNIC: {p.cnic || 'N/A'} | Ph: {p.emergencyContact || p.phone || 'N/A'}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+              </select>
+            </div>
+          </div>
+
+          {/* Quick Dual Wallet & Due Indicator */}
+          <div className="lg:col-span-4 flex items-center gap-3">
+            {patientSummary && (
+              <div className="w-full flex items-center justify-between p-2.5 rounded-xl border border-slate-100 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13]">
+                <div>
+                  <span className="text-[10px] text-slate-500 dark:text-[#A4AC86] font-bold uppercase block">Advance Wallet</span>
+                  <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                    PKR {patientSummary.advanceCredit.toFixed(2)}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsWalletModalOpen(true)}
+                  className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <Plus className="w-3 h-3" /> Top Up
+                </button>
+              </div>
             )}
           </div>
         </div>
 
-        <div>
-          <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1.5">
-            Select Patient from Active OPD Queue / Admitted Today:
-          </label>
-          <select
-            value={selectedPatientId}
-            onChange={handlePatientSelect}
-            className="w-full clinical-input text-sm font-medium py-2.5 dark:bg-[#171F13] dark:border-[#38482E] dark:text-white cursor-pointer"
-          >
-            <option value="">
-              {isLoadingPatients
-                ? '-- Loading hospital patients directory... --'
-                : `-- Choose Patient / Token (${effectiveQueue.length + otherPatients.length} Available) --`}
-            </option>
-            {effectiveQueue.length > 0 && (
-              <optgroup label="⚡ Active Today's OPD Queue / Token Patients">
-                {effectiveQueue.map(q => (
-                  <option key={`q-${q.patientId}-${q.tokenNumber}`} value={q.patientId}>
-                    Token #{q.tokenNumber} — {q.patientName} {q.patientPhone ? `(${q.patientPhone})` : ''} | Doctor: {q.doctorName || 'Assigned Specialist'}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            {otherPatients.length > 0 && (
-              <optgroup label="📋 All Registered / Admitted Hospital Patients">
-                {otherPatients.map(p => (
-                  <option key={`p-${p.id}`} value={p.id}>
-                    {p.fullName} {p.phone ? `(${p.phone})` : ''} — CNIC: {p.cnic || 'N/A'} [MRN: {p.id}]
-                  </option>
-                ))}
-              </optgroup>
-            )}
-          </select>
-        </div>
+        {/* Active Multi-Session Packages Card for Selected Patient */}
+        {patientSummary && patientSummary.activePackages && patientSummary.activePackages.length > 0 && (
+          <div className="p-3.5 rounded-xl border border-indigo-200 dark:border-indigo-900 bg-indigo-50/50 dark:bg-indigo-950/20 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-indigo-600" /> Active Multi-Session Packages (Prepaid Deals)
+              </span>
+              <span className="text-[11px] font-medium text-indigo-700 dark:text-indigo-400">
+                {patientSummary.activePackages.length} Active Series Available
+              </span>
+            </div>
 
-        {/* 3. Patient Financial Dossier (Visible when patient is selected) */}
-        {selectedPatientId && (
-          <div className="pt-2 animate-fade-in space-y-4">
-            {isLoadingSummary ? (
-              <div className="p-8 text-center bg-slate-50 dark:bg-[#171F13] rounded-xl border border-slate-200 dark:border-[#2F3E29]">
-                <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                <span className="text-xs text-slate-600 dark:text-[#A4AC86] font-medium">Retrieving financial ledger & dues...</span>
-              </div>
-            ) : patientSummary ? (
-              <>
-                {/* Status Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-[#171F13] border border-slate-200 dark:border-[#2F3E29]">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold flex items-center justify-center text-sm border border-emerald-200 dark:border-emerald-800">
-                      {matchedQueueItem?.tokenNumber ? `#${matchedQueueItem.tokenNumber}` : 'Pt'}
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                        {patientSummary.patientName || matchedPatientRecord?.fullName}
-                      </h4>
-                      <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-[#A4AC86]">
-                        <span>CNIC: {patientSummary.cnic || matchedPatientRecord?.cnic || 'On Record'}</span>
-                        <span>•</span>
-                        <span>Phone: {patientSummary.phone || matchedPatientRecord?.phone || 'On Record'}</span>
-                        {matchedQueueItem?.doctorName ? (
-                          <>
-                            <span>•</span>
-                            <span className="text-emerald-700 dark:text-emerald-400 font-semibold">{matchedQueueItem.doctorName}</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>•</span>
-                            <span className="text-emerald-700 dark:text-emerald-400 font-semibold">Registered Hospital Dossier</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Financial Status Badge */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+              {patientSummary.activePackages.map(pkg => (
+                <div key={pkg.paymentId} className="bg-white dark:bg-[#1A2215] border border-indigo-100 dark:border-indigo-900/60 p-3 rounded-xl shadow-xs flex items-center justify-between">
                   <div>
-                    {patientSummary.financialStatus === 'CLEAR' && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                        <span>ACCOUNT CLEARED (Wajibat Nil)</span>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">{pkg.dealName}</h4>
+                    <div className="flex items-center gap-2 mt-1 text-[11px] font-mono">
+                      <span className="text-indigo-600 font-bold">
+                        {pkg.sessionsRemaining} Sessions Left
                       </span>
-                    )}
-                    {patientSummary.financialStatus === 'PENDING' && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800">
-                        <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                        <span>PENDING INVOICE (Baqiya Wajibat)</span>
+                      <span className="text-slate-400">|</span>
+                      <span className="text-slate-500 dark:text-[#A4AC86]">
+                        {pkg.sessionsConsumed} / {pkg.totalSessions} Used
                       </span>
-                    )}
-                    {patientSummary.financialStatus === 'PARTIAL' && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800">
-                        <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                        <span>PARTIALLY PAID (Qist Active)</span>
-                      </span>
-                    )}
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRedeemModalPackage(pkg);
+                      setRedeemDoctorName(matchedQueueItem?.doctorName || 'Dr. Specialist');
+                    }}
+                    className="px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <Check className="w-3.5 h-3.5" /> Redeem 1 Session
+                  </button>
                 </div>
-
-                {/* 4 Cards: Charges, Paid, Remaining Dues, Advance Credit */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="p-3.5 bg-slate-50 dark:bg-[#171F13] border border-slate-200 dark:border-[#2F3E29] rounded-xl space-y-1">
-                    <span className="text-[10px] font-bold text-slate-500 dark:text-[#A4AC86] uppercase tracking-wider block">
-                      Total Incurred
-                    </span>
-                    <div className="text-lg font-mono font-bold text-slate-900 dark:text-white">
-                      PKR {patientSummary.totalCharges.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </div>
-                    {patientSummary.totalDiscounts > 0 && (
-                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium block">
-                        Discount: -PKR {patientSummary.totalDiscounts}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="p-3.5 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-xl space-y-1">
-                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block">
-                      Amount Paid / Settled
-                    </span>
-                    <div className="text-lg font-mono font-bold text-emerald-800 dark:text-emerald-300">
-                      PKR {patientSummary.totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </div>
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium block">Cleared to Ledger</span>
-                  </div>
-
-                  <div className={`p-3.5 rounded-xl space-y-1 border ${
-                    patientSummary.balanceDue > 0
-                      ? 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800/80 ring-1 ring-rose-200 dark:ring-rose-900/50'
-                      : 'bg-slate-50 dark:bg-[#171F13] border border-slate-200 dark:border-[#2F3E29]'
-                  }`}>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider block ${
-                      patientSummary.balanceDue > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-slate-500 dark:text-[#A4AC86]'
-                    }`}>
-                      Remaining Dues (Wajibat)
-                    </span>
-                    <div className={`text-lg font-mono font-extrabold ${
-                      patientSummary.balanceDue > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-slate-700 dark:text-[#C2C5AA]'
-                    }`}>
-                      PKR {patientSummary.balanceDue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </div>
-                    <span className="text-[10px] text-slate-500 dark:text-[#889073] font-medium block">
-                      {patientSummary.balanceDue > 0 ? 'Payment Required' : 'Zero Outstanding'}
-                    </span>
-                  </div>
-
-                  <div className="p-3.5 bg-sky-50/70 dark:bg-teal-950/30 border border-sky-200 dark:border-teal-800/60 rounded-xl space-y-1">
-                    <span className="text-[10px] font-bold text-sky-700 dark:text-teal-400 uppercase tracking-wider block">
-                      Advance / Credit Balance
-                    </span>
-                    <div className="text-lg font-mono font-bold text-sky-900 dark:text-teal-300">
-                      PKR {patientSummary.advanceCredit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </div>
-                    <span className="text-[10px] text-sky-600 dark:text-teal-400 font-medium block">Available Patient Credit</span>
-                  </div>
-                </div>
-
-                {/* Unpaid Appointments Alert */}
-                {patientSummary.unpaidAppointments?.length > 0 && (
-                  <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl p-3.5 flex items-center justify-between text-xs text-amber-900 dark:text-amber-200">
-                    <div className="flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                      <span>
-                        <strong>Unpaid Consultation Alert:</strong> {patientSummary.unpaidAppointments[0].doctorName} ({patientSummary.unpaidAppointments[0].specialization}) scheduled on {patientSummary.unpaidAppointments[0].appointmentDate} (Fee: PKR {patientSummary.unpaidAppointments[0].fee}).
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCategory('CONSULTATION');
-                        handleGrossChange(String(patientSummary.unpaidAppointments[0].fee));
-                      }}
-                      className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold shrink-0 transition-colors cursor-pointer"
-                    >
-                      Load Consultation Fee
-                    </button>
-                  </div>
-                )}
-              </>
-            ) : null}
+              ))}
+            </div>
           </div>
         )}
       </div>
 
-      {/* 4. Payment Collection & Plan Form */}
-      <div className="bg-white dark:bg-[#1E2718] border border-slate-200 dark:border-[#2F3E29] rounded-xl p-6 shadow-sm space-y-6">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-[#2F3E29]">
-          <div className="flex items-center gap-2.5">
-            <CreditCard className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">Collect Payment & Select Payment Plan</h3>
-              <p className="text-xs text-slate-500 dark:text-[#A4AC86]">Record cash, digital wallets, bank transfers or split payment terms</p>
+      {/* 3. POS Item Catalog & Cart System */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Interactive Item Catalog */}
+        <div className="lg:col-span-7 bg-white dark:bg-[#1E2718] border border-slate-200 dark:border-[#2F3E29] rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-[#2F3E29] pb-3">
+            {/* Catalog Tabs */}
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#171F13] p-1 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setCatalogTab('SERVICES')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  catalogTab === 'SERVICES'
+                    ? 'bg-white dark:bg-[#202C1B] text-emerald-700 dark:text-emerald-400 shadow-xs'
+                    : 'text-slate-600 dark:text-[#A4AC86] hover:text-slate-900'
+                }`}
+              >
+                Procedures
+              </button>
+              <button
+                type="button"
+                onClick={() => setCatalogTab('PACKAGES')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  catalogTab === 'PACKAGES'
+                    ? 'bg-white dark:bg-[#202C1B] text-emerald-700 dark:text-emerald-400 shadow-xs'
+                    : 'text-slate-600 dark:text-[#A4AC86] hover:text-slate-900'
+                }`}
+              >
+                Multi-Session Deals
+              </button>
+              <button
+                type="button"
+                onClick={() => setCatalogTab('PRODUCTS')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  catalogTab === 'PRODUCTS'
+                    ? 'bg-white dark:bg-[#202C1B] text-emerald-700 dark:text-emerald-400 shadow-xs'
+                    : 'text-slate-600 dark:text-[#A4AC86] hover:text-slate-900'
+                }`}
+              >
+                Skincare Retail
+              </button>
             </div>
-          </div>
-          <span className="text-xs font-semibold px-2.5 py-1 rounded bg-slate-100 dark:bg-[#25331E] text-slate-600 dark:text-[#C2C5AA] border border-slate-200 dark:border-[#38482E]">
-            Currency: PKR (Rs.)
-          </span>
-        </div>
 
-        <form onSubmit={handleSubmitPayment} className="space-y-6">
-          {/* A. Payment Category */}
-          <div>
-            <label className="text-xs font-bold text-slate-700 dark:text-[#C2C5AA] block mb-2">1. Billing Head / Category</label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-              {CATEGORIES.map(cat => (
-                <button
-                  type="button"
-                  key={cat.id}
-                  onClick={() => setCategory(cat.id)}
-                  className={`px-3 py-2.5 rounded-xl text-xs font-semibold border text-left transition-all cursor-pointer ${
-                    category === cat.id
-                      ? 'bg-[#2D6A4F] text-white border-[#2D6A4F] shadow-sm ring-2 ring-emerald-500/30 dark:bg-[#204532] dark:border-[#52B788] dark:ring-emerald-400/40 dark:text-white'
-                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 dark:bg-[#151D12] dark:text-[#C2C5AA] dark:border-[#2F3E29] dark:hover:bg-[#1D2719]'
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* B. Payment Method (Payment Type) */}
-          <div>
-            <label className="text-xs font-bold text-slate-700 dark:text-[#C2C5AA] block mb-2">2. Payment Type / Channel</label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-              {PAYMENT_METHODS.map(m => {
-                const Icon = m.icon;
-                const isSelected = paymentMethod === m.id;
-                return (
-                  <button
-                    type="button"
-                    key={m.id}
-                    onClick={() => setPaymentMethod(m.id)}
-                    className={`p-3 rounded-xl border text-left flex flex-col justify-between gap-2.5 transition-all cursor-pointer ${
-                      isSelected
-                        ? 'border-[#2D6A4F] dark:border-[#52B788] bg-[#E8F3EB] dark:bg-[#203622] ring-2 ring-[#2D6A4F]/20 dark:ring-[#52B788]/40 shadow-sm'
-                        : 'border-slate-200 dark:border-[#2F3E29] bg-white dark:bg-[#151D12] hover:bg-slate-50 dark:hover:bg-[#1D2719]'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className={`p-1.5 rounded-lg border transition-colors ${
-                        isSelected
-                          ? 'bg-[#2D6A4F] text-white border-[#2D6A4F] dark:bg-[#2D6A4F] dark:border-[#52B788] dark:text-white'
-                          : m.color
-                      }`}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      {isSelected && <CheckCircle2 className="w-4 h-4 text-[#2D6A4F] dark:text-[#52B788]" />}
-                    </div>
-                    <span className={`text-xs font-bold ${
-                      isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-900 dark:text-[#C2C5AA]'
-                    }`}>
-                      {m.label}
-                    </span>
-                  </button>
-                );
-              })}
+            {/* Search Input */}
+            <div className="relative w-full sm:w-48">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
+              <input
+                type="text"
+                value={catalogSearch}
+                onChange={e => setCatalogSearch(e.target.value)}
+                placeholder="Search item or SKU..."
+                className="w-full text-xs pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-emerald-500"
+              />
             </div>
           </div>
 
-          {/* C. Payment Plan */}
-          <div>
-            <label className="text-xs font-bold text-slate-700 dark:text-[#C2C5AA] block mb-2">3. Payment Plan & Settlement Terms</label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-              {PAYMENT_PLANS.map(plan => {
-                const isSelected = paymentPlan === plan.id;
-                return (
-                  <button
-                    type="button"
-                    key={plan.id}
-                    onClick={() => handlePaymentPlanChange(plan.id)}
-                    className={`px-3 py-2.5 rounded-xl text-xs font-semibold border text-left transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#2D6A4F] text-white border-[#2D6A4F] shadow-sm ring-2 ring-emerald-500/30 dark:bg-[#204532] dark:border-[#52B788] dark:ring-emerald-400/40 dark:text-white'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 dark:bg-[#151D12] dark:text-[#C2C5AA] dark:border-[#2F3E29] dark:hover:bg-[#1D2719]'
-                    }`}
-                  >
-                    {plan.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* D. Amount Inputs & Calculations */}
-          <div className="p-4 bg-slate-50 dark:bg-[#171F13] border border-slate-200 dark:border-[#2F3E29] rounded-xl space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">Total Fee / Gross (PKR)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  value={grossAmount}
-                  onChange={e => handleGrossChange(e.target.value)}
-                  className="w-full clinical-input font-mono font-bold text-sm dark:bg-[#1E2718] dark:border-[#38482E] dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">Discount / Waiver (PKR)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={discount}
-                  onChange={e => handleDiscountChange(e.target.value)}
-                  className="w-full clinical-input font-mono font-bold text-sm text-emerald-700 dark:text-emerald-400 dark:bg-[#1E2718] dark:border-[#38482E]"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">Net Payable (PKR)</label>
-                <input
-                  type="text"
-                  readOnly
-                  value={`PKR ${netVal.toFixed(2)}`}
-                  className="w-full clinical-input font-mono font-bold text-sm bg-slate-100 dark:bg-[#25331E] text-slate-800 dark:text-[#E8F3EB] dark:border-[#38482E] cursor-not-allowed"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-200 dark:border-[#2F3E29]">
-              <div>
-                <label className="text-xs font-bold text-slate-900 dark:text-white block mb-1">
-                  Amount Received / Paid Right Now (PKR):
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  value={amountPaid}
-                  onChange={e => setAmountPaid(e.target.value)}
-                  className="w-full clinical-input font-mono font-extrabold text-base text-emerald-800 dark:text-emerald-300 border-emerald-400 dark:border-emerald-600 bg-white dark:bg-[#1E2718]"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-900 dark:text-white block mb-1">
-                  Estimated Remaining Dues after this payment:
-                </label>
-                <div className={`p-2.5 rounded-lg border font-mono font-extrabold text-base flex items-center justify-between ${
-                  estimatedRemainingDues === 0
-                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                    : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
-                }`}>
-                  <span>PKR {estimatedRemainingDues.toFixed(2)}</span>
-                  <span className="text-[11px] font-sans font-semibold">
-                    {estimatedRemainingDues === 0 ? '✅ 100% Cleared' : '⚠️ Pending Balance'}
+          {/* Catalog Items Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-1">
+            {catalogTab === 'SERVICES' && filteredServices.map(s => (
+              <div
+                key={s.id}
+                onClick={() => addToCart({ id: s.id, name: s.name, type: 'SERVICE', unitPrice: s.baseFee })}
+                className="p-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] hover:border-emerald-500 dark:hover:border-emerald-500 bg-slate-50/60 dark:bg-[#171F13] hover:bg-emerald-50/40 cursor-pointer transition-all flex flex-col justify-between"
+              >
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">{s.name}</h4>
+                  <p className="text-[11px] text-slate-500 dark:text-[#A4AC86] line-clamp-1 mt-0.5">{s.description}</p>
+                </div>
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 dark:border-[#2F3E29]/60">
+                  <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                    PKR {s.baseFee.toFixed(2)}
+                  </span>
+                  <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-0.5">
+                    <Plus className="w-3 h-3" /> Add
                   </span>
                 </div>
               </div>
+            ))}
+
+            {catalogTab === 'PACKAGES' && filteredDeals.map(d => (
+              <div
+                key={d.id}
+                onClick={() => addToCart({ id: d.id, name: d.name, type: 'DEAL', unitPrice: d.totalPrice, sessionsAllowed: d.sessionsAllowed })}
+                className="p-3 rounded-xl border border-indigo-200 dark:border-indigo-900 hover:border-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/20 cursor-pointer transition-all flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400 px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/60">
+                      {d.sessionsAllowed} Sessions Package
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white mt-1.5">{d.name}</h4>
+                  <p className="text-[11px] text-slate-500 dark:text-[#A4AC86] line-clamp-1 mt-0.5">{d.description}</p>
+                </div>
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-indigo-100 dark:border-indigo-900/60">
+                  <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                    PKR {d.totalPrice.toFixed(2)}
+                  </span>
+                  <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-0.5">
+                    <Plus className="w-3 h-3" /> Select Deal
+                  </span>
+                </div>
+              </div>
+            ))}
+
+            {catalogTab === 'PRODUCTS' && filteredProducts.map(p => (
+              <div
+                key={p.id}
+                onClick={() => p.stockQuantity > 0 && addToCart({ id: p.id, name: p.name, type: 'PRODUCT', unitPrice: p.sellingPrice, sku: p.sku })}
+                className={`p-3 rounded-xl border transition-all flex flex-col justify-between ${
+                  p.stockQuantity > 0
+                    ? 'border-slate-200 dark:border-[#2F3E29] hover:border-emerald-500 bg-slate-50/60 dark:bg-[#171F13] cursor-pointer'
+                    : 'border-slate-200 opacity-60 bg-slate-100 cursor-not-allowed'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                    <span>{p.sku} {p.barcode ? `• ${p.barcode}` : ''}</span>
+                    <span className={p.stockQuantity <= 10 ? 'text-amber-600 font-bold' : 'text-emerald-600'}>
+                      Stock: {p.stockQuantity}
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white mt-1">{p.name}</h4>
+                  {p.costPrice > 0 && (
+                    <div className="mt-1">
+                      <span className="text-[9.5px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/90 dark:bg-emerald-950/80 px-1.5 py-0.5 rounded">
+                        {Math.round(((p.sellingPrice - p.costPrice) / p.sellingPrice) * 100)}% Profit Margin
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 dark:border-[#2F3E29]/60">
+                  <span className="text-xs font-mono font-bold text-slate-900 dark:text-white">
+                    PKR {p.sellingPrice.toFixed(2)}
+                  </span>
+                  {p.stockQuantity > 0 ? (
+                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-0.5">
+                      <Plus className="w-3 h-3" /> Add
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-rose-500">Out of stock</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Cart Table if items added */}
+          {cartItems.length > 0 && (
+            <div className="border-t border-slate-200 dark:border-[#2F3E29] pt-3 space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-white">
+                <span className="flex items-center gap-1"><ShoppingCart className="w-3.5 h-3.5 text-emerald-600" /> Active Cart ({cartItems.length} items)</span>
+                <button type="button" onClick={clearCart} className="text-[11px] text-rose-500 hover:underline cursor-pointer">
+                  Clear Cart
+                </button>
+              </div>
+
+              <div className="divide-y divide-slate-100 dark:divide-[#2F3E29] text-xs">
+                {cartItems.map(item => (
+                  <div key={item.id} className="py-1.5 flex items-center justify-between">
+                    <div>
+                      <span className="font-semibold text-slate-900 dark:text-white">{item.name}</span>
+                      <span className="text-[10px] text-slate-400 font-mono ml-2">x{item.quantity}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono font-bold text-slate-800 dark:text-[#E8F3EB]">
+                        PKR {(item.unitPrice * item.quantity).toFixed(2)}
+                      </span>
+                      <button type="button" onClick={() => removeFromCart(item.id)} className="text-slate-400 hover:text-rose-500 cursor-pointer">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right Column: Checkout & Payment Settlement Deck */}
+        <div className="lg:col-span-5 bg-white dark:bg-[#1E2718] border border-slate-200 dark:border-[#2F3E29] rounded-2xl p-5 shadow-sm space-y-4">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 pb-2 border-b border-slate-100 dark:border-[#2F3E29]">
+            <CreditCard className="w-4 h-4 text-emerald-600" /> POS Billing & Settlement
+          </h3>
+
+          <form onSubmit={handleSubmitPayment} className="space-y-4">
+            {/* Category / Procedure Type */}
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 dark:text-[#A4AC86] block mb-1">Billing Classification</label>
+              <select
+                value={category}
+                onChange={e => setCategory(e.target.value)}
+                className="w-full text-xs font-semibold py-2 px-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white outline-none"
+              >
+                {CATEGORIES.map(c => (
+                  <option key={c.id} value={c.id}>{c.label}</option>
+                ))}
+              </select>
             </div>
 
+            {/* Numerical Inputs: Gross, Discount, Net */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] font-bold text-slate-600 dark:text-[#A4AC86] block mb-1">Gross Fee (PKR)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="50"
+                  value={grossAmount}
+                  onChange={e => handleGrossChange(e.target.value)}
+                  className="w-full text-xs font-mono font-bold py-2 px-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-600 dark:text-[#A4AC86] block mb-1">Discount (PKR)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="50"
+                  value={discount}
+                  onChange={e => handleDiscountChange(e.target.value)}
+                  className="w-full text-xs font-mono font-bold py-2 px-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-emerald-600 outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+
+            {/* Net Amount & Payment Plan */}
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#171F13] border border-slate-100 dark:border-[#2F3E29] flex items-center justify-between">
+              <div>
+                <span className="text-[10px] text-slate-500 dark:text-[#A4AC86] font-bold uppercase block">Net Amount Payable</span>
+                <span className="text-lg font-mono font-extrabold text-slate-900 dark:text-white">
+                  PKR {netVal.toFixed(2)}
+                </span>
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-500 dark:text-[#A4AC86] font-bold uppercase block mb-0.5">Plan</label>
+                <select
+                  value={paymentPlan}
+                  onChange={e => handlePaymentPlanChange(e.target.value)}
+                  className="text-[11px] font-bold py-1 px-2 rounded-lg border border-slate-200 dark:border-[#2F3E29] bg-white dark:bg-[#202C1B] text-slate-800 dark:text-white outline-none cursor-pointer"
+                >
+                  {PAYMENT_PLANS.map(p => (
+                    <option key={p.id} value={p.id}>{p.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Amount Paid Input */}
             <div>
-              <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
-                Transaction Reference / Receipt Notes (Optional)
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] font-bold text-slate-600 dark:text-[#A4AC86]">Amount Paid Now (PKR)</label>
+                {estimatedRemainingDues > 0 && (
+                  <span className="text-[11px] font-mono text-rose-600 font-bold">
+                    Dues: PKR {estimatedRemainingDues.toFixed(2)}
+                  </span>
+                )}
+              </div>
+              <input
+                type="number"
+                min="0"
+                step="50"
+                value={amountPaid}
+                onChange={e => setAmountPaid(e.target.value)}
+                className="w-full text-sm font-mono font-bold py-2.5 px-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-emerald-700 dark:text-emerald-300 outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            {/* Payment Method Channels Grid */}
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 dark:text-[#A4AC86] block mb-1.5">Payment Method</label>
+              <div className="grid grid-cols-2 gap-2">
+                {PAYMENT_METHODS.map(m => {
+                  const Icon = m.icon;
+                  const isSelected = paymentMethod === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setPaymentMethod(m.id)}
+                      className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                        isSelected
+                          ? `${m.color} ring-2 ring-emerald-500 shadow-xs`
+                          : 'border-slate-200 dark:border-[#2F3E29] text-slate-600 dark:text-[#A4AC86] bg-slate-50 dark:bg-[#171F13] hover:bg-slate-100'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      <span className="truncate">{m.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Remarks / Session Notes */}
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 dark:text-[#A4AC86] block mb-1">Session Remarks / Notes</label>
               <input
                 type="text"
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
-                placeholder="e.g. JazzCash TID #981248, Visa Card Auth 49201, or installment terms agreed..."
-                className="w-full clinical-input text-xs dark:bg-[#1E2718] dark:border-[#38482E] dark:text-white"
+                placeholder="e.g. Session 1 completed, patient advised sunscreen"
+                className="w-full text-xs py-2 px-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white outline-none"
               />
             </div>
 
+            {/* Collect Payment Submit Button */}
             <button
               type="submit"
-              disabled={!selectedPatientId || isSubmitting}
-              className="w-full sm:w-auto px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              style={{ background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)' }}
+              disabled={isSubmitting || !selectedPatientId}
+              className="w-full py-3 px-4 rounded-xl font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.99]"
             >
-              <Printer className="w-4 h-4" />
-              <span>{isSubmitting ? 'Committing to Ledger...' : 'Collect & Issue Official Receipt'}</span>
+              {isSubmitting ? (
+                <span>Recording Payment...</span>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Collect Payment & Issue Invoice (PKR {paidVal.toFixed(2)})</span>
+                </>
+              )}
             </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
 
-      {/* 5. Patient Transaction History & Dues Ledger */}
-      {selectedPatientId && patientSummary && patientSummary.payments.length > 0 && (
-        <div className="bg-white dark:bg-[#1E2718] border border-slate-200 dark:border-[#2F3E29] rounded-xl overflow-hidden shadow-sm space-y-3 p-5">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-[#2F3E29]">
-            <div>
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Patient Receipt Ledger & Transaction History</span>
-              </h4>
-              <p className="text-xs text-slate-500 dark:text-[#A4AC86]">All historical receipts, installment tracking and payment types</p>
+      {/* 4. Patient Historical Invoices & Ledger Table */}
+      {patientSummary && patientSummary.payments && patientSummary.payments.length > 0 && (
+        <div className="bg-white dark:bg-[#1E2718] border border-slate-200 dark:border-[#2F3E29] rounded-2xl p-5 shadow-sm space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#2F3E29] pb-3">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+              <FileText className="w-4 h-4 text-emerald-600" /> Previous Invoices & Encounter History
+            </h3>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-slate-500 font-medium">
+                Total Invoices: {patientSummary.payments.length}
+              </span>
+              <button
+                type="button"
+                onClick={handleExportPatientLedgerCSV}
+                className="px-2.5 py-1 text-xs font-bold rounded-lg border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+              >
+                <Download className="w-3.5 h-3.5" /> Export Patient Ledger (CSV)
+              </button>
             </div>
-            <span className="text-xs font-semibold text-slate-500 dark:text-[#A4AC86]">
-              {patientSummary.payments.length} Records Found
-            </span>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-[#171F13] border-b border-slate-200 dark:border-[#2F3E29] text-[11px] font-bold text-slate-600 dark:text-[#A4AC86] uppercase tracking-wider">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-slate-50 dark:bg-[#171F13] text-slate-600 dark:text-[#A4AC86] uppercase font-bold text-[10px]">
+                <tr>
                   <th className="p-3">Invoice #</th>
-                  <th className="p-3">Date & Time</th>
-                  <th className="p-3">Category</th>
+                  <th className="p-3">Date</th>
+                  <th className="p-3">Doctor / Category</th>
                   <th className="p-3">Method</th>
-                  <th className="p-3">Gross</th>
-                  <th className="p-3">Discount</th>
-                  <th className="p-3">Paid Amount</th>
-                  <th className="p-3">Remaining Dues</th>
+                  <th className="p-3">Total</th>
+                  <th className="p-3">Paid</th>
+                  <th className="p-3">Dues</th>
                   <th className="p-3">Status</th>
-                  <th className="p-3 text-right">Action</th>
+                  <th className="p-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-[#2F3E29] font-mono">
@@ -808,50 +1178,55 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
                   <tr key={p.id} className="hover:bg-slate-50/80 dark:hover:bg-[#202C1B] transition-colors">
                     <td className="p-3 font-bold text-slate-900 dark:text-white">{p.invoiceNumber || 'INV-REF'}</td>
                     <td className="p-3 text-slate-600 dark:text-[#A4AC86] font-sans text-[11px]">
-                      {new Date(p.createdAt).toLocaleDateString()} {new Date(p.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(p.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="p-3 font-sans font-semibold text-slate-700 dark:text-[#C2C5AA]">{p.category || 'Consultation'}</td>
+                    <td className="p-3 font-sans font-semibold text-slate-700 dark:text-[#C2C5AA]">
+                      <div>{p.dealName || p.category || 'Consultation'}</div>
+                      {p.doctorName && <div className="text-[10px] text-slate-400 font-normal">{p.doctorName}</div>}
+                    </td>
                     <td className="p-3 font-sans">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-[#25331E] text-slate-800 dark:text-[#C2C5AA] border border-slate-200 dark:border-[#38482E]">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-[#25331E] text-slate-800 dark:text-[#C2C5AA]">
                         {p.paymentMethod || 'CASH'}
                       </span>
                     </td>
                     <td className="p-3 font-bold text-slate-800 dark:text-white">PKR {p.totalAmount.toFixed(2)}</td>
-                    <td className="p-3 text-emerald-600 dark:text-emerald-400">PKR {(p.discount || 0).toFixed(2)}</td>
                     <td className="p-3 font-bold text-emerald-700 dark:text-emerald-300">PKR {p.amountPaid.toFixed(2)}</td>
                     <td className="p-3 font-bold text-rose-600 dark:text-rose-400">PKR {p.balanceDue.toFixed(2)}</td>
                     <td className="p-3 font-sans">
-                      {p.status === 'PAID' && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
-                          CLEAR
-                        </span>
-                      )}
-                      {p.status === 'PARTIAL' && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300">
-                          PARTIAL
-                        </span>
-                      )}
-                      {p.status === 'PENDING' && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
-                          PENDING
-                        </span>
-                      )}
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        p.status === 'PAID' ? 'bg-emerald-100 text-emerald-800' : p.status === 'PARTIAL' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {p.status}
+                      </span>
                     </td>
-                    <td className="p-3 text-right font-sans">
+                    <td className="p-3 text-right font-sans space-x-2">
                       <button
+                        type="button"
                         onClick={() => setActiveReceipt({
                           ...p,
                           patientName: patientSummary.patientName,
                           cnic: patientSummary.cnic,
                           phone: patientSummary.phone,
-                          doctorName: matchedQueueItem?.doctorName || 'Dr. Specialist',
+                          doctorName: p.doctorName || matchedQueueItem?.doctorName || 'Attending Doctor',
                           tokenNumber: matchedQueueItem?.tokenNumber || 'OPD'
                         })}
-                        className="text-emerald-600 dark:text-emerald-400 hover:underline font-semibold text-xs inline-flex items-center gap-1 cursor-pointer"
+                        className="text-emerald-600 hover:underline font-semibold text-xs inline-flex items-center gap-1 cursor-pointer"
                       >
-                        <Printer className="w-3 h-3" />
-                        <span>Receipt</span>
+                        <Printer className="w-3 h-3" /> Slip
                       </button>
+                      {p.amountPaid > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedPaymentForRefund(p);
+                            setRefundAmountInput(String(p.amountPaid));
+                            setIsReturnsModalOpen(true);
+                          }}
+                          className="text-rose-600 hover:underline font-semibold text-xs inline-flex items-center gap-1 cursor-pointer"
+                        >
+                          <Undo2 className="w-3 h-3" /> Refund
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -861,119 +1236,381 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
         </div>
       )}
 
-      {/* 6. Printable Official Receipt Modal */}
-      {activeReceipt && (
+      {/* 5. Modal: Redeem Package Session */}
+      {redeemModalPackage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-lg bg-white dark:bg-[#1A2215] border border-slate-200 dark:border-[#2F3E29] rounded-2xl p-6 space-y-5 shadow-2xl">
-            {/* Receipt Header */}
-            <div className="text-center border-b border-slate-200 dark:border-[#2F3E29] pb-4">
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <div className="w-7 h-7 rounded-lg bg-[#2D6A4F] text-white flex items-center justify-center font-bold text-xs">
-                  AH
+          <div className="w-full max-w-md bg-white dark:bg-[#1A2215] border border-slate-200 dark:border-[#2F3E29] rounded-2xl p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#2F3E29] pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-600" /> Redeem Session: {redeemModalPackage.dealName}
+              </h3>
+              <button onClick={() => setRedeemModalPackage(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#171F13] text-xs space-y-1 font-mono">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Current Progress:</span>
+                <span className="font-bold text-indigo-600">Session {redeemModalPackage.sessionsConsumed + 1} of {redeemModalPackage.totalSessions}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Remaining After This:</span>
+                <span className="font-bold text-slate-800 dark:text-white">{redeemModalPackage.sessionsRemaining - 1} Sessions</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-[#C2C5AA] block mb-1">Attending Doctor / Aesthetician</label>
+                <input
+                  type="text"
+                  value={redeemDoctorName}
+                  onChange={e => setRedeemDoctorName(e.target.value)}
+                  className="w-full text-xs py-2 px-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white outline-none"
+                  placeholder="e.g. Dr. Aisha Khan"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-[#C2C5AA] block mb-1">Session Clinical Remarks & Settings</label>
+                <textarea
+                  rows={3}
+                  value={sessionRemarksInput}
+                  onChange={e => setSessionRemarksInput(e.target.value)}
+                  placeholder="e.g. Session 2 completed: Diode 808nm, 14J, forehead & chin. Patient skin clear, no erythema."
+                  className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-[#2F3E29]">
+              <button type="button" onClick={() => setRedeemModalPackage(null)} className="clinical-button-secondary text-xs cursor-pointer">
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isRedeeming}
+                onClick={handleConfirmRedeemSession}
+                className="clinical-button-primary text-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                {isRedeeming ? 'Deducting Session...' : 'Confirm Session Deducted'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 6. Modal: Patient Wallet Top-Up */}
+      {isWalletModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-sm bg-white dark:bg-[#1A2215] border border-slate-200 dark:border-[#2F3E29] rounded-2xl p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#2F3E29] pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-600" /> Top Up Advance Wallet
+              </h3>
+              <button onClick={() => setIsWalletModalOpen(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-[#C2C5AA] block mb-1">Top-Up Amount (PKR)</label>
+                <input
+                  type="number"
+                  min="500"
+                  step="500"
+                  value={walletAmount}
+                  onChange={e => setWalletAmount(e.target.value)}
+                  className="w-full text-sm font-mono font-bold py-2 px-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-emerald-700 dark:text-emerald-300 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-[#C2C5AA] block mb-1">Receiving Method</label>
+                <select
+                  value={walletPaymentMethod}
+                  onChange={e => setWalletPaymentMethod(e.target.value)}
+                  className="w-full text-xs font-semibold py-2 px-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white outline-none"
+                >
+                  <option value="CASH">Cash (PKR)</option>
+                  <option value="CARD">Debit/Credit Card</option>
+                  <option value="BANK_TRANSFER">Bank (IBFT / Raast)</option>
+                  <option value="JAZZCASH">JazzCash</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-[#2F3E29]">
+              <button type="button" onClick={() => setIsWalletModalOpen(false)} className="clinical-button-secondary text-xs cursor-pointer">
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isToppingUp}
+                onClick={handleConfirmTopUpWallet}
+                className="clinical-button-primary text-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                {isToppingUp ? 'Processing...' : 'Deposit to Wallet'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 7. Modal: Sales Returns & Refund Processing */}
+      {isReturnsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-lg bg-white dark:bg-[#1A2215] border border-slate-200 dark:border-[#2F3E29] rounded-2xl p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#2F3E29] pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Undo2 className="w-4 h-4 text-rose-600" /> Sales Returns & Refund Manager
+              </h3>
+              <button onClick={() => { setIsReturnsModalOpen(false); setSelectedPaymentForRefund(null); }} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {selectedPaymentForRefund ? (
+              <div className="space-y-3">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#171F13] text-xs font-mono space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Invoice:</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{selectedPaymentForRefund.invoiceNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Max Refundable:</span>
+                    <span className="font-bold text-emerald-600">PKR {selectedPaymentForRefund.amountPaid?.toFixed(2)}</span>
+                  </div>
                 </div>
-                <h2 className="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight">
-                  AI Aesthetic Hospital
-                </h2>
-              </div>
-              <p className="text-[11px] text-slate-500 dark:text-[#A4AC86]">Official POS Tax Invoice & Clinical Payment Receipt</p>
-              <div className="text-xs font-mono font-bold text-slate-800 dark:text-[#E8F3EB] mt-1">
-                {activeReceipt.invoiceNumber || 'INV-RECEIPT'}
-              </div>
-            </div>
 
-            {/* Receipt Meta */}
-            <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 dark:bg-[#171F13] p-3.5 rounded-xl border border-slate-100 dark:border-[#2F3E29]">
-              <div>
-                <span className="text-[10px] text-slate-500 dark:text-[#A4AC86] block uppercase font-bold">Patient Name</span>
-                <span className="font-bold text-slate-900 dark:text-white">{activeReceipt.patientName}</span>
-                <span className="text-[11px] text-slate-600 dark:text-[#C2C5AA] block mt-0.5">CNIC: {activeReceipt.cnic || 'N/A'}</span>
-              </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-[#C2C5AA] block mb-1">Refund Amount (PKR)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={selectedPaymentForRefund.amountPaid}
+                    value={refundAmountInput}
+                    onChange={e => setRefundAmountInput(e.target.value)}
+                    className="w-full text-sm font-mono font-bold py-2 px-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-rose-600 outline-none"
+                  />
+                </div>
 
-              <div>
-                <span className="text-[10px] text-slate-500 dark:text-[#A4AC86] block uppercase font-bold">Doctor / Token</span>
-                <span className="font-bold text-slate-900 dark:text-white">{activeReceipt.doctorName}</span>
-                <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold block mt-0.5">
-                  Token #{activeReceipt.tokenNumber || 'OPD'}
-                </span>
-              </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-[#C2C5AA] block mb-1">Refund Method</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setRefundMethodInput('CASH')}
+                      className={`py-2 px-3 text-xs font-bold rounded-xl border cursor-pointer ${
+                        refundMethodInput === 'CASH' ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-slate-200'
+                      }`}
+                    >
+                      Cash Return
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRefundMethodInput('WALLET')}
+                      className={`py-2 px-3 text-xs font-bold rounded-xl border cursor-pointer ${
+                        refundMethodInput === 'WALLET' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200'
+                      }`}
+                    >
+                      Credit to Wallet
+                    </button>
+                  </div>
+                </div>
 
-              <div>
-                <span className="text-[10px] text-slate-500 dark:text-[#A4AC86] block uppercase font-bold">Date & Time</span>
-                <span className="text-slate-700 dark:text-[#C2C5AA] font-mono text-[11px]">
-                  {new Date(activeReceipt.createdAt).toLocaleString()}
-                </span>
-              </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-[#C2C5AA] block mb-1">Reason for Return / Refund</label>
+                  <textarea
+                    rows={2}
+                    value={refundReasonInput}
+                    onChange={e => setRefundReasonInput(e.target.value)}
+                    placeholder="e.g. Procedure canceled due to skin allergy; customer returned unopened sunscreen"
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white outline-none"
+                  />
+                </div>
 
-              <div>
-                <span className="text-[10px] text-slate-500 dark:text-[#A4AC86] block uppercase font-bold">Payment Channel</span>
-                <span className="font-bold text-slate-800 dark:text-white">{activeReceipt.paymentMethod || 'CASH'}</span>
-                <span className="text-[10px] text-slate-500 dark:text-[#A4AC86] block font-sans">({activeReceipt.paymentPlan || 'FULL'})</span>
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-[#2F3E29]">
+                  <button type="button" onClick={() => setSelectedPaymentForRefund(null)} className="clinical-button-secondary text-xs cursor-pointer">
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isProcessingRefund}
+                    onClick={handleConfirmRefund}
+                    className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-sm cursor-pointer"
+                  >
+                    {isProcessingRefund ? 'Reversing...' : 'Issue Refund'}
+                  </button>
+                </div>
               </div>
-            </div>
-
-            {/* Financial Breakdown Table */}
-            <div className="border border-slate-200 dark:border-[#2F3E29] rounded-xl overflow-hidden">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-slate-100 dark:bg-[#171F13] text-slate-700 dark:text-[#C2C5AA] font-bold uppercase text-[10px]">
-                  <tr>
-                    <th className="p-2.5">Description</th>
-                    <th className="p-2.5 text-right">Amount (PKR)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-[#2F3E29] font-mono">
-                  <tr>
-                    <td className="p-2.5 text-slate-800 dark:text-[#E8F3EB] font-sans">{activeReceipt.category || 'Consultation Fee'}</td>
-                    <td className="p-2.5 text-right font-bold text-slate-900 dark:text-white">
-                      PKR {activeReceipt.totalAmount?.toFixed(2)}
-                    </td>
-                  </tr>
-                  {(activeReceipt.discount || 0) > 0 && (
-                    <tr className="text-emerald-700 dark:text-emerald-400">
-                      <td className="p-2.5 font-sans">Special Discount / Waiver</td>
-                      <td className="p-2.5 text-right">-PKR {activeReceipt.discount?.toFixed(2)}</td>
-                    </tr>
+            ) : (
+              <div className="space-y-3">
+                <span className="text-xs text-slate-500 block">Past Returns & Reversals Audit Trail:</span>
+                <div className="max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-[#2F3E29] text-xs">
+                  {allReturns.length === 0 ? (
+                    <div className="text-center py-6 text-slate-400">No returns recorded yet.</div>
+                  ) : (
+                    allReturns.map(r => (
+                      <div key={r.id} className="py-2 flex items-center justify-between">
+                        <div>
+                          <span className="font-bold text-slate-900 dark:text-white">{r.returnNumber}</span>
+                          <span className="text-slate-400 font-mono ml-2">({r.invoiceNumber})</span>
+                          <p className="text-[11px] text-slate-500 line-clamp-1">{r.reason}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-mono font-bold text-rose-600">-PKR {r.refundAmount}</span>
+                          <span className="block text-[10px] text-slate-400">{r.refundMethod}</span>
+                        </div>
+                      </div>
+                    ))
                   )}
-                  <tr className="bg-emerald-50 dark:bg-emerald-950/40 font-bold text-emerald-900 dark:text-emerald-300 text-sm">
-                    <td className="p-2.5 font-sans">Amount Received</td>
-                    <td className="p-2.5 text-right">PKR {activeReceipt.amountPaid?.toFixed(2)}</td>
-                  </tr>
-                  <tr className="font-semibold text-xs">
-                    <td className="p-2.5 font-sans dark:text-[#C2C5AA]">Remaining Balance Dues</td>
-                    <td className={`p-2.5 text-right font-mono ${
-                      activeReceipt.balanceDue > 0 ? 'text-rose-700 dark:text-rose-400 font-bold' : 'text-emerald-700 dark:text-emerald-400'
-                    }`}>
-                      PKR {activeReceipt.balanceDue?.toFixed(2) || '0.00'}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            {activeReceipt.notes && (
-              <div className="text-[11px] p-2.5 bg-slate-50 dark:bg-[#171F13] border border-slate-200 dark:border-[#2F3E29] rounded-lg text-slate-600 dark:text-[#C2C5AA]">
-                <strong className="text-slate-800 dark:text-white">Remarks:</strong> {activeReceipt.notes}
+                </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
 
-            {/* Receipt Footer */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-[#2F3E29]">
+      {/* 8. Dedicated 80mm Thermal Receipt Slip Layout & Modal */}
+      {activeReceipt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-sm bg-white text-black rounded-xl p-5 shadow-2xl font-mono text-xs border border-slate-300">
+            {/* Printable Slip Container */}
+            <div id="thermal-receipt-slip" className="space-y-3">
+              <div className="text-center border-b border-dashed border-black pb-3">
+                {clinicProfile.clinicLogoUrl && (
+                  <div className="flex justify-center mb-1.5">
+                    <img src={clinicProfile.clinicLogoUrl} alt="Logo" className="h-8 max-w-[120px] object-contain grayscale" />
+                  </div>
+                )}
+                <h2 className="text-base font-extrabold uppercase tracking-tight">{clinicProfile.clinicName}</h2>
+                <p className="text-[10px] text-slate-600 mt-0.5">{clinicProfile.clinicAddress}</p>
+                <p className="text-[10px] text-slate-600">Ph: {clinicProfile.clinicPhone} | NTN: {clinicProfile.taxNumber || clinicProfile.clinicNtn}</p>
+                <div className="mt-2 py-1 px-2 border border-black text-xs font-bold inline-block">
+                  QUEUE TOKEN #{activeReceipt.tokenNumber || 'WALK-IN'}
+                </div>
+              </div>
+
+              <div className="text-[11px] space-y-0.5 border-b border-dashed border-black pb-2">
+                <div className="flex justify-between">
+                  <span>Invoice: {activeReceipt.invoiceNumber}</span>
+                  <span>{new Date(activeReceipt.createdAt).toLocaleDateString()}</span>
+                </div>
+                <div>Patient: <strong>{activeReceipt.patientName}</strong></div>
+                {activeReceipt.doctorName && <div>Doctor: <strong>{activeReceipt.doctorName}</strong></div>}
+                <div>Payment: {activeReceipt.paymentMethod} ({activeReceipt.paymentPlan || 'FULL'})</div>
+              </div>
+
+              {/* Itemized list if cart items present */}
+              {activeReceipt.items && activeReceipt.items.length > 0 ? (
+                <div className="border-b border-dashed border-black pb-2 text-[11px]">
+                  <div className="flex justify-between font-bold pb-1">
+                    <span>Item</span>
+                    <span>Total</span>
+                  </div>
+                  {activeReceipt.items.map((it: any, idx: number) => (
+                    <div key={idx} className="flex justify-between">
+                      <span className="truncate pr-2">{it.name} (x{it.quantity})</span>
+                      <span>PKR {(it.unitPrice * it.quantity).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex justify-between text-[11px] border-b border-dashed border-black pb-2">
+                  <span>{activeReceipt.dealName || activeReceipt.category || 'Clinical Treatment'}</span>
+                  <span>PKR {activeReceipt.totalAmount?.toFixed(2)}</span>
+                </div>
+              )}
+
+              {/* Financial Totals */}
+              <div className="space-y-1 text-[11px] border-b border-dashed border-black pb-2">
+                <div className="flex justify-between">
+                  <span>Subtotal:</span>
+                  <span>PKR {activeReceipt.totalAmount?.toFixed(2)}</span>
+                </div>
+                {(activeReceipt.discount || 0) > 0 && (
+                  <div className="flex justify-between">
+                    <span>Discount:</span>
+                    <span>-PKR {activeReceipt.discount?.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-sm">
+                  <span>PAID:</span>
+                  <span>PKR {activeReceipt.amountPaid?.toFixed(2)}</span>
+                </div>
+                {activeReceipt.balanceDue > 0 && (
+                  <div className="flex justify-between font-bold text-rose-600">
+                    <span>DUES REMAINING:</span>
+                    <span>PKR {activeReceipt.balanceDue?.toFixed(2)}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Multi-Session Notice if applicable */}
+              {activeReceipt.sessionsAllowed && activeReceipt.sessionsAllowed > 0 && (
+                <div className="p-1.5 border border-dashed border-black text-center text-[10px]">
+                  <strong>Aesthetic Package:</strong> {activeReceipt.sessionsAllowed} Total Sessions
+                </div>
+              )}
+
+              {/* Footer Note */}
+              <div className="text-center text-[9px] text-slate-600 pt-1">
+                <p>{clinicProfile.receiptFooterNote}</p>
+                <p className="mt-1 font-bold">*** HAVE A RADIANT DAY ***</p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-200 mt-4 no-print">
               <button
                 type="button"
                 onClick={() => setActiveReceipt(null)}
-                className="clinical-button-secondary text-xs cursor-pointer"
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer"
               >
-                Close Window
+                Close
               </button>
-
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="clinical-button-primary text-xs flex items-center gap-2 cursor-pointer"
+                className="px-4 py-1.5 text-xs font-bold rounded-lg bg-black text-white hover:bg-slate-800 flex items-center gap-1.5 cursor-pointer shadow-sm"
               >
-                <Printer className="w-4 h-4" />
-                <span>Print Official Receipt</span>
+                <Printer className="w-3.5 h-3.5" /> Print 80mm Slip
               </button>
             </div>
+
+            {/* Dedicated 80mm ESC/POS Thermal Print Styles */}
+            <style>{`
+              @media print {
+                body * {
+                  visibility: hidden !important;
+                }
+                #thermal-receipt-slip,
+                #thermal-receipt-slip * {
+                  visibility: visible !important;
+                }
+                #thermal-receipt-slip {
+                  position: fixed !important;
+                  left: 0 !important;
+                  top: 0 !important;
+                  width: 80mm !important;
+                  max-width: 80mm !important;
+                  margin: 0 !important;
+                  padding: 3mm !important;
+                  background: #ffffff !important;
+                  color: #000000 !important;
+                  border: none !important;
+                  box-shadow: none !important;
+                  font-family: monospace !important;
+                  font-size: 11px !important;
+                }
+                .no-print {
+                  display: none !important;
+                }
+              }
+            `}</style>
           </div>
         </div>
       )}

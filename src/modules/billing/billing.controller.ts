@@ -36,6 +36,12 @@ export class BillingController {
       const {
         patientId,
         appointmentId,
+        doctorId,
+        doctorName,
+        dealId,
+        dealName,
+        sessionsAllowed,
+        items,
         amount,
         totalAmount,
         discount,
@@ -53,6 +59,12 @@ export class BillingController {
         {
           patientId,
           appointmentId,
+          doctorId,
+          doctorName,
+          dealId,
+          dealName,
+          sessionsAllowed: sessionsAllowed !== undefined ? Number(sessionsAllowed) : undefined,
+          items,
           amount: parseFloat(amount),
           totalAmount: totalAmount !== undefined ? parseFloat(totalAmount) : undefined,
           discount: discount !== undefined ? parseFloat(discount) : undefined,
@@ -67,6 +79,83 @@ export class BillingController {
       res.status(201).json({
         success: true,
         data: payment
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async consumePackageSession(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { remarks, doctorName } = req.body;
+      const result = await billingService.consumePackageSession(
+        req.params.id,
+        remarks,
+        doctorName,
+        req.user?.userId || 'SYSTEM',
+        req.user?.role || 'RECEPTIONIST'
+      );
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async processRefund(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { paymentId, refundAmount, reason, refundMethod, itemsReturned } = req.body;
+      if (!paymentId || refundAmount === undefined || !reason) {
+        throw AppError.badRequest('paymentId, refundAmount, and reason are required');
+      }
+      const result = await billingService.processRefund({
+        paymentId,
+        refundAmount: Number(refundAmount),
+        reason,
+        refundMethod,
+        itemsReturned,
+        actorId: req.user?.userId || 'SYSTEM',
+        actorRole: req.user?.role || 'RECEPTIONIST'
+      });
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getSalesReturns(req: Request, res: Response, next: NextFunction) {
+    try {
+      const returns = await billingService.getSalesReturns();
+      res.json({
+        success: true,
+        data: returns
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async topUpWallet(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { patientId, amount, paymentMethod } = req.body;
+      if (!patientId || !amount) {
+        throw AppError.badRequest('patientId and amount are required');
+      }
+      const result = await billingService.topUpWallet({
+        patientId,
+        amount: Number(amount),
+        paymentMethod,
+        actorId: req.user?.userId || 'SYSTEM',
+        actorRole: req.user?.role || 'RECEPTIONIST'
+      });
+      res.status(201).json({
+        success: true,
+        data: result
       });
     } catch (err) {
       next(err);

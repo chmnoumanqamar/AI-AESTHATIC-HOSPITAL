@@ -293,6 +293,67 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
     }
   };
 
+  // Purchase Order (PO-QA) Creation State & Workflow
+  const [isNewPoModalOpen, setIsNewPoModalOpen] = useState(false);
+  const [poSupplierName, setPoSupplierName] = useState('');
+  const [poSupplierContact, setPoSupplierContact] = useState('');
+  const [poExpectedDelivery, setPoExpectedDelivery] = useState('');
+  const [poDeliveryCharges, setPoDeliveryCharges] = useState('0');
+  const [poNotes, setPoNotes] = useState('');
+  const [poItems, setPoItems] = useState<Array<{ name: string; quantity: number; unitCost: number }>>([
+    { name: '', quantity: 10, unitCost: 0 }
+  ]);
+  const [isSubmittingPo, setIsSubmittingPo] = useState(false);
+
+  const handleAddPoItem = () => {
+    setPoItems(prev => [...prev, { name: '', quantity: 10, unitCost: 0 }]);
+  };
+
+  const handleRemovePoItem = (idx: number) => {
+    setPoItems(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const handlePoItemChange = (idx: number, field: string, val: any) => {
+    setPoItems(prev => prev.map((it, i) => i === idx ? { ...it, [field]: val } : it));
+  };
+
+  const handleCreatePO = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!poSupplierName.trim()) {
+      alert('Please enter supplier/distributor name');
+      return;
+    }
+    const validItems = poItems.filter(it => it.name.trim() !== '');
+    if (validItems.length === 0) {
+      alert('Please specify at least 1 product or medicine item to procure');
+      return;
+    }
+    setIsSubmittingPo(true);
+    try {
+      await api.post('/pharmacy/procurement', {
+        supplierName: poSupplierName,
+        supplierContact: poSupplierContact,
+        expectedDelivery: poExpectedDelivery || undefined,
+        deliveryCharges: parseFloat(poDeliveryCharges) || 0,
+        notes: poNotes,
+        items: validItems
+      });
+      alert('Purchase Order successfully created with sequential PO-QA identifier!');
+      setIsNewPoModalOpen(false);
+      setPoSupplierName('');
+      setPoSupplierContact('');
+      setPoExpectedDelivery('');
+      setPoDeliveryCharges('0');
+      setPoNotes('');
+      setPoItems([{ name: '', quantity: 10, unitCost: 0 }]);
+      fetchAllPharmacyData();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to generate Purchase Order');
+    } finally {
+      setIsSubmittingPo(false);
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-300 pb-12">
       {/* ========================================================================= */}
@@ -1122,21 +1183,30 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
       {/* ========================================================================= */}
       {activeSubTab === 'pharma_procurement' && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                 <Truck className="w-5 h-5 text-emerald-600" />
-                Distributor Purchase Orders & Stock Intake
+                Aesthetic Supplies & Clinical Procurement
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Track incoming shipments from pharmaceutical suppliers (GlaxoSmithKline, Allergan, Abbott) and intake directly to vault.
+                Manage vendor purchase orders with sequential PO-QA tracking, delivery charges, and auto-replenishment upon delivery.
               </p>
             </div>
+            <button
+              type="button"
+              onClick={() => setIsNewPoModalOpen(true)}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer flex items-center gap-2 self-start sm:self-auto"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Create Purchase Order (PO-QA)</span>
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {procurementOrders.map(order => {
               const isReceived = order.status === 'RECEIVED';
+              const poNum = order.poNumber || `PO-QA-${order.id}`;
 
               return (
                 <div
@@ -1146,12 +1216,15 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
                   <div>
                     <div className="flex items-start justify-between">
                       <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          PO #{order.id}
+                        <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 font-mono uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
+                          {poNum}
                         </span>
-                        <h3 className="text-base font-bold text-slate-900 dark:text-white mt-0.5">
-                          {order.distributor}
+                        <h3 className="text-base font-bold text-slate-900 dark:text-white mt-1.5">
+                          {order.supplierName || order.distributor || 'Clinical Supplies Vendor'}
                         </h3>
+                        {order.supplierContact && (
+                          <p className="text-[11px] text-slate-400 mt-0.5">{order.supplierContact}</p>
+                        )}
                       </div>
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
                         isReceived
@@ -1169,16 +1242,26 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
                       <p className="text-slate-500 dark:text-slate-400">
                         Expected Delivery: <span className="font-semibold text-slate-800 dark:text-slate-200">{order.expectedDelivery}</span>
                       </p>
+                      {order.deliveryCharges !== undefined && order.deliveryCharges > 0 && (
+                        <p className="text-slate-500 dark:text-slate-400">
+                          Delivery Charges: <span className="font-semibold text-slate-800 dark:text-slate-200">PKR {order.deliveryCharges}</span>
+                        </p>
+                      )}
                       <p className="text-slate-500 dark:text-slate-400">
                         Total Invoice: <span className="font-black text-emerald-700 dark:text-emerald-400">PKR {order.totalCost}</span>
                       </p>
+                      {order.notes && (
+                        <p className="text-[11px] text-slate-500 italic mt-1 bg-slate-50 dark:bg-[#171F13] p-2 rounded-lg">
+                          Note: {order.notes}
+                        </p>
+                      )}
                     </div>
 
                     <div className="mt-4 space-y-1">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Items Ordered:</p>
                       {order.items?.map((item: any, idx: number) => (
                         <div key={idx} className="flex justify-between text-xs py-1 border-b border-slate-100 dark:border-slate-800/50">
-                          <span className="font-medium text-slate-700 dark:text-slate-300">{item.medicineName}</span>
+                          <span className="font-medium text-slate-700 dark:text-slate-300">{item.name || item.medicineName}</span>
                           <span className="font-bold text-slate-900 dark:text-white">{item.quantity} units @ PKR {item.unitCost}</span>
                         </div>
                       ))}
@@ -1189,7 +1272,7 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
                     {isReceived ? (
                       <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400">
                         <CheckCircle2 className="w-4 h-4" />
-                        <span>Inventory Restocked</span>
+                        <span>Inventory Restocked (Vault & Retail)</span>
                       </div>
                     ) : (
                       <button
@@ -1206,6 +1289,178 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
               );
             })}
           </div>
+
+          {/* Modal: Create Sequential PO-QA Order */}
+          {isNewPoModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+              <div className="w-full max-w-xl bg-white dark:bg-[#1E2718] border border-slate-200 dark:border-[#2F3E29] rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#2F3E29] pb-3">
+                  <div className="flex items-center gap-2">
+                    <Truck className="w-5 h-5 text-emerald-600" />
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">New Purchase Order (PO-QA Workflow)</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsNewPoModalOpen(false)}
+                    className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreatePO} className="space-y-4 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="font-bold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                        Supplier / Distributor Name <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={poSupplierName}
+                        onChange={e => setPoSupplierName(e.target.value)}
+                        placeholder="e.g. Allergan Aesthetics ME, GSK, SkinLab Hub"
+                        className="w-full py-2 px-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 dark:text-[#C2C5AA] block mb-1">Supplier Contact / Hub</label>
+                      <input
+                        type="text"
+                        value={poSupplierContact}
+                        onChange={e => setPoSupplierContact(e.target.value)}
+                        placeholder="e.g. +92 42 35001122 (Lahore Hub)"
+                        className="w-full py-2 px-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="font-bold text-slate-700 dark:text-[#C2C5AA] block mb-1">Expected Delivery Date</label>
+                      <input
+                        type="date"
+                        value={poExpectedDelivery}
+                        onChange={e => setPoExpectedDelivery(e.target.value)}
+                        className="w-full py-2 px-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 dark:text-[#C2C5AA] block mb-1">Delivery Charges (PKR)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="50"
+                        value={poDeliveryCharges}
+                        onChange={e => setPoDeliveryCharges(e.target.value)}
+                        placeholder="0"
+                        className="w-full py-2 px-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white font-mono outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Items to Procure */}
+                  <div className="space-y-2 border-t border-slate-100 dark:border-[#2F3E29] pt-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-800 dark:text-white uppercase tracking-wider text-[11px]">
+                        Items / Aesthetic Supplies ({poItems.length})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleAddPoItem}
+                        className="text-emerald-600 hover:text-emerald-700 font-bold text-xs flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Add Line Item
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {poItems.map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-2 bg-slate-50 dark:bg-[#171F13] p-2.5 rounded-xl border border-slate-200 dark:border-[#2F3E29]">
+                          <input
+                            type="text"
+                            required
+                            value={item.name}
+                            onChange={e => handlePoItemChange(idx, 'name', e.target.value)}
+                            placeholder="Product / Medicine Name (e.g. Botox 100U, Serum B5)"
+                            className="flex-1 py-1.5 px-2.5 rounded-lg border border-slate-200 dark:border-[#2F3E29] bg-white dark:bg-[#202C1B] text-slate-900 dark:text-white text-xs outline-none"
+                          />
+                          <div className="w-20">
+                            <input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={e => handlePoItemChange(idx, 'quantity', parseInt(e.target.value) || 1)}
+                              placeholder="Qty"
+                              className="w-full py-1.5 px-2 rounded-lg border border-slate-200 dark:border-[#2F3E29] bg-white dark:bg-[#202C1B] text-slate-900 dark:text-white text-xs font-mono text-center outline-none"
+                            />
+                          </div>
+                          <div className="w-28">
+                            <input
+                              type="number"
+                              min="0"
+                              step="50"
+                              value={item.unitCost}
+                              onChange={e => handlePoItemChange(idx, 'unitCost', parseFloat(e.target.value) || 0)}
+                              placeholder="Unit PKR"
+                              className="w-full py-1.5 px-2 rounded-lg border border-slate-200 dark:border-[#2F3E29] bg-white dark:bg-[#202C1B] text-slate-900 dark:text-white text-xs font-mono text-right outline-none"
+                            />
+                          </div>
+                          {poItems.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemovePoItem(idx)}
+                              className="text-slate-400 hover:text-rose-500 cursor-pointer p-1"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="p-3 bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center justify-between font-mono">
+                      <span className="text-xs font-bold text-emerald-900 dark:text-emerald-300">Estimated Total Cost:</span>
+                      <span className="text-sm font-extrabold text-emerald-700 dark:text-emerald-400">
+                        PKR {(
+                          poItems.reduce((sum, i) => sum + (i.quantity * i.unitCost), 0) +
+                          (parseFloat(poDeliveryCharges) || 0)
+                        ).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-[#C2C5AA] block mb-1">Internal Procurement Notes</label>
+                    <textarea
+                      rows={2}
+                      value={poNotes}
+                      onChange={e => setPoNotes(e.target.value)}
+                      placeholder="e.g. Urgent aesthetic clinical restock for weekend laser sessions"
+                      className="w-full py-2 px-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white outline-none"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-[#2F3E29]">
+                    <button
+                      type="button"
+                      onClick={() => setIsNewPoModalOpen(false)}
+                      className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#202C1B] rounded-xl cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmittingPo}
+                      className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-600/20 cursor-pointer transition-all disabled:opacity-50"
+                    >
+                      {isSubmittingPo ? 'Generating Order...' : 'Confirm & Issue PO-QA Order'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

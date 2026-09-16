@@ -211,6 +211,7 @@ export interface DbPatient {
   hasWhatsApp: boolean;
   primaryNotificationChannel: string;
   backupNotificationChannel?: string;
+  advance_balance?: number;
   createdAt: string;
 }
 
@@ -342,18 +343,68 @@ export interface DbDoctorPatientRelationship {
   totalVisits: number;
 }
 
+export interface DbAestheticDeal {
+  id: string;
+  name: string;
+  totalPrice: number;
+  description?: string;
+  sessionsAllowed: number;
+  serviceIds?: string[];
+  category: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface DbAestheticProduct {
+  id: string;
+  name: string;
+  sku: string;
+  barcode?: string;
+  categoryId?: string;
+  categoryName: string;
+  costPrice: number;
+  sellingPrice: number;
+  taxClass: 'Standard' | 'Exempt';
+  stockQuantity: number;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface DbSalesReturn {
+  id: string;
+  returnNumber: string;
+  paymentId: string;
+  invoiceNumber: string;
+  patientId: string;
+  patientName: string;
+  refundAmount: number;
+  refundMethod: 'CASH' | 'WALLET' | 'ORIGINAL_METHOD';
+  reason: string;
+  itemsReturned?: Array<{ itemId: string; name: string; quantity: number; unitPrice: number }>;
+  processedBy: string;
+  createdAt: string;
+}
+
 export interface DbPayment {
   id: string;
   invoiceNumber?: string;
   patientId: string;
   appointmentId?: string;
+  doctorId?: string;
+  doctorName?: string;
+  dealId?: string;
+  dealName?: string;
+  sessionsAllowed?: number;
+  sessionsConsumed?: number;
+  sessionRemarks?: Array<{ sessionNumber: number; date: string; remarks: string; doctorName?: string }>;
+  items?: Array<{ id: string; name: string; type: 'SERVICE' | 'PRODUCT' | 'DEAL'; quantity: number; unitPrice: number; subtotal: number }>;
   totalAmount: number;
   discount?: number;
   amountPaid: number;
   balanceDue: number;
   status: 'PENDING' | 'PAID' | 'PARTIAL';
-  paymentMethod?: 'CASH' | 'CARD' | 'JAZZCASH' | 'EASYPAISA' | 'BANK_TRANSFER' | 'INSURANCE';
-  category?: 'CONSULTATION' | 'PROCEDURE' | 'LAB_TEST' | 'PHARMACY' | 'EMERGENCY';
+  paymentMethod?: 'CASH' | 'CARD' | 'JAZZCASH' | 'EASYPAISA' | 'BANK_TRANSFER' | 'INSURANCE' | 'WALLET';
+  category?: 'CONSULTATION' | 'PROCEDURE' | 'LAB_TEST' | 'PHARMACY' | 'EMERGENCY' | 'PACKAGE' | 'RETAIL';
   paymentPlan?: 'FULL' | 'INSTALLMENT_1' | 'INSTALLMENT_2' | 'SPECIAL_WAIVER';
   notes?: string;
   isDemo?: boolean;
@@ -385,6 +436,12 @@ export interface DbSystemSettings {
   twilioWhatsAppNumber?: string;
   botWelcomeMessageUrdu?: string;
   botWelcomeMessageEnglish?: string;
+  clinicName?: string;
+  clinicPhone?: string;
+  clinicAddress?: string;
+  taxNumber?: string;
+  receiptFooterNote?: string;
+  clinicLogoUrl?: string;
   updatedAt: string;
 }
 
@@ -470,12 +527,15 @@ export interface DbProcurementOrder {
   status: 'ORDERED' | 'RECEIVED' | 'CANCELLED';
   orderDate: string;
   expectedDelivery: string;
+  deliveryCharges?: number;
   totalCost: number;
   items: Array<{
+    id?: string;
     name: string;
     quantity: number;
     unitCost: number;
   }>;
+  notes?: string;
   receivedAt?: string;
   createdAt: string;
 }
@@ -500,6 +560,9 @@ class InMemoryHospitalDatabase {
   dispenseRecords: DbDispenseRecord[] = [];
   pharmacySales: DbPharmacySale[] = [];
   procurementOrders: DbProcurementOrder[] = [];
+  deals: DbAestheticDeal[] = [];
+  aestheticProducts: DbAestheticProduct[] = [];
+  salesReturns: DbSalesReturn[] = [];
   moduleHierarchy: HospitalModuleDef[] = ORIGINAL_HOSPITAL_MODULES.map(m => ({ ...m }));
   rolePermissions: HospitalRoleDefinition[] = JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS));
   systemSettings: DbSystemSettings = {
@@ -509,6 +572,12 @@ class InMemoryHospitalDatabase {
     metaPhoneNumberId: process.env.META_WHATSAPP_PHONE_NUMBER_ID || '',
     metaAccessToken: process.env.META_WHATSAPP_TOKEN || '',
     metaVerifyToken: process.env.META_WHATSAPP_VERIFY_TOKEN || 'hospital_wa_verify_token_2026',
+    clinicName: 'Skin-Lab Aesthetic Hospital & Institute',
+    clinicPhone: '+92 42 35876543',
+    clinicAddress: 'Plot 14-C, Main Boulevard, Gulberg III, Lahore, Pakistan',
+    taxNumber: 'NTN-7418902-1',
+    receiptFooterNote: 'Thank you for visiting Skin-Lab! Packages once initiated are valid for 12 months. Keep this slip for subsequent session verification.',
+    clinicLogoUrl: '',
     updatedAt: new Date().toISOString()
   };
 
@@ -630,6 +699,28 @@ class InMemoryHospitalDatabase {
         if (parsed.rolePermissions && Array.isArray(parsed.rolePermissions)) {
           this.rolePermissions = parsed.rolePermissions;
         }
+        if (parsed.deals && Array.isArray(parsed.deals)) {
+          this.deals = parsed.deals;
+        }
+        if (parsed.aestheticProducts && Array.isArray(parsed.aestheticProducts)) {
+          this.aestheticProducts = parsed.aestheticProducts;
+        }
+        if (parsed.salesReturns && Array.isArray(parsed.salesReturns)) {
+          this.salesReturns = parsed.salesReturns;
+        }
+        if (parsed.payments && Array.isArray(parsed.payments)) {
+          for (const p of parsed.payments) {
+            const idx = this.payments.findIndex(existing => existing.id === p.id);
+            if (idx >= 0) {
+              this.payments[idx] = { ...this.payments[idx], ...p };
+            } else {
+              this.payments.push(p);
+            }
+          }
+        }
+        if (parsed.systemSettings) {
+          this.systemSettings = { ...this.systemSettings, ...parsed.systemSettings };
+        }
       }
     } catch {
       // Safe fallback on read failure
@@ -651,6 +742,11 @@ class InMemoryHospitalDatabase {
         prescriptionVersions: this.prescriptionVersions,
         dispenseRecords: this.dispenseRecords,
         pharmacySales: this.pharmacySales,
+        payments: this.payments,
+        deals: this.deals,
+        aestheticProducts: this.aestheticProducts,
+        salesReturns: this.salesReturns,
+        systemSettings: this.systemSettings,
         moduleHierarchy: this.moduleHierarchy,
         rolePermissions: this.rolePermissions,
         savedAt: new Date().toISOString()
@@ -1936,6 +2032,155 @@ class InMemoryHospitalDatabase {
     };
 
     seedHistoricalReportsData();
+
+    // 13. Aesthetic Deals & Multi-Session Packages
+    this.deals = [
+      {
+        id: 'deal-01',
+        name: 'HydraFacial Deluxe (5 Sessions)',
+        totalPrice: 18000,
+        description: '5 deep pore extraction, exfoliation, antioxidant infusion & LED light therapy sessions.',
+        sessionsAllowed: 5,
+        category: 'Facials & Peels',
+        isActive: true,
+        createdAt: today + 'T08:00:00Z'
+      },
+      {
+        id: 'deal-02',
+        name: 'Full Body Laser Hair Removal (6 Sessions)',
+        totalPrice: 65000,
+        description: 'Triple-wavelength Diode + Alexandrite laser package with cooling tip technology.',
+        sessionsAllowed: 6,
+        category: 'Laser Treatments',
+        isActive: true,
+        createdAt: today + 'T08:00:00Z'
+      },
+      {
+        id: 'deal-03',
+        name: 'Carbon Hollywood Laser Peel (3 Sessions)',
+        totalPrice: 15000,
+        description: 'Q-switched Nd:YAG carbon paste laser peel for instant glass skin glow & pore reduction.',
+        sessionsAllowed: 3,
+        category: 'Laser Treatments',
+        isActive: true,
+        createdAt: today + 'T08:00:00Z'
+      },
+      {
+        id: 'deal-04',
+        name: 'PRP Hair Rejuvenation (4 Sessions)',
+        totalPrice: 28000,
+        description: 'Autologous platelet-rich plasma scalp micro-injections for follicular density.',
+        sessionsAllowed: 4,
+        category: 'Hair Restoration',
+        isActive: true,
+        createdAt: today + 'T08:00:00Z'
+      }
+    ];
+
+    // 14. Aesthetic Skincare Retail Products
+    this.aestheticProducts = [
+      {
+        id: 'prod-01',
+        name: 'Hyaluronic B5 Intense Hydrating Serum 30ml',
+        sku: 'SKN-SRM-001',
+        barcode: '890123450011',
+        categoryName: 'Serums & Actives',
+        costPrice: 2200,
+        sellingPrice: 3800,
+        taxClass: 'Standard',
+        stockQuantity: 45,
+        isActive: true,
+        createdAt: today + 'T08:00:00Z'
+      },
+      {
+        id: 'prod-02',
+        name: 'Invisible Shield Mineral Sunblock SPF 60 PA+++',
+        sku: 'SKN-SUN-002',
+        barcode: '890123450028',
+        categoryName: 'Sun Protection',
+        costPrice: 1400,
+        sellingPrice: 2600,
+        taxClass: 'Standard',
+        stockQuantity: 80,
+        isActive: true,
+        createdAt: today + 'T08:00:00Z'
+      },
+      {
+        id: 'prod-03',
+        name: 'Retinol 0.5% Encapsulated Youth Cream 50g',
+        sku: 'SKN-RET-003',
+        barcode: '890123450035',
+        categoryName: 'Anti-Aging',
+        costPrice: 2800,
+        sellingPrice: 4900,
+        taxClass: 'Standard',
+        stockQuantity: 30,
+        isActive: true,
+        createdAt: today + 'T08:00:00Z'
+      },
+      {
+        id: 'prod-04',
+        name: 'Vitamin C 20% + Ferulic Glow Booster 30ml',
+        sku: 'SKN-VIT-004',
+        barcode: '890123450042',
+        categoryName: 'Brightening',
+        costPrice: 2500,
+        sellingPrice: 4200,
+        taxClass: 'Standard',
+        stockQuantity: 50,
+        isActive: true,
+        createdAt: today + 'T08:00:00Z'
+      },
+      {
+        id: 'prod-05',
+        name: 'Gentle Clarifying Salicylic Foaming Wash 150ml',
+        sku: 'SKN-CLN-005',
+        barcode: '890123450059',
+        categoryName: 'Cleansers',
+        costPrice: 900,
+        sellingPrice: 1850,
+        taxClass: 'Standard',
+        stockQuantity: 65,
+        isActive: true,
+        createdAt: today + 'T08:00:00Z'
+      }
+    ];
+
+    // 15. Initial Demo Sales Return
+    this.salesReturns = [
+      {
+        id: 'ret-01',
+        returnNumber: 'RET-2026-001',
+        paymentId: 'pay-02',
+        invoiceNumber: 'INV-100242',
+        patientId: 'pat-02',
+        patientName: 'Emily Clark',
+        refundAmount: 500,
+        refundMethod: 'WALLET',
+        reason: 'Client requested reschedule & post-treatment product credit conversion.',
+        processedBy: 'receptionist@hospital.com',
+        createdAt: today + 'T10:00:00Z'
+      }
+    ];
+
+    // Give John Doe an initial active aesthetic package with 1 session completed
+    const existingP1 = this.payments.find(p => p.id === 'pay-01');
+    if (existingP1) {
+      existingP1.doctorId = 'doc-01';
+      existingP1.doctorName = 'Dr. Aisha Khan';
+      existingP1.dealId = 'deal-01';
+      existingP1.dealName = 'HydraFacial Deluxe (5 Sessions)';
+      existingP1.sessionsAllowed = 5;
+      existingP1.sessionsConsumed = 1;
+      existingP1.sessionRemarks = [
+        {
+          sessionNumber: 1,
+          date: today + 'T08:30:00Z',
+          remarks: 'Session 1: Deep exfoliation and saline vortex infusion performed. Patient skin clear, no erythema.',
+          doctorName: 'Dr. Aisha Khan'
+        }
+      ];
+    }
   }
 
   ensureTodaySchedule() {

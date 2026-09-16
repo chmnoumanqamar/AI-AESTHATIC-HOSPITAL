@@ -12,7 +12,14 @@ import {
   EyeOff,
   Check,
   Smartphone,
-  ExternalLink
+  ExternalLink,
+  Building2,
+  Receipt,
+  MapPin,
+  Hash,
+  Printer,
+  Sparkles,
+  ImageIcon
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { WhatsAppSimulatorModal } from '../../components/common/WhatsAppSimulatorModal';
@@ -41,6 +48,18 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
 
   const [saved, setSaved] = useState(false);
 
+  // Clinic Profile & Thermal POS Receipt Settings
+  const [clinicProfile, setClinicProfile] = useState({
+    clinicName: 'SkinLab Aesthetic & Laser Center',
+    clinicPhone: '+92 42 35789000',
+    clinicAddress: 'Plaza 14-C, Gulberg III, MM Alam Road, Lahore',
+    clinicNtn: 'NTN-8472910-3',
+    receiptFooterNote: 'Thank you for choosing SkinLab! Packages valid for 180 days. All treatments performed by board-certified practitioners.',
+    clinicLogoUrl: ''
+  });
+  const [clinicSaved, setClinicSaved] = useState(false);
+  const [clinicLoading, setClinicLoading] = useState(false);
+
   // WhatsApp Meta Cloud API & Bot State
   const [waConfig, setWaConfig] = useState({
     whatsappBotEnabled: true,
@@ -66,7 +85,28 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
         console.error('Failed to load WhatsApp configuration:', err);
       }
     };
+
+    const fetchClinicProfile = async () => {
+      try {
+        const res = await api.get('/admin/clinic-profile');
+        if (res.data?.data) {
+          const d = res.data.data;
+          setClinicProfile({
+            clinicName: d.clinicName || 'SkinLab Aesthetic & Laser Center',
+            clinicPhone: d.clinicPhone || '+92 42 35789000',
+            clinicAddress: d.clinicAddress || 'Plaza 14-C, Gulberg III, MM Alam Road, Lahore',
+            clinicNtn: d.taxNumber || d.clinicNtn || 'NTN-8472910-3',
+            receiptFooterNote: d.receiptFooterNote || 'Thank you for choosing SkinLab! Packages valid for 180 days.',
+            clinicLogoUrl: d.clinicLogoUrl || ''
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load clinic profile:', err);
+      }
+    };
+
     fetchWaConfig();
+    fetchClinicProfile();
   }, []);
 
   const handleSaveWhatsApp = async (e: React.FormEvent) => {
@@ -77,6 +117,24 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
       setTimeout(() => setWaSaved(false), 3000);
     } catch (err: any) {
       alert(err.response?.data?.error?.message || 'Failed to update WhatsApp configuration');
+    }
+  };
+
+  const handleSaveClinicProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setClinicLoading(true);
+    try {
+      await api.patch('/admin/clinic-profile', {
+        ...clinicProfile,
+        taxNumber: clinicProfile.clinicNtn,
+        clinicNtn: clinicProfile.clinicNtn
+      });
+      setClinicSaved(true);
+      setTimeout(() => setClinicSaved(false), 3000);
+    } catch (err: any) {
+      alert(err.response?.data?.error?.message || 'Failed to update clinic profile');
+    } finally {
+      setClinicLoading(false);
     }
   };
 
@@ -433,6 +491,176 @@ export const AdminConfigView: React.FC<{ onNavigateToDatabase?: () => void }> = 
                   placeholder="EAABw..."
                   className="w-full clinical-input font-mono text-[11px] py-1.5 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#151D12]"
                 />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Clinic Identity & Thermal Receipt Master Configuration */}
+        <div className="col-span-1 md:col-span-2 bg-white dark:bg-[#1E2718] border-2 border-emerald-600/80 dark:border-emerald-700 rounded-2xl p-6 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-emerald-100 dark:border-emerald-900/60">
+            <div className="flex items-center gap-3">
+              <span className="p-2.5 rounded-xl bg-gradient-to-br from-[#2D6A4F] to-[#1B4332] text-white shadow-xs border border-emerald-400/40">
+                <Building2 className="w-6 h-6" />
+              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-extrabold text-base text-[#1F291E] dark:text-[#F6F7F2]">
+                    Clinic Branding &amp; 80mm Thermal Receipt Slip
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300">
+                    POS SLIP IDENTITY
+                  </span>
+                </div>
+                <p className="text-xs text-[#656D4A] dark:text-[#A4AC86] mt-0.5">
+                  Configure official clinic trading name, tax NTN, clinical helpline, and 80mm thermal receipt header &amp; footer note.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSaveClinicProfile}
+              disabled={clinicLoading}
+              className="clinical-button-primary flex items-center gap-1.5 text-xs cursor-pointer shadow-xs"
+            >
+              {clinicSaved ? <Check className="w-4 h-4 text-emerald-300" /> : <Save className="w-4 h-4" />}
+              <span>{clinicSaved ? 'Clinic Identity Synced!' : clinicLoading ? 'Saving...' : 'Save Clinic Profile'}</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Column 1: Trade Name, Phone & Address */}
+            <div className="space-y-4 text-xs">
+              <h4 className="font-bold text-xs uppercase tracking-wider text-emerald-800 dark:text-emerald-400 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                <span>1. Clinic Official Registration Details</span>
+              </h4>
+
+              {/* Clinic Name */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Clinic / Hospital Name:</span>
+                </label>
+                <input
+                  type="text"
+                  value={clinicProfile.clinicName}
+                  onChange={e => setClinicProfile(prev => ({ ...prev, clinicName: e.target.value }))}
+                  placeholder="e.g. SkinLab Aesthetic & Laser Center"
+                  className="w-full clinical-input font-bold text-xs py-2 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#151D12] text-slate-900 dark:text-white"
+                />
+              </div>
+
+              {/* NTN / Tax ID */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <Hash className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>National Tax Number (NTN / Sales Tax ID):</span>
+                </label>
+                <input
+                  type="text"
+                  value={clinicProfile.clinicNtn}
+                  onChange={e => setClinicProfile(prev => ({ ...prev, clinicNtn: e.target.value }))}
+                  placeholder="e.g. NTN-8472910-3"
+                  className="w-full clinical-input font-mono text-xs py-2 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#151D12] text-slate-900 dark:text-white"
+                />
+              </div>
+
+              {/* Clinic Helpline */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Reception Phone / Helpline:</span>
+                </label>
+                <input
+                  type="text"
+                  value={clinicProfile.clinicPhone}
+                  onChange={e => setClinicProfile(prev => ({ ...prev, clinicPhone: e.target.value }))}
+                  placeholder="e.g. +92 42 35789000"
+                  className="w-full clinical-input font-mono text-xs py-2 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#151D12] text-slate-900 dark:text-white"
+                />
+              </div>
+
+              {/* Clinic Address */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Physical Address / Branch:</span>
+                </label>
+                <input
+                  type="text"
+                  value={clinicProfile.clinicAddress}
+                  onChange={e => setClinicProfile(prev => ({ ...prev, clinicAddress: e.target.value }))}
+                  placeholder="e.g. Plaza 14-C, Gulberg III, MM Alam Road, Lahore"
+                  className="w-full clinical-input text-xs py-2 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#151D12] text-slate-900 dark:text-white"
+                />
+              </div>
+
+              {/* Clinic Logo URL */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Clinic Brand Logo URL (Slip Header):</span>
+                </label>
+                <input
+                  type="text"
+                  value={clinicProfile.clinicLogoUrl}
+                  onChange={e => setClinicProfile(prev => ({ ...prev, clinicLogoUrl: e.target.value }))}
+                  placeholder="e.g. https://... or /logo.png"
+                  className="w-full clinical-input font-mono text-xs py-2 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#151D12] text-slate-900 dark:text-white"
+                />
+              </div>
+            </div>
+
+            {/* Column 2: Thermal Slip Footer & Live Slip Simulation */}
+            <div className="space-y-4 text-xs">
+              <h4 className="font-bold text-xs uppercase tracking-wider text-emerald-800 dark:text-emerald-400 flex items-center gap-1.5">
+                <Printer className="w-3.5 h-3.5 text-emerald-600" />
+                <span>2. 80mm Thermal Receipt Slip Layout &amp; Disclaimer</span>
+              </h4>
+
+              {/* Receipt Footer Note */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <Receipt className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Thermal Receipt Footer Note &amp; Validity Disclaimer:</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={clinicProfile.receiptFooterNote}
+                  onChange={e => setClinicProfile(prev => ({ ...prev, receiptFooterNote: e.target.value }))}
+                  placeholder="e.g. Thank you for choosing SkinLab! Packages valid for 180 days."
+                  className="w-full clinical-input text-xs py-2 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#151D12] text-slate-900 dark:text-white"
+                />
+              </div>
+
+              {/* Live Mini Preview */}
+              <div className="p-3.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/80 dark:bg-[#151D12] space-y-2">
+                <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                  <span className="flex items-center gap-1">
+                    <Receipt className="w-3 h-3" />
+                    <span>80mm Thermal Paper Preview</span>
+                  </span>
+                  <span className="font-mono text-[10px]">Thermal ESC/POS</span>
+                </div>
+                <div className="bg-white text-black p-3 rounded-lg shadow-inner font-mono text-[10px] space-y-1 border border-slate-200 text-center">
+                  {clinicProfile.clinicLogoUrl && (
+                    <div className="flex justify-center mb-1">
+                      <img src={clinicProfile.clinicLogoUrl} alt="Logo" className="h-7 object-contain grayscale" />
+                    </div>
+                  )}
+                  <div className="font-black text-xs uppercase tracking-wider">{clinicProfile.clinicName || 'SKINLAB CLINIC'}</div>
+                  <div className="text-[9px]">{clinicProfile.clinicAddress || 'Lahore'}</div>
+                  <div className="text-[9px]">NTN: {clinicProfile.clinicNtn || 'NTN-PENDING'} • Tel: {clinicProfile.clinicPhone}</div>
+                  <div className="border-b border-dashed border-black my-1" />
+                  <div className="flex justify-between font-bold text-[9px]">
+                    <span>TOKEN #04</span>
+                    <span>INV-98214</span>
+                  </div>
+                  <div className="border-b border-dashed border-black my-1" />
+                  <div className="text-[8.5px] italic text-slate-600">{clinicProfile.receiptFooterNote}</div>
+                </div>
               </div>
             </div>
           </div>

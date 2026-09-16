@@ -18,6 +18,25 @@ router.post('/pay', authMiddleware, requireRoles('ADMIN', 'RECEPTIONIST'), (req,
   billingController.recordPayment(req, res, next)
 );
 
+// Multi-Session Package Session Consumption
+router.post('/packages/:id/consume-session', authMiddleware, requireRoles('ADMIN', 'RECEPTIONIST', 'DOCTOR'), (req, res, next) =>
+  billingController.consumePackageSession(req, res, next)
+);
+
+// Sales Returns & Refunds
+router.post('/refund', authMiddleware, requireRoles('ADMIN', 'RECEPTIONIST'), (req, res, next) =>
+  billingController.processRefund(req, res, next)
+);
+
+router.get('/returns', authMiddleware, requireRoles('ADMIN', 'RECEPTIONIST'), (req, res, next) =>
+  billingController.getSalesReturns(req, res, next)
+);
+
+// Patient Prepaid Wallet Top-up
+router.post('/wallet/topup', authMiddleware, requireRoles('ADMIN', 'RECEPTIONIST'), (req, res, next) =>
+  billingController.topUpWallet(req, res, next)
+);
+
 // Hospital-wide ledger (Admin only)
 router.get('/ledger', authMiddleware, requireRoles('ADMIN'), (req, res, next) =>
   billingController.getHospitalLedger(req, res, next)

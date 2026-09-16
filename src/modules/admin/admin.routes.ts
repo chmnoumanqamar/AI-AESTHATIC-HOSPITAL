@@ -7,11 +7,14 @@ const router = Router();
 
 // Module & Page Hierarchy: Layout can be read by all roles and clients
 router.get('/hierarchy', (req, res, next) => adminController.getModuleHierarchy(req, res, next));
+// Clinic Profile & Thermal Receipt Info (Readable by all for receipts)
+router.get('/clinic-profile', (req, res, next) => adminController.getClinicProfile(req, res, next));
 
 // Invariant: All Admin management endpoints require valid authentication and strict ADMIN role authorization
 router.use(authMiddleware);
 router.use(requireRoles('ADMIN'));
 
+router.patch('/clinic-profile', (req, res, next) => adminController.updateClinicProfile(req, res, next));
 router.get('/users', (req, res, next) => adminController.getUsers(req, res, next));
 router.patch('/users/:userId/access', (req, res, next) => adminController.updateUserAccess(req, res, next));
 router.patch('/users/:userId/role', (req, res, next) => adminController.updateUserRole(req, res, next));

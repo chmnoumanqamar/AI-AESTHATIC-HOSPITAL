@@ -115,6 +115,19 @@ export class PharmacyController {
     }
   }
 
+  async createProcurementOrder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const order = await pharmacyService.createProcurementOrder(req.body);
+      res.status(201).json({
+        status: 'SUCCESS',
+        message: 'Purchase order generated successfully',
+        data: order
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async receiveProcurementOrder(req: Request, res: Response, next: NextFunction) {
     try {
       const { orderId } = req.params;

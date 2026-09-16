@@ -25,6 +25,7 @@ router.post('/safety-check', (req, res, next) => pharmacyController.checkDrugSaf
 
 // Distributor Procurement & Shipment Receiving
 router.get('/procurement', (req, res, next) => pharmacyController.getProcurementOrders(req, res, next));
+router.post('/procurement', (req, res, next) => pharmacyController.createProcurementOrder(req, res, next));
 router.post('/procurement/:orderId/receive', (req, res, next) => pharmacyController.receiveProcurementOrder(req, res, next));
 
 export default router;

@@ -146,6 +146,12 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
   const [allServices, setAllServices] = useState<any[]>([]);
   const [allDeals, setAllDeals] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [allCategories, setAllCategories] = useState<any[]>([]);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('ALL');
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState<boolean>(false);
+  const [newCategoryName, setNewCategoryName] = useState<string>('');
+  const [newCategoryType, setNewCategoryType] = useState<'SERVICE' | 'PRODUCT' | 'DEAL' | 'ALL'>('SERVICE');
+  const [isCreatingCategory, setIsCreatingCategory] = useState<boolean>(false);
   const [cartItems, setCartItems] = useState<Array<{ id: string; name: string; type: 'SERVICE' | 'PRODUCT' | 'DEAL'; quantity: number; unitPrice: number; sessionsAllowed?: number; sku?: string }>>([]);
   const [catalogSearch, setCatalogSearch] = useState<string>('');
 
@@ -223,16 +229,17 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
     }
   };
 
-  // Load doctors, services, deals, products, clinic profile, returns
+  // Load doctors, services, deals, products, clinic profile, returns, categories
   const fetchExtraCatalogs = async () => {
     try {
-      const [docRes, srvRes, dealRes, prodRes, profRes, retRes] = await Promise.allSettled([
+      const [docRes, srvRes, dealRes, prodRes, profRes, retRes, catRes] = await Promise.allSettled([
         api.get('/doctors'),
         api.get('/services'),
         api.get('/services/deals'),
         api.get('/services/products'),
         api.get('/admin/clinic-profile'),
-        api.get('/billing/returns')
+        api.get('/billing/returns'),
+        api.get('/services/categories')
       ]);
       if (docRes.status === 'fulfilled' && docRes.value.data?.data) setAllDoctors(docRes.value.data.data);
       if (srvRes.status === 'fulfilled' && srvRes.value.data?.data) setAllServices(srvRes.value.data.data);
@@ -240,8 +247,32 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
       if (prodRes.status === 'fulfilled' && prodRes.value.data?.data) setAllProducts(prodRes.value.data.data);
       if (profRes.status === 'fulfilled' && profRes.value.data?.data) setClinicProfile(profRes.value.data.data);
       if (retRes.status === 'fulfilled' && retRes.value.data?.data) setAllReturns(retRes.value.data.data);
+      if (catRes.status === 'fulfilled' && catRes.value.data?.data) setAllCategories(catRes.value.data.data);
     } catch (e) {
       console.error('Failed to load catalog data:', e);
+    }
+  };
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) {
+      alert('Please enter a category name');
+      return;
+    }
+    setIsCreatingCategory(true);
+    try {
+      const res = await api.post('/services/categories', {
+        name: newCategoryName.trim(),
+        type: newCategoryType
+      });
+      alert(`Category "${res.data.data.name}" created successfully!`);
+      setNewCategoryName('');
+      setIsCategoryModalOpen(false);
+      const catRes = await api.get('/services/categories');
+      if (catRes.data?.data) setAllCategories(catRes.data.data);
+    } catch (err: any) {
+      alert(err.response?.data?.error?.message || 'Failed to create category');
+    } finally {
+      setIsCreatingCategory(false);
     }
   };
 
@@ -606,11 +637,23 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
   const matchedQueueItem = effectiveQueue.find(q => q.patientId === selectedPatientId);
   const matchedPatientRecord = allPatients.find(p => p.id === selectedPatientId);
 
-  // Filter Catalog (Includes Name, SKU, and Barcode compatibility)
+  // Filter Catalog with category & search compatibility
   const filterQuery = catalogSearch.toLowerCase().trim();
-  const filteredServices = allServices.filter(s => !filterQuery || s.name.toLowerCase().includes(filterQuery));
-  const filteredDeals = allDeals.filter(d => !filterQuery || d.name.toLowerCase().includes(filterQuery));
-  const filteredProducts = allProducts.filter(p => !filterQuery || p.name.toLowerCase().includes(filterQuery) || (p.sku && p.sku.toLowerCase().includes(filterQuery)) || (p.barcode && p.barcode.toLowerCase().includes(filterQuery)));
+  const filteredServices = allServices.filter(s => {
+    const matchesSearch = !filterQuery || s.name.toLowerCase().includes(filterQuery);
+    const matchesCat = selectedCategoryFilter === 'ALL' || (s.category && s.category.toLowerCase() === selectedCategoryFilter.toLowerCase());
+    return matchesSearch && matchesCat;
+  });
+  const filteredDeals = allDeals.filter(d => {
+    const matchesSearch = !filterQuery || d.name.toLowerCase().includes(filterQuery);
+    const matchesCat = selectedCategoryFilter === 'ALL' || (d.category && d.category.toLowerCase() === selectedCategoryFilter.toLowerCase());
+    return matchesSearch && matchesCat;
+  });
+  const filteredProducts = allProducts.filter(p => {
+    const matchesSearch = !filterQuery || p.name.toLowerCase().includes(filterQuery) || (p.sku && p.sku.toLowerCase().includes(filterQuery)) || (p.barcode && p.barcode.toLowerCase().includes(filterQuery));
+    const matchesCat = selectedCategoryFilter === 'ALL' || (p.categoryName && p.categoryName.toLowerCase() === selectedCategoryFilter.toLowerCase());
+    return matchesSearch && matchesCat;
+  });
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -737,7 +780,7 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
                   <optgroup label="Registered Patient Directory">
                     {otherPatients.map(p => (
                       <option key={p.id} value={p.id}>
-                        {p.fullName} | CNIC: {p.cnic || 'N/A'} | Ph: {p.emergencyContact || p.phone || 'N/A'}
+                        {p.fullName} | Due: Rs. {p.dueBalance ? p.dueBalance.toLocaleString() : '0'} | Wallet: Rs. {p.advanceBalance ? p.advanceBalance.toLocaleString() : '0'} | Ph: {p.emergencyContact || p.phone || 'N/A'}
                       </option>
                     ))}
                   </optgroup>
@@ -746,24 +789,39 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
             </div>
           </div>
 
-          {/* Quick Dual Wallet & Due Indicator */}
-          <div className="lg:col-span-4 flex items-center gap-3">
+          {/* Quick Dual Wallet & Outstanding Due Indicators (Item 6) */}
+          <div className="lg:col-span-4 flex items-center gap-2">
             {patientSummary && (
-              <div className="w-full flex items-center justify-between p-2.5 rounded-xl border border-slate-100 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13]">
-                <div>
-                  <span className="text-[10px] text-slate-500 dark:text-[#A4AC86] font-bold uppercase block">Advance Wallet</span>
-                  <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-                    PKR {patientSummary.advanceCredit.toFixed(2)}
+              <>
+                <div className="flex-1 flex items-center justify-between p-2 rounded-xl border border-slate-100 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13]">
+                  <div>
+                    <span className="text-[9px] text-slate-500 dark:text-[#A4AC86] font-bold uppercase block">Advance Wallet</span>
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                      Rs. {patientSummary.advanceCredit.toFixed(0)}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsWalletModalOpen(true)}
+                    className="px-2 py-0.5 text-[10px] font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs flex items-center gap-0.5 cursor-pointer transition-colors"
+                  >
+                    <Plus className="w-2.5 h-2.5" /> Top Up
+                  </button>
+                </div>
+
+                <div className={`flex-1 p-2 rounded-xl border ${
+                  patientSummary.balanceDue > 0
+                    ? 'border-rose-200 dark:border-rose-900/50 bg-rose-50/70 dark:bg-rose-950/20'
+                    : 'border-slate-100 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13]'
+                }`}>
+                  <span className="text-[9px] font-bold uppercase block text-slate-500 dark:text-[#A4AC86]">Outstanding Due</span>
+                  <span className={`text-xs font-bold font-mono ${
+                    patientSummary.balanceDue > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-400'
+                  }`}>
+                    {patientSummary.balanceDue > 0 ? `Rs. ${patientSummary.balanceDue.toFixed(0)}` : 'Rs. 0 (Settled)'}
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsWalletModalOpen(true)}
-                  className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  <Plus className="w-3 h-3" /> Top Up
-                </button>
-              </div>
+              </>
             )}
           </div>
         </div>
@@ -854,16 +912,39 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
               </button>
             </div>
 
-            {/* Search Input */}
-            <div className="relative w-full sm:w-48">
-              <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
-              <input
-                type="text"
-                value={catalogSearch}
-                onChange={e => setCatalogSearch(e.target.value)}
-                placeholder="Search item or SKU..."
-                className="w-full text-xs pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-emerald-500"
-              />
+            {/* Search & Category Filter Controls (Item 4) */}
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <div className="flex items-center gap-1">
+                <select
+                  value={selectedCategoryFilter}
+                  onChange={e => setSelectedCategoryFilter(e.target.value)}
+                  className="text-xs font-semibold py-1.5 px-2.5 rounded-lg border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer max-w-[150px]"
+                >
+                  <option value="ALL">All Categories</option>
+                  {allCategories.map((c: any) => (
+                    <option key={c.id || c.name} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setIsCategoryModalOpen(true)}
+                  className="px-2 py-1.5 text-xs font-bold rounded-lg border border-dashed border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors flex items-center gap-1 cursor-pointer shrink-0"
+                  title="Create New Custom Category"
+                >
+                  <Plus className="w-3 h-3" /> Cat
+                </button>
+              </div>
+
+              <div className="relative w-full sm:w-44">
+                <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
+                <input
+                  type="text"
+                  value={catalogSearch}
+                  onChange={e => setCatalogSearch(e.target.value)}
+                  placeholder="Search item or SKU..."
+                  className="w-full text-xs pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+              </div>
             </div>
           </div>
 
@@ -1611,6 +1692,66 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
                 }
               }
             `}</style>
+          </div>
+        </div>
+      )}
+      {/* Modal: Custom Category Creator (Item 4) */}
+      {isCategoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="w-full max-w-sm bg-white dark:bg-[#1E2717] border border-slate-200 dark:border-[#2F3E29] rounded-2xl p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#2F3E29] pb-3">
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-600" /> Add Custom Category
+              </h4>
+              <button onClick={() => setIsCategoryModalOpen(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Category Name *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Chemical Peels, Laser Toning..."
+                  value={newCategoryName}
+                  onChange={e => setNewCategoryName(e.target.value)}
+                  className="w-full py-2 px-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Applicable To</label>
+                <select
+                  value={newCategoryType}
+                  onChange={e => setNewCategoryType(e.target.value as any)}
+                  className="w-full py-2 px-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                >
+                  <option value="SERVICE">Treatments & Procedures</option>
+                  <option value="PRODUCT">Skincare Retail Products</option>
+                  <option value="DEAL">Packages & Deals</option>
+                  <option value="ALL">All Categories</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-[#2F3E29]">
+              <button
+                type="button"
+                onClick={() => setIsCategoryModalOpen(false)}
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-[#202C1B] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isCreatingCategory || !newCategoryName.trim()}
+                onClick={handleCreateCategory}
+                className="px-4 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              >
+                {isCreatingCategory ? 'Saving...' : 'Create Category'}
+              </button>
+            </div>
           </div>
         </div>
       )}

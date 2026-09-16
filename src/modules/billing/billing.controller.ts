@@ -173,6 +173,29 @@ export class BillingController {
       next(err);
     }
   }
+
+  async collectDuePayment(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { paymentId } = req.params;
+      const { amountPaidNow, paymentMethod, notes } = req.body;
+      const result = await billingService.collectDuePayment(
+        paymentId,
+        {
+          amountPaidNow: Number(amountPaidNow),
+          paymentMethod,
+          notes
+        },
+        req.user?.userId || 'SYSTEM',
+        req.user?.role || 'RECEPTIONIST'
+      );
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const billingController = new BillingController();

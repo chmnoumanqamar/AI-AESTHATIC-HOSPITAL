@@ -82,6 +82,25 @@ export class ServiceController {
       next(err);
     }
   }
+
+  // --- Aesthetic Categories ---
+  async getCategories(req: Request, res: Response, next: NextFunction) {
+    try {
+      const categories = await clinicalServiceCatalog.getCategories();
+      res.json({ success: true, data: categories });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async createCategory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const category = await clinicalServiceCatalog.createCategory(req.body);
+      res.status(201).json({ success: true, data: category });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const serviceController = new ServiceController();

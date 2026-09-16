@@ -12,6 +12,9 @@ router.get('/products', (req, res, next) => serviceController.getProducts(req, r
 router.post('/products', (req, res, next) => serviceController.createProduct(req, res, next));
 router.patch('/products/:id/stock', (req, res, next) => serviceController.updateProductStock(req, res, next));
 
+router.get('/categories', (req, res, next) => serviceController.getCategories(req, res, next));
+router.post('/categories', (req, res, next) => serviceController.createCategory(req, res, next));
+
 router.get('/:id', (req, res, next) => serviceController.getById(req, res, next));
 
 export default router;

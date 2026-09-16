@@ -44,6 +44,8 @@ export class AdminService {
         blockedReason: u.blockedReason || null,
         blockedAt: u.blockedAt || null,
         allowedModules: u.allowedModules || [],
+        linkedEmployeeId: u.linkedEmployeeId || null,
+        linkedEmployeeName: u.linkedEmployeeName || null,
         createdAt: u.createdAt,
         name: displayName,
         profile
@@ -386,6 +388,8 @@ export class AdminService {
       deskNumber: input.deskNumber,
       shift: input.shift,
       allergies: input.allergies,
+      linkedEmployeeId: input.linkedEmployeeId || undefined,
+      linkedEmployeeName: input.linkedEmployeeName || undefined,
       isBlocked: false,
       isDemo: false,
       createdAt: new Date().toISOString(),

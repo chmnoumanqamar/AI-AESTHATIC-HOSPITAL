@@ -31,6 +31,8 @@ export interface DbUser {
   blockedReason?: string;
   blockedAt?: string;
   allowedModules?: string[]; // Fully flexible dynamic module permissions granted by Admin
+  linkedEmployeeId?: string;
+  linkedEmployeeName?: string;
   isDemo?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -578,6 +580,14 @@ export interface DbProcurementOrder {
   createdAt: string;
 }
 
+export interface DbCategory {
+  id: string;
+  name: string;
+  type: 'SERVICE' | 'PRODUCT' | 'DEAL' | 'ALL';
+  description?: string;
+  createdAt: string;
+}
+
 class InMemoryHospitalDatabase {
   users: DbUser[] = [];
   patients: DbPatient[] = [];
@@ -603,6 +613,14 @@ class InMemoryHospitalDatabase {
   deals: DbAestheticDeal[] = [];
   aestheticProducts: DbAestheticProduct[] = [];
   salesReturns: DbSalesReturn[] = [];
+  categories: DbCategory[] = [
+    { id: 'cat-1', name: 'HydraFacial & Deep Cleansing', type: 'SERVICE', createdAt: '2026-01-01T00:00:00.000Z' },
+    { id: 'cat-2', name: 'Laser Aesthetics & Hair Removal', type: 'SERVICE', createdAt: '2026-01-01T00:00:00.000Z' },
+    { id: 'cat-3', name: 'Skin Brightening & Peeling', type: 'SERVICE', createdAt: '2026-01-01T00:00:00.000Z' },
+    { id: 'cat-4', name: 'Anti-Aging & Injectables', type: 'SERVICE', createdAt: '2026-01-01T00:00:00.000Z' },
+    { id: 'cat-5', name: 'Retail Serums & Sunscreens', type: 'PRODUCT', createdAt: '2026-01-01T00:00:00.000Z' },
+    { id: 'cat-6', name: 'Body Contouring & Slimming', type: 'SERVICE', createdAt: '2026-01-01T00:00:00.000Z' }
+  ];
   moduleHierarchy: HospitalModuleDef[] = ORIGINAL_HOSPITAL_MODULES.map(m => ({ ...m }));
   rolePermissions: HospitalRoleDefinition[] = JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS));
   systemSettings: DbSystemSettings = {
@@ -765,6 +783,9 @@ class InMemoryHospitalDatabase {
         if (parsed.procurementOrders && Array.isArray(parsed.procurementOrders)) {
           this.procurementOrders = parsed.procurementOrders;
         }
+        if (parsed.categories && Array.isArray(parsed.categories)) {
+          this.categories = parsed.categories;
+        }
         if (parsed.payments && Array.isArray(parsed.payments)) {
           for (const p of parsed.payments) {
             const idx = this.payments.findIndex(existing => existing.id === p.id);
@@ -806,6 +827,7 @@ class InMemoryHospitalDatabase {
         deals: this.deals,
         aestheticProducts: this.aestheticProducts,
         salesReturns: this.salesReturns,
+        categories: this.categories,
         systemSettings: this.systemSettings,
         moduleHierarchy: this.moduleHierarchy,
         rolePermissions: this.rolePermissions,

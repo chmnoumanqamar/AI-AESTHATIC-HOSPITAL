@@ -4,7 +4,9 @@
   "description": "Hospital Management & AI Agent System with Concurrency-Safe Tokens, Git-Style Prescription Versioning, and Clinical Command Deck",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build:server": "tsc",
+    "build:client": "npm --prefix client run build",
+    "build": "tsc && npm --prefix client run build",
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "dev:client": "npm --prefix client run dev",

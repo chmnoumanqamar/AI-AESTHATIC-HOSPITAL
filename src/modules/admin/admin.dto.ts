@@ -36,6 +36,8 @@ export const CreateUserSchema = z.object({
   shift: z.string().optional(),
   department: z.string().optional(),
   allergies: z.string().optional(),
+  linkedEmployeeId: z.string().optional(),
+  linkedEmployeeName: z.string().optional(),
 });
 
 export type CreateUserInput = z.infer<typeof CreateUserSchema>;

@@ -97,6 +97,34 @@ export class ClinicalServiceCatalog {
     db.saveToDisk();
     return product;
   }
+
+  // --- Aesthetic Treatment & Product Categories ---
+  async getCategories() {
+    return db.categories || [];
+  }
+
+  async createCategory(payload: { name: string; type?: 'SERVICE' | 'PRODUCT' | 'DEAL' | 'ALL'; description?: string }) {
+    if (!payload.name || !payload.name.trim()) {
+      throw AppError.badRequest('Category name is required');
+    }
+    const nameTrimmed = payload.name.trim();
+    const existing = (db.categories || []).find(c => c.name.toLowerCase() === nameTrimmed.toLowerCase());
+    if (existing) {
+      return existing;
+    }
+    const newCategory = {
+      id: `cat-${Date.now()}`,
+      name: nameTrimmed,
+      type: payload.type || 'ALL',
+      description: payload.description || '',
+      createdAt: new Date().toISOString()
+    };
+    if (!db.categories) db.categories = [];
+    db.categories.push(newCategory);
+    db.saveToDisk();
+    return newCategory;
+  }
 }
 
 export const clinicalServiceCatalog = new ClinicalServiceCatalog();
+

@@ -42,4 +42,9 @@ router.get('/ledger', authMiddleware, requireRoles('ADMIN'), (req, res, next) =>
   billingController.getHospitalLedger(req, res, next)
 );
 
+// Collect Due on Unsettled / Partial Payment
+router.post('/payments/:paymentId/collect-due', authMiddleware, requireRoles('ADMIN', 'RECEPTIONIST'), (req, res, next) =>
+  billingController.collectDuePayment(req, res, next)
+);
+
 export default router;

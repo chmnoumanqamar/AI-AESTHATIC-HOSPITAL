@@ -43,6 +43,8 @@ export interface HospitalUser {
   email: string;
   role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST';
   name: string;
+  linkedEmployeeId?: string | null;
+  linkedEmployeeName?: string | null;
   gender?: string | null;
   dateOfBirth?: string | null;
   cnic?: string | null;
@@ -158,8 +160,12 @@ export const AdminUserAccessView: React.FC = () => {
     consultationFee: 2500,
     deskNumber: 'OPD Counter 1',
     shift: 'Morning Shift (08:00 - 16:00)',
-    allergies: ''
+    allergies: '',
+    linkedEmployeeId: '',
+    linkedEmployeeName: ''
   };
+
+  const [staffDirectory, setStaffDirectory] = useState<Array<{ id: string; name: string; role: string; detail?: string }>>([]);
 
   const [newUser, setNewUser] = useState(defaultUserForm);
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -245,8 +251,24 @@ export const AdminUserAccessView: React.FC = () => {
     }
   };
 
+  const fetchStaffDirectory = async () => {
+    try {
+      const res = await api.get('/doctors');
+      const docs = (res.data?.data || []).map((d: any) => ({
+        id: d.id,
+        name: d.user?.name || `Dr. ${d.id.slice(0, 6)}`,
+        role: 'Doctor',
+        detail: d.specialization || d.department || 'Consultant'
+      }));
+      setStaffDirectory(docs);
+    } catch (e) {
+      console.warn('Failed to load doctor directory for linking:', e);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchStaffDirectory();
   }, [selectedRoleFilter, selectedStatusFilter]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -478,6 +500,8 @@ export const AdminUserAccessView: React.FC = () => {
         username: uname.toLowerCase(),
         phone: newUser.phone.trim(),
         email: newUser.email.trim() || undefined,
+        linkedEmployeeId: newUser.linkedEmployeeId || undefined,
+        linkedEmployeeName: newUser.linkedEmployeeName || undefined,
         experienceYears: Number(newUser.experienceYears) || 0,
         consultationFee: Number(newUser.consultationFee) || 0
       });
@@ -671,6 +695,12 @@ export const AdminUserAccessView: React.FC = () => {
                           <div className="text-xs font-mono font-medium text-slate-500 dark:text-[#A4AC86] mt-0.5">
                             @{user.username || user.phone}
                           </div>
+                          {user.linkedEmployeeName && (
+                            <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800">
+                              <UserCheck className="w-3 h-3 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                              <span>Linked: {user.linkedEmployeeName}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -918,6 +948,35 @@ export const AdminUserAccessView: React.FC = () => {
                           <option value="ADMIN">Administrator (IT & Compliance)</option>
                         </select>
                       </div>
+                    </div>
+
+                    {/* Optional User-to-Employee Linking */}
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 dark:text-[#C2C5AA] block mb-1">
+                        Link to Employee / Doctor Profile (Optional)
+                      </label>
+                      <select
+                        value={newUser.linkedEmployeeId}
+                        onChange={e => {
+                          const selected = staffDirectory.find(s => s.id === e.target.value);
+                          setNewUser(prev => ({
+                            ...prev,
+                            linkedEmployeeId: selected ? selected.id : '',
+                            linkedEmployeeName: selected ? selected.name : ''
+                          }));
+                        }}
+                        className="clinical-input w-full text-xs dark:bg-[#171F13] dark:border-[#38482E] dark:text-white"
+                      >
+                        <option value="">-- None (Independent User Account) --</option>
+                        {staffDirectory.map(st => (
+                          <option key={st.id} value={st.id}>
+                            {st.name} ({st.role} • {st.detail})
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        Link login credentials directly to an employee/doctor for activity attribution.
+                      </p>
                     </div>
 
                     {/* Dedicated Username (Login ID) with Live Validation */}
@@ -1605,6 +1664,18 @@ export const AdminUserAccessView: React.FC = () => {
                     <div className="col-span-2">
                       <span className="text-slate-500 dark:text-[#A4AC86]">Documented Allergies:</span>
                       <p className="font-bold text-rose-600 dark:text-rose-400">{profileTargetUser.allergies}</p>
+                    </div>
+                  )}
+                  {profileTargetUser.linkedEmployeeName && (
+                    <div className="col-span-2 p-2 rounded-lg bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 flex items-center gap-2">
+                      <UserCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                      <div>
+                        <span className="text-[10px] font-bold uppercase text-indigo-500 block">Linked Staff / Doctor Profile</span>
+                        <span className="font-bold text-indigo-900 dark:text-indigo-200">{profileTargetUser.linkedEmployeeName}</span>
+                        {profileTargetUser.linkedEmployeeId && (
+                          <span className="text-[10px] font-mono text-indigo-400 ml-2">({profileTargetUser.linkedEmployeeId})</span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

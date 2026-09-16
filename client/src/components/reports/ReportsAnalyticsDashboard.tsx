@@ -28,7 +28,8 @@ import {
   Banknote,
   Smartphone,
   LineChart as LineChartIcon,
-  BarChart3 as BarChartIcon
+  BarChart3 as BarChartIcon,
+  Wallet
 } from 'lucide-react';
 import { StatusBadge } from '../common/StatusBadge';
 
@@ -48,6 +49,45 @@ export const ReportsAnalyticsDashboard: React.FC<ReportsAnalyticsDashboardProps>
   const [searchTxQuery, setSearchTxQuery] = useState<string>('');
   const [hoveredBarIndex, setHoveredBarIndex] = useState<number | null>(null);
   const [showExportMenu, setShowExportMenu] = useState<boolean>(false);
+
+  // Collect Due Modal States (Item 5)
+  const [selectedTxForDue, setSelectedTxForDue] = useState<any | null>(null);
+  const [collectDueAmount, setCollectDueAmount] = useState<string>('');
+  const [collectDueMethod, setCollectDueMethod] = useState<string>('CASH');
+  const [collectDueNotes, setCollectDueNotes] = useState<string>('');
+  const [isCollectingDue, setIsCollectingDue] = useState<boolean>(false);
+
+  const handleOpenCollectDue = (tx: any) => {
+    setSelectedTxForDue(tx);
+    const remaining = tx.balanceDue ?? Math.max(0, (tx.totalAmount || 0) - (tx.amountPaid || 0));
+    setCollectDueAmount(String(remaining));
+    setCollectDueMethod('CASH');
+    setCollectDueNotes('');
+  };
+
+  const handleConfirmCollectDue = async () => {
+    if (!selectedTxForDue) return;
+    const amountVal = parseFloat(collectDueAmount);
+    if (isNaN(amountVal) || amountVal <= 0) {
+      alert('Please enter a valid amount');
+      return;
+    }
+    setIsCollectingDue(true);
+    try {
+      const res = await api.post(`/billing/payments/${selectedTxForDue.id}/collect-due`, {
+        amountPaidNow: amountVal,
+        paymentMethod: collectDueMethod,
+        notes: collectDueNotes
+      });
+      alert(res.data.data?.message || 'Payment collected successfully!');
+      setSelectedTxForDue(null);
+      await fetchAnalytics(period);
+    } catch (err: any) {
+      alert(err.response?.data?.error?.message || 'Failed to collect payment');
+    } finally {
+      setIsCollectingDue(false);
+    }
+  };
 
   const fetchAnalytics = async (selectedPeriod: 'daily' | 'weekly' | 'monthly' | 'yearly') => {
     setLoading(true);
@@ -1260,7 +1300,8 @@ export const ReportsAnalyticsDashboard: React.FC<ReportsAnalyticsDashboardProps>
                 <th className="py-2.5 px-3">Category</th>
                 <th className="py-2.5 px-3">Channel</th>
                 <th className="py-2.5 px-3 text-right">Settled Amount</th>
-                <th className="py-2.5 px-3 text-center rounded-r-lg">Status</th>
+                <th className="py-2.5 px-3 text-center">Status</th>
+                <th className="py-2.5 px-3 text-right rounded-r-lg">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E2E6D8]/60 dark:divide-[#333D29]/60 font-mono">
@@ -1293,6 +1334,19 @@ export const ReportsAnalyticsDashboard: React.FC<ReportsAnalyticsDashboardProps>
                   <td className="py-2.5 px-3 text-center">
                     <StatusBadge status={tx.status} size="sm" />
                   </td>
+                  <td className="py-2.5 px-3 text-right">
+                    {(tx.status === 'PARTIAL' || tx.status === 'PENDING' || (tx.balanceDue && tx.balanceDue > 0)) ? (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenCollectDue(tx)}
+                        className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <Wallet className="w-3 h-3" /> Collect Due
+                      </button>
+                    ) : (
+                      <span className="text-[10px] font-bold text-slate-400">Settled</span>
+                    )}
+                  </td>
                 </tr>
               ))}
 
@@ -1307,6 +1361,113 @@ export const ReportsAnalyticsDashboard: React.FC<ReportsAnalyticsDashboardProps>
           </table>
         </div>
       </div>
+
+      {/* Modal: Collect Due / Partial Payment Clearance (Item 5) */}
+      {selectedTxForDue && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in font-sans">
+          <div className="w-full max-w-md bg-white dark:bg-[#1E2717] border border-slate-200 dark:border-[#2F3E29] rounded-2xl p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#2F3E29] pb-3">
+              <div>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Wallet className="w-4 h-4 text-emerald-600" /> Collect Outstanding Balance
+                </h4>
+                <p className="text-[11px] text-slate-500 dark:text-[#A4AC86]">
+                  Invoice #{selectedTxForDue.invoiceNumber} • Patient: {selectedTxForDue.patientName}
+                </p>
+              </div>
+              <button onClick={() => setSelectedTxForDue(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Balance Summary Box */}
+            <div className="grid grid-cols-3 gap-2 p-3 rounded-xl bg-slate-50 dark:bg-[#141B10] border border-slate-100 dark:border-[#2F3E29] text-center font-mono">
+              <div>
+                <span className="text-[10px] text-slate-500 font-bold uppercase block">Gross Bill</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  Rs. {selectedTxForDue.totalAmount?.toLocaleString() || '0'}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-500 font-bold uppercase block">Paid So Far</span>
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                  Rs. {selectedTxForDue.amountPaid?.toLocaleString() || '0'}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-rose-500 font-bold uppercase block">Balance Due</span>
+                <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
+                  Rs. {(selectedTxForDue.balanceDue ?? (selectedTxForDue.totalAmount - selectedTxForDue.amountPaid)).toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            {/* Form Inputs */}
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Amount to Collect Now (PKR) *
+                </label>
+                <input
+                  type="number"
+                  value={collectDueAmount}
+                  onChange={e => setCollectDueAmount(e.target.value)}
+                  className="w-full py-2 px-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white font-mono font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Payment Channel
+                </label>
+                <select
+                  value={collectDueMethod}
+                  onChange={e => setCollectDueMethod(e.target.value)}
+                  className="w-full py-2 px-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                >
+                  <option value="CASH">Cash Counter</option>
+                  <option value="CARD">Debit / Credit Card POS</option>
+                  <option value="BANK_TRANSFER">Direct Bank Transfer</option>
+                  <option value="JAZZCASH">JazzCash</option>
+                  <option value="EASYPAISA">EasyPaisa</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Collection Notes / Reference (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Cleared remaining 2nd installment..."
+                  value={collectDueNotes}
+                  onChange={e => setCollectDueNotes(e.target.value)}
+                  className="w-full py-2 px-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-[#2F3E29]">
+              <button
+                type="button"
+                onClick={() => setSelectedTxForDue(null)}
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-[#202C1B] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isCollectingDue || !collectDueAmount || parseFloat(collectDueAmount) <= 0}
+                onClick={handleConfirmCollectDue}
+                className="px-4 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              >
+                {isCollectingDue ? 'Processing...' : 'Confirm Payment'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

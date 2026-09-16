@@ -435,6 +435,55 @@ export class BillingService {
         .slice(0, 30)
     };
   }
+
+  /**
+   * COLLECT DUE / PARTIAL PAYMENT CLEARANCE
+   */
+  async collectDuePayment(
+    paymentId: string,
+    payload: { amountPaidNow: number; paymentMethod?: 'CASH' | 'CARD' | 'JAZZCASH' | 'EASYPAISA' | 'BANK_TRANSFER' | 'INSURANCE' | 'WALLET'; notes?: string },
+    actorId: string = 'SYSTEM',
+    actorRole: string = 'RECEPTIONIST'
+  ) {
+    const payment = db.payments.find(p => p.id === paymentId);
+    if (!payment) throw AppError.notFound('Payment record not found');
+
+    const amountNow = Number(payload.amountPaidNow);
+    if (isNaN(amountNow) || amountNow <= 0) {
+      throw AppError.badRequest('Amount paid must be greater than zero');
+    }
+
+    if (amountNow > payment.balanceDue) {
+      throw AppError.badRequest(`Amount exceeds remaining balance due of PKR ${payment.balanceDue}`);
+    }
+
+    payment.amountPaid += amountNow;
+    payment.balanceDue = Math.max(0, payment.balanceDue - amountNow);
+    payment.status = payment.balanceDue === 0 ? 'PAID' : 'PARTIAL';
+    if (payload.paymentMethod) {
+      payment.paymentMethod = payload.paymentMethod;
+    }
+    if (payload.notes) {
+      payment.notes = payment.notes ? `${payment.notes} | ${payload.notes}` : payload.notes;
+    }
+
+    db.saveToDisk();
+
+    recordAuditLog({
+      actorId,
+      actorType: actorRole,
+      action: 'POS_DUE_COLLECTED',
+      resourceType: 'Payment',
+      resourceId: payment.id,
+      newState: payment
+    });
+
+    return {
+      success: true,
+      message: `Successfully collected PKR ${amountNow}. Remaining due: PKR ${payment.balanceDue}`,
+      payment
+    };
+  }
 }
 
 export const billingService = new BillingService();

@@ -297,47 +297,77 @@ export const AdminModuleStudio: React.FC = () => {
 
   const currentRoleDefinition = roles.find((r) => r.role === activeRole) || roles[0];
 
-  // Toggle individual permission (Read / Write / Delete)
-  const handleToggle = (roleKey: RoleKey, moduleId: string, field: 'read' | 'write' | 'delete') => {
-    setRoles((prev) =>
-      prev.map((r) => {
-        if (r.role !== roleKey) return r;
-        const updated = r.permissions.map((p) => {
-          if (p.moduleId !== moduleId) return p;
-          const nextVal = !p[field];
-          const newRule = { ...p, [field]: nextVal };
-          if ((field === 'write' || field === 'delete') && nextVal) {
-            newRule.read = true; // Auto-enable Read if Write or Delete is given
-          }
-          if (field === 'read' && !nextVal) {
-            newRule.write = false; // Auto-disable Write & Delete if Read is revoked
-            newRule.delete = false;
-          }
-          return newRule;
-        });
-        return { ...r, permissions: updated };
-      })
-    );
-    setHasUnsavedChanges((prev) => ({ ...prev, [roleKey]: true }));
+  // Toggle individual permission (Read / Write / Delete) with INSTANT AUTO-SAVE
+  const handleToggle = async (roleKey: RoleKey, moduleId: string, field: 'read' | 'write' | 'delete') => {
+    let nextVal = false;
+    let targetPermissions: any[] = [];
+
+    const updatedRoles = roles.map((r) => {
+      if (r.role !== roleKey) return r;
+      const updated = r.permissions.map((p) => {
+        if (p.moduleId !== moduleId) return p;
+        nextVal = !p[field];
+        const newRule = { ...p, [field]: nextVal };
+        if ((field === 'write' || field === 'delete') && nextVal) {
+          newRule.read = true; // Auto-enable Read if Write or Delete is given
+        }
+        if (field === 'read' && !nextVal) {
+          newRule.write = false; // Auto-disable Write & Delete if Read is revoked
+          newRule.delete = false;
+        }
+        return newRule;
+      });
+      targetPermissions = updated;
+      return { ...r, permissions: updated };
+    });
+
+    // 1. Immediately update UI state
+    setRoles(updatedRoles);
+    // 2. Immediately persist to localStorage & broadcast event
+    saveStoredRolePermissions(updatedRoles);
+
+    // 3. Immediately persist to backend API so refresh preserves state
+    const pageObj = moduleMap.get(moduleId);
+    const label = pageObj ? pageObj.label : moduleId;
+    try {
+      await api.put(`/admin/role-permissions/${roleKey}`, {
+        permissions: targetPermissions,
+      });
+      setHasUnsavedChanges((prev) => ({ ...prev, [roleKey]: false }));
+      showToast(`✓ "${label}" ${field.toUpperCase()} turned ${nextVal ? 'ON' : 'OFF'} (Saved)`);
+    } catch (err) {
+      console.warn('Backend sync failed, saved in local cache:', err);
+      showToast(`✓ "${label}" updated locally`);
+    }
   };
 
-  // Bulk Grant (All Full / All Read / Clear)
-  const handleBulkSet = (roleKey: RoleKey, mode: 'full' | 'read' | 'clear') => {
-    setRoles((prev) =>
-      prev.map((r) => {
-        if (r.role !== roleKey) return r;
-        return {
-          ...r,
-          permissions: r.permissions.map((p) => {
-            if (mode === 'full') return { ...p, read: true, write: true, delete: true };
-            if (mode === 'read') return { ...p, read: true, write: false, delete: false };
-            return { ...p, read: false, write: false, delete: false };
-          }),
-        };
-      })
-    );
-    setHasUnsavedChanges((prev) => ({ ...prev, [roleKey]: true }));
-    showToast(`Applied ${mode === 'full' ? 'Full Access' : mode === 'read' ? 'Read-Only' : 'Revoked'} to ${roleKey}`);
+  // Bulk Grant (All Full / All Read / Clear) with INSTANT AUTO-SAVE
+  const handleBulkSet = async (roleKey: RoleKey, mode: 'full' | 'read' | 'clear') => {
+    let targetPermissions: any[] = [];
+    const updatedRoles = roles.map((r) => {
+      if (r.role !== roleKey) return r;
+      const updated = r.permissions.map((p) => {
+        if (mode === 'full') return { ...p, read: true, write: true, delete: true };
+        if (mode === 'read') return { ...p, read: true, write: false, delete: false };
+        return { ...p, read: false, write: false, delete: false };
+      });
+      targetPermissions = updated;
+      return { ...r, permissions: updated };
+    });
+
+    setRoles(updatedRoles);
+    saveStoredRolePermissions(updatedRoles);
+
+    try {
+      await api.put(`/admin/role-permissions/${roleKey}`, {
+        permissions: targetPermissions,
+      });
+      setHasUnsavedChanges((prev) => ({ ...prev, [roleKey]: false }));
+      showToast(`✓ Applied ${mode === 'full' ? 'Full Access' : mode === 'read' ? 'Read-Only' : 'Revoked'} to ${roleKey} (Saved)`);
+    } catch (err) {
+      console.warn('Backend sync failed, applied in local cache:', err);
+      showToast(`✓ Applied ${mode} locally`);
+    }
   };
 
   // Remove module from role

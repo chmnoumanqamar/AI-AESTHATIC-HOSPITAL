@@ -210,6 +210,76 @@ const DEFAULT_ROLES_FALLBACK: HospitalRoleDefinition[] = [
   },
 ];
 
+export const DEFAULT_PAGE_HIERARCHY: PageHierarchyItem[] = [
+  // Clinical / Doctor
+  { id: 'doctor_queue', label: "Today's Clinical Queue", category: 'CLINICAL', categoryLabel: 'Clinical & Doctor Deck', description: 'Patient queue calling & triage' },
+  { id: 'doctor_consultation', label: 'Consultations & Rx Workspace', category: 'CLINICAL', categoryLabel: 'Clinical & Doctor Deck', description: 'Doctor encounter & e-prescriptions' },
+  { id: 'doctor_tokens', label: 'Token Allocation Matrix', category: 'CLINICAL', categoryLabel: 'Clinical & Doctor Deck', description: 'Sequential token scheduling' },
+
+  // Front-Desk / Reception
+  { id: 'recep_desk', label: 'Queue & Patient Check-In', category: 'RECEPTION', categoryLabel: 'Front-Desk & Reception', description: 'Reception check-in & walk-ins' },
+  { id: 'recep_approvals', label: 'Pending Bookings Approval', category: 'RECEPTION', categoryLabel: 'Front-Desk & Reception', description: 'Booking slot approvals' },
+  { id: 'recep_pos', label: 'Front-Desk Billing POS', category: 'RECEPTION', categoryLabel: 'Front-Desk & Reception', description: 'Front-desk point of sale' },
+  { id: 'recep_reports', label: 'Front-Desk Analytics', category: 'RECEPTION', categoryLabel: 'Front-Desk & Reception', description: 'Daily reception metrics' },
+
+  // Patient Services
+  { id: 'patient_portal', label: 'My Appointments & Tokens', category: 'PATIENT', categoryLabel: 'Patient Services', description: 'Patient portal appointments' },
+  { id: 'patient_booking', label: 'Book Appointment Suite', category: 'PATIENT', categoryLabel: 'Patient Services', description: 'Patient digital booking' },
+  { id: 'patient_history', label: 'Medical Records & Rx Vault', category: 'PATIENT', categoryLabel: 'Patient Services', description: 'Encounter histories & records' },
+  { id: 'patient_billing', label: 'Billing & Payment Ledger', category: 'PATIENT', categoryLabel: 'Patient Services', description: 'Patient payment history' },
+
+  // Pharmacy & Medical Store
+  { id: 'pharma_queue', label: 'Live Dispense Queue', category: 'PHARMACY', categoryLabel: 'Pharmacy & Medical Store', description: 'Active prescription dispensing' },
+  { id: 'pharma_inventory', label: 'Drug Inventory Vault', category: 'PHARMACY', categoryLabel: 'Pharmacy & Medical Store', description: 'Medicine inventory management' },
+  { id: 'pharma_pos', label: 'Pharmacy POS Counter', category: 'PHARMACY', categoryLabel: 'Pharmacy & Medical Store', description: 'Pharmacy sales and receipts' },
+  { id: 'pharma_safety', label: 'Drug Safety & AI Screener', category: 'PHARMACY', categoryLabel: 'Pharmacy & Medical Store', description: 'Drug interactions and allergen checker' },
+  { id: 'pharma_procurement', label: 'Suppliers & Procurement', category: 'PHARMACY', categoryLabel: 'Pharmacy & Medical Store', description: 'Vendor orders & stock procurement' },
+
+  // System Administration
+  { id: 'admin_users', label: 'User Access Control', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Role-based access control' },
+  { id: 'admin_studio', label: 'Module & Page Studio', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Page architecture & granular permissions' },
+  { id: 'admin_audit', label: 'Audit Vault', category: 'ADMIN', categoryLabel: 'System Administration', description: 'System-wide compliance logs' },
+  { id: 'admin_queue', label: 'Live System Queue Monitor', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Real-time hospital traffic monitor' },
+  { id: 'admin_reports', label: 'Executive Analytics & BI', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Business intelligence and revenue' },
+  { id: 'admin_database', label: 'Database Clear & Reset', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Data maintenance operations' },
+  { id: 'admin_config', label: 'System Policies', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Global system configuration' },
+  { id: 'admin_ledger', label: 'Hospital Ledger', category: 'ADMIN', categoryLabel: 'System Administration', description: 'Accounting & finance ledger' },
+];
+
+export const DEPARTMENT_LIST: { id: 'CLINICAL' | 'RECEPTION' | 'PHARMACY' | 'PATIENT' | 'ADMIN'; label: string; fullLabel: string }[] = [
+  { id: 'CLINICAL', label: 'Clinical', fullLabel: 'Clinical & Doctor Deck' },
+  { id: 'RECEPTION', label: 'Front-Desk', fullLabel: 'Front-Desk & Reception' },
+  { id: 'PHARMACY', label: 'Pharmacy', fullLabel: 'Pharmacy & Medical Store' },
+  { id: 'PATIENT', label: 'Patient Services', fullLabel: 'Patient Services' },
+  { id: 'ADMIN', label: 'System Admin', fullLabel: 'System Administration' },
+];
+
+export const getCategoryBadgeStyle = (cat: string) => {
+  switch (cat) {
+    case 'CLINICAL':
+      return 'bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800/80 hover:border-sky-400';
+    case 'RECEPTION':
+      return 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/80 hover:border-purple-400';
+    case 'PHARMACY':
+      return 'bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800/80 hover:border-teal-400';
+    case 'PATIENT':
+      return 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/80 hover:border-amber-400';
+    case 'ADMIN':
+      return 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/80 hover:border-emerald-400';
+    default:
+      return 'bg-slate-100 dark:bg-[#202C1B] text-slate-600 dark:text-[#95A580] border-slate-200/60 dark:border-[#2F3E29]';
+  }
+};
+
+export const getFallbackCategory = (moduleId: string): 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN' | 'PHARMACY' => {
+  if (moduleId.startsWith('doctor_')) return 'CLINICAL';
+  if (moduleId.startsWith('recep_')) return 'RECEPTION';
+  if (moduleId.startsWith('pharma_')) return 'PHARMACY';
+  if (moduleId.startsWith('patient_')) return 'PATIENT';
+  if (moduleId.startsWith('admin_')) return 'ADMIN';
+  return 'ADMIN';
+};
+
 export const AdminModuleStudio: React.FC = () => {
   const [roles, setRoles] = useState<HospitalRoleDefinition[]>(() => {
     return getStoredRolePermissions();
@@ -223,7 +293,7 @@ export const AdminModuleStudio: React.FC = () => {
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {}
-    return [];
+    return DEFAULT_PAGE_HIERARCHY;
   });
 
   const [activeRole, setActiveRole] = useState<RoleKey>('ADMIN');
@@ -338,6 +408,64 @@ export const AdminModuleStudio: React.FC = () => {
     } catch (err) {
       console.warn('Backend sync failed, saved in local cache:', err);
       showToast(`✓ "${label}" updated locally`);
+    }
+  };
+
+  // Move page to different Department / Module with INSTANT REALTIME REORGANIZATION
+  const handleMoveDepartment = async (
+    moduleId: string,
+    targetCategory: 'ADMIN' | 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'PHARMACY'
+  ) => {
+    const mod = moduleMap.get(moduleId);
+    const pageTitle = mod?.label || moduleId;
+    const targetDept = DEPARTMENT_LIST.find((d) => d.id === targetCategory);
+    const targetLabel = targetDept?.fullLabel || targetCategory;
+
+    // 1. Optimistic state update in allModules
+    let nextHierarchy: PageHierarchyItem[] = [];
+    setAllModules((prev) => {
+      const exists = prev.some((m) => m.id === moduleId);
+      if (exists) {
+        nextHierarchy = prev.map((m) =>
+          m.id === moduleId ? { ...m, category: targetCategory, categoryLabel: targetLabel } : m
+        );
+      } else {
+        const base = mod || {
+          id: moduleId,
+          label: pageTitle,
+          category: targetCategory,
+          categoryLabel: targetLabel,
+          description: '',
+        };
+        nextHierarchy = [...prev, { ...base, category: targetCategory, categoryLabel: targetLabel }];
+      }
+
+      // 2. Persist to localStorage immediately
+      try {
+        localStorage.setItem('hospital_dynamic_hierarchy', JSON.stringify(nextHierarchy));
+      } catch (e) {}
+
+      // 3. Dispatch event so StructuralRailNav sidebar updates instantly
+      window.dispatchEvent(new CustomEvent('hospital_hierarchy_updated', { detail: nextHierarchy }));
+
+      return nextHierarchy;
+    });
+
+    showToast(`✓ "${pageTitle}" moved to ${targetDept?.label || targetCategory}`);
+
+    // 4. Persist to backend database API
+    try {
+      const res = await api.patch('/admin/hierarchy/move-page', {
+        pageId: moduleId,
+        targetCategory,
+      });
+      if (res.data?.data?.hierarchy && Array.isArray(res.data.data.hierarchy)) {
+        setAllModules(res.data.data.hierarchy);
+        localStorage.setItem('hospital_dynamic_hierarchy', JSON.stringify(res.data.data.hierarchy));
+        window.dispatchEvent(new CustomEvent('hospital_hierarchy_updated', { detail: res.data.data.hierarchy }));
+      }
+    } catch (err: any) {
+      console.warn('Backend move-page sync fallback to local cache:', err);
     }
   };
 
@@ -773,7 +901,7 @@ export const AdminModuleStudio: React.FC = () => {
             <thead>
               <tr className="border-b border-slate-100 dark:border-[#25301E] bg-slate-50/60 dark:bg-[#161E12] text-[11px] font-bold text-slate-500 dark:text-[#889476] uppercase tracking-wider">
                 <th className="py-3 px-5">Module / Hospital Page</th>
-                <th className="py-3 px-3 text-center w-28">Department</th>
+                <th className="py-3 px-3 text-center w-36">Department</th>
                 <th className="py-3 px-3 text-center w-28">
                   <div className="inline-flex items-center gap-1">
                     <Eye className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
@@ -828,11 +956,41 @@ export const AdminModuleStudio: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Category Tag */}
+                      {/* Department Dropdown */}
                       <td className="py-3 px-3 text-center">
-                        <span className="inline-block text-[10.5px] px-2 py-0.5 rounded-full font-medium bg-slate-100 dark:bg-[#202C1B] text-slate-600 dark:text-[#95A580] border border-slate-200/60 dark:border-[#2F3E29]">
-                          {categoryLabel.split('&')[0].trim()}
-                        </span>
+                        {(() => {
+                          const currentCat: 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN' | 'PHARMACY' =
+                            (mod?.category as any) || getFallbackCategory(rule.moduleId);
+
+                          return (
+                            <div className="relative inline-flex items-center group/dept">
+                              <select
+                                value={currentCat}
+                                onChange={(e) =>
+                                  handleMoveDepartment(
+                                    rule.moduleId,
+                                    e.target.value as 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN' | 'PHARMACY'
+                                  )
+                                }
+                                className={`text-[10.5px] font-semibold pl-2.5 pr-6 py-1 rounded-full border cursor-pointer appearance-none transition-all outline-none focus:ring-2 focus:ring-emerald-500/40 shadow-2xs ${getCategoryBadgeStyle(
+                                  currentCat
+                                )}`}
+                                title={`Department: ${categoryLabel}. Click to move page to another department.`}
+                              >
+                                {DEPARTMENT_LIST.map((dept) => (
+                                  <option
+                                    key={dept.id}
+                                    value={dept.id}
+                                    className="bg-white dark:bg-[#1A2318] text-slate-800 dark:text-slate-200 py-1 font-medium"
+                                  >
+                                    {dept.label}
+                                  </option>
+                                ))}
+                              </select>
+                              <ChevronDown className="w-3 h-3 absolute right-2 pointer-events-none opacity-60 group-hover/dept:opacity-100 transition-opacity text-current" />
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       {/* READ Toggle Switch */}

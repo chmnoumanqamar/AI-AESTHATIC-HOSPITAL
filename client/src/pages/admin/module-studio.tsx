@@ -32,23 +32,14 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { api } from '../../services/api';
-
-export type RoleKey = 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PHARMACIST' | 'PATIENT';
-
-export interface RolePermissionRule {
-  moduleId: string;
-  read: boolean;
-  write: boolean;
-  delete: boolean;
-}
-
-export interface HospitalRoleDefinition {
-  role: RoleKey;
-  label: string;
-  description: string;
-  badgeColor: string;
-  permissions: RolePermissionRule[];
-}
+import {
+  RoleKey,
+  RolePermissionRule,
+  HospitalRoleDefinition,
+  DEFAULT_ROLES_PERMISSIONS,
+  saveStoredRolePermissions,
+  getStoredRolePermissions,
+} from '../../utils/permissions';
 
 export interface PageHierarchyItem {
   id: string;
@@ -221,14 +212,7 @@ const DEFAULT_ROLES_FALLBACK: HospitalRoleDefinition[] = [
 
 export const AdminModuleStudio: React.FC = () => {
   const [roles, setRoles] = useState<HospitalRoleDefinition[]>(() => {
-    try {
-      const cached = localStorage.getItem('hospital_role_permissions_cache');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {}
-    return DEFAULT_ROLES_FALLBACK;
+    return getStoredRolePermissions();
   });
 
   const [allModules, setAllModules] = useState<PageHierarchyItem[]>(() => {
@@ -285,7 +269,7 @@ export const AdminModuleStudio: React.FC = () => {
 
       if (permRes.data?.data?.roles && Array.isArray(permRes.data.data.roles)) {
         setRoles(permRes.data.data.roles);
-        localStorage.setItem('hospital_role_permissions_cache', JSON.stringify(permRes.data.data.roles));
+        saveStoredRolePermissions(permRes.data.data.roles);
       }
 
       if (hierRes.data?.data && Array.isArray(hierRes.data.data)) {
@@ -369,15 +353,15 @@ export const AdminModuleStudio: React.FC = () => {
       console.warn('API error, falling back locally', e);
     }
 
-    setRoles((prev) =>
-      prev.map((r) => {
-        if (r.role !== roleKey) return r;
-        return {
-          ...r,
-          permissions: r.permissions.filter((p) => p.moduleId !== moduleId),
-        };
-      })
-    );
+    const updatedRoles = roles.map((r) => {
+      if (r.role !== roleKey) return r;
+      return {
+        ...r,
+        permissions: r.permissions.filter((p) => p.moduleId !== moduleId),
+      };
+    });
+    setRoles(updatedRoles);
+    saveStoredRolePermissions(updatedRoles);
     showToast(`Removed "${label}" from ${roleKey}`);
   };
 
@@ -391,11 +375,11 @@ export const AdminModuleStudio: React.FC = () => {
       await api.put(`/admin/role-permissions/${roleKey}`, {
         permissions: target.permissions,
       });
-      localStorage.setItem('hospital_role_permissions_cache', JSON.stringify(roles));
+      saveStoredRolePermissions(roles);
       setHasUnsavedChanges((prev) => ({ ...prev, [roleKey]: false }));
-      showToast(`✓ Permissions saved for ${roleKey}`);
+      showToast(`✓ Permissions saved & broadcasted for ${roleKey}`);
     } catch (err: any) {
-      localStorage.setItem('hospital_role_permissions_cache', JSON.stringify(roles));
+      saveStoredRolePermissions(roles);
       setHasUnsavedChanges((prev) => ({ ...prev, [roleKey]: false }));
       showToast(`✓ Permissions saved locally for ${roleKey}`);
     } finally {
@@ -411,14 +395,16 @@ export const AdminModuleStudio: React.FC = () => {
       const res = await api.post('/admin/role-permissions/reset');
       if (res.data?.data?.roles) {
         setRoles(res.data.data.roles);
-        localStorage.setItem('hospital_role_permissions_cache', JSON.stringify(res.data.data.roles));
+        saveStoredRolePermissions(res.data.data.roles);
       } else {
-        setRoles(DEFAULT_ROLES_FALLBACK);
+        setRoles(DEFAULT_ROLES_PERMISSIONS);
+        saveStoredRolePermissions(DEFAULT_ROLES_PERMISSIONS);
       }
       setHasUnsavedChanges({});
       showToast('✓ Reset to system defaults');
     } catch (err) {
-      setRoles(DEFAULT_ROLES_FALLBACK);
+      setRoles(DEFAULT_ROLES_PERMISSIONS);
+      saveStoredRolePermissions(DEFAULT_ROLES_PERMISSIONS);
       setHasUnsavedChanges({});
       showToast('✓ Reset to system defaults');
     } finally {
@@ -464,34 +450,34 @@ export const AdminModuleStudio: React.FC = () => {
         console.warn('API error, falling back locally', e);
       }
 
-      setRoles((prev) =>
-        prev.map((r) => {
-          if (r.role !== targetAddRole) return r;
-          const exists = r.permissions.some((p) => p.moduleId === selectedExistingModuleId);
-          if (exists) {
-            return {
-              ...r,
-              permissions: r.permissions.map((p) =>
-                p.moduleId === selectedExistingModuleId
-                  ? { ...p, read: existingRead, write: existingWrite, delete: existingDelete }
-                  : p
-              ),
-            };
-          }
+      const updatedRoles = roles.map((r) => {
+        if (r.role !== targetAddRole) return r;
+        const exists = r.permissions.some((p) => p.moduleId === selectedExistingModuleId);
+        if (exists) {
           return {
             ...r,
-            permissions: [
-              ...r.permissions,
-              {
-                moduleId: selectedExistingModuleId,
-                read: existingRead,
-                write: existingWrite,
-                delete: existingDelete,
-              },
-            ],
+            permissions: r.permissions.map((p) =>
+              p.moduleId === selectedExistingModuleId
+                ? { ...p, read: existingRead, write: existingWrite, delete: existingDelete }
+                : p
+            ),
           };
-        })
-      );
+        }
+        return {
+          ...r,
+          permissions: [
+            ...r.permissions,
+            {
+              moduleId: selectedExistingModuleId,
+              read: existingRead,
+              write: existingWrite,
+              delete: existingDelete,
+            },
+          ],
+        };
+      });
+      setRoles(updatedRoles);
+      saveStoredRolePermissions(updatedRoles);
 
       const mod = moduleMap.get(selectedExistingModuleId);
       showToast(`✓ Added "${mod?.label || selectedExistingModuleId}" to ${targetAddRole}`);
@@ -541,18 +527,18 @@ export const AdminModuleStudio: React.FC = () => {
         return updated;
       });
 
-      setRoles((prev) =>
-        prev.map((r) => {
-          if (r.role !== targetAddRole) return r;
-          return {
-            ...r,
-            permissions: [
-              ...r.permissions.filter((p) => p.moduleId !== cleanId),
-              { moduleId: cleanId, read: customRead, write: customWrite, delete: customDelete },
-            ],
-          };
-        })
-      );
+      const updatedRoles = roles.map((r) => {
+        if (r.role !== targetAddRole) return r;
+        return {
+          ...r,
+          permissions: [
+            ...r.permissions.filter((p) => p.moduleId !== cleanId),
+            { moduleId: cleanId, read: customRead, write: customWrite, delete: customDelete },
+          ],
+        };
+      });
+      setRoles(updatedRoles);
+      saveStoredRolePermissions(updatedRoles);
 
       showToast(`✓ Created "${cleanLabel}" & assigned to ${targetAddRole}`);
       setIsAddModalOpen(false);

@@ -5,10 +5,12 @@ import { requireRoles } from '../../common/middleware/rbac.middleware';
 
 const router = Router();
 
-// Module & Page Hierarchy: Layout can be read by all roles and clients
+// Module & Page Hierarchy & Role Permissions: Layout and role permissions can be read by clients
 router.get('/hierarchy', (req, res, next) => adminController.getModuleHierarchy(req, res, next));
 // Clinic Profile & Thermal Receipt Info (Readable by all for receipts)
 router.get('/clinic-profile', (req, res, next) => adminController.getClinicProfile(req, res, next));
+// Role Permissions configuration readable by all terminals
+router.get('/role-permissions', (req, res, next) => adminController.getRolePermissions(req, res, next));
 
 // Invariant: All Admin management endpoints require valid authentication and strict ADMIN role authorization
 router.use(authMiddleware);
@@ -29,8 +31,7 @@ router.post('/database/purge', (req, res, next) => adminController.purgeDatabase
 router.patch('/hierarchy/move-page', (req, res, next) => adminController.movePageModule(req, res, next));
 router.post('/hierarchy/reset', (req, res, next) => adminController.resetModuleHierarchy(req, res, next));
 
-// Role Sections & Granular Read/Write/Delete Permissions
-router.get('/role-permissions', (req, res, next) => adminController.getRolePermissions(req, res, next));
+// Role Sections & Granular Read/Write/Delete Permissions (Mutations strictly Admin-only)
 router.put('/role-permissions/:role', (req, res, next) => adminController.updateRolePermissions(req, res, next));
 router.post('/role-permissions/module', (req, res, next) => adminController.addModuleToRole(req, res, next));
 router.delete('/role-permissions/:role/:moduleId', (req, res, next) => adminController.removeModuleFromRole(req, res, next));

@@ -845,10 +845,21 @@ class InMemoryHospitalDatabase {
   }
 
   getRolePermissions(): HospitalRoleDefinition[] {
+    // Ensure every role's permissions is an array of RolePermissionRule
+    for (const roleDef of this.rolePermissions) {
+      if (roleDef && !Array.isArray(roleDef.permissions) && typeof roleDef.permissions === 'object') {
+        roleDef.permissions = Object.entries(roleDef.permissions).map(([moduleId, rule]: [string, any]) => ({
+          moduleId,
+          read: typeof rule === 'boolean' ? rule : !!rule?.read,
+          write: typeof rule === 'boolean' ? false : !!rule?.write,
+          delete: typeof rule === 'boolean' ? false : !!rule?.delete
+        }));
+      }
+    }
     return this.rolePermissions;
   }
 
-  updateRolePermissions(role: string, permissions: RolePermissionRule[]): HospitalRoleDefinition {
+  updateRolePermissions(role: string, permissions: any): HospitalRoleDefinition {
     let roleDef = this.rolePermissions.find(r => r.role === role);
     if (!roleDef) {
       const defaultMatch = DEFAULT_ROLE_PERMISSIONS.find(r => r.role === role);
@@ -862,7 +873,18 @@ class InMemoryHospitalDatabase {
     if (!roleDef) {
       throw new Error(`Invalid hospital role: ${role}`);
     }
-    roleDef.permissions = permissions;
+
+    if (Array.isArray(permissions)) {
+      roleDef.permissions = permissions;
+    } else if (permissions && typeof permissions === 'object') {
+      roleDef.permissions = Object.entries(permissions).map(([moduleId, rule]: [string, any]) => ({
+        moduleId,
+        read: typeof rule === 'boolean' ? rule : !!rule?.read,
+        write: typeof rule === 'boolean' ? false : !!rule?.write,
+        delete: typeof rule === 'boolean' ? false : !!rule?.delete
+      }));
+    }
+
     this.saveToDisk();
     return roleDef;
   }

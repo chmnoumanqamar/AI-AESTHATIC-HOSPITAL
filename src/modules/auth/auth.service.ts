@@ -9,7 +9,24 @@ import { JwtAuthPayload } from '../../common/middleware/auth.middleware';
 
 export class AuthService {
   getEffectiveAllowedModules(user: DbUser): string[] {
-    const roleDefaultModules: Record<string, string[]> = {
+    const allRoleDefs = db.getRolePermissions();
+    const roleDef = allRoleDefs.find(r => r.role === user.role);
+
+    // Modules permitted for this role with read: true in Module Studio
+    let rolePermittedModules: string[] = [];
+    if (roleDef && roleDef.permissions) {
+      if (Array.isArray(roleDef.permissions)) {
+        rolePermittedModules = roleDef.permissions
+          .filter(p => p && p.read)
+          .map(p => p.moduleId);
+      } else if (typeof roleDef.permissions === 'object') {
+        rolePermittedModules = Object.entries(roleDef.permissions)
+          .filter(([_, p]: [string, any]) => p && p.read)
+          .map(([modId]) => modId);
+      }
+    }
+
+    const fallbackDefaults: Record<string, string[]> = {
       DOCTOR: ['doctor_queue', 'doctor_consultation', 'doctor_tokens'],
       RECEPTIONIST: ['recep_desk', 'recep_approvals', 'recep_pos', 'recep_reports'],
       PATIENT: ['patient_portal', 'patient_booking', 'patient_history', 'patient_billing'],
@@ -17,15 +34,25 @@ export class AuthService {
       ADMIN: ORIGINAL_HOSPITAL_MODULES.map(m => m.id)
     };
 
+    const baseModules = rolePermittedModules.length > 0
+      ? rolePermittedModules
+      : (fallbackDefaults[user.role] || []);
+
     if (user.role === 'ADMIN') {
       return user.allowedModules && user.allowedModules.length > 0
-        ? user.allowedModules
-        : roleDefaultModules.ADMIN;
+        ? user.allowedModules.filter(m => baseModules.includes(m))
+        : baseModules;
     }
 
     // STRICT SECURITY: Non-admin users can never access or receive admin modules
-    const nonAdminModules = (user.allowedModules || []).filter(m => !m.startsWith('admin_'));
-    return nonAdminModules.length > 0 ? nonAdminModules : (roleDefaultModules[user.role] || []);
+    const nonAdminBase = baseModules.filter(m => !m.startsWith('admin_'));
+
+    if (user.allowedModules && Array.isArray(user.allowedModules) && user.allowedModules.length > 0) {
+      // If user has specific overrides from User Access Control, only allow modules permitted by both
+      return user.allowedModules.filter(m => !m.startsWith('admin_') && nonAdminBase.includes(m));
+    }
+
+    return nonAdminBase;
   }
 
   async login(input: LoginInput) {

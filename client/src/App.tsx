@@ -14,6 +14,16 @@ import { PharmacyWorkspace } from './pages/pharmacist/pharmacy-workspace';
 import { ReportsAnalyticsDashboard } from './components/reports/ReportsAnalyticsDashboard';
 import { LoginView } from './pages/auth/login';
 import { api } from './services/api';
+import {
+  HospitalRoleDefinition,
+  getStoredRolePermissions,
+  isModulePermitted,
+  resolveInitialTabForRole,
+  syncRolePermissionsFromServer,
+  PERMISSIONS_UPDATE_EVENT,
+  PERMISSIONS_STORAGE_KEY
+} from './utils/permissions';
+import { ShieldAlert, ArrowLeft } from 'lucide-react';
 
 interface TerminalConfig {
   role: 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'ADMIN' | 'PHARMACIST';
@@ -73,32 +83,64 @@ export const App: React.FC = () => {
 
   const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('hospital_token'));
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [rolePermissions, setRolePermissions] = useState<HospitalRoleDefinition[]>(getStoredRolePermissions);
   const [currentRole, setCurrentRole] = useState<'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST'>(
     terminalConfig ? terminalConfig.role : 'DOCTOR'
   );
-  const [currentTab, setCurrentTab] = useState<string>(
-    terminalConfig ? getInitialTabForRole(terminalConfig.role) : 'doctor_queue'
-  );
+  const [currentTab, setCurrentTab] = useState<string>(() => {
+    const initialRole = terminalConfig ? terminalConfig.role : 'DOCTOR';
+    return resolveInitialTabForRole(initialRole, null, getStoredRolePermissions());
+  });
   const [isInitializing, setIsInitializing] = useState(true);
 
-  function getInitialTabForRole(role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST', allowedModules?: string[]) {
-    if (allowedModules && Array.isArray(allowedModules) && allowedModules.length > 0) {
-      const defaultRoleTab = role === 'DOCTOR' ? 'doctor_queue' : role === 'RECEPTIONIST' ? 'recep_desk' : role === 'PATIENT' ? 'patient_portal' : role === 'PHARMACIST' ? 'pharma_queue' : 'admin_users';
-      if (allowedModules.includes(defaultRoleTab)) {
-        return defaultRoleTab;
+  // Sync role permissions in real-time
+  useEffect(() => {
+    const handlePermUpdate = (e: any) => {
+      if (e.detail && Array.isArray(e.detail)) {
+        setRolePermissions(e.detail);
       }
-      return allowedModules[0];
-    }
-    if (role === 'DOCTOR') return 'doctor_queue';
-    if (role === 'RECEPTIONIST') return 'recep_desk';
-    if (role === 'PATIENT') return 'patient_portal';
-    if (role === 'PHARMACIST') return 'pharma_queue';
-    if (role === 'ADMIN') return 'admin_users';
-    return 'doctor_queue';
-  }
+    };
 
-  const setDefaultTabForRole = (role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST', allowedModules?: string[]) => {
-    setCurrentTab(getInitialTabForRole(role, allowedModules));
+    syncRolePermissionsFromServer().then(roles => {
+      if (roles && Array.isArray(roles)) {
+        setRolePermissions(roles);
+      }
+    });
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === PERMISSIONS_STORAGE_KEY && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            setRolePermissions(parsed);
+          }
+        } catch {}
+      }
+    };
+
+    window.addEventListener(PERMISSIONS_UPDATE_EVENT, handlePermUpdate);
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener(PERMISSIONS_UPDATE_EVENT, handlePermUpdate);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  // Strict enforcement: if currentTab is not permitted for current user & role, auto-fallback
+  useEffect(() => {
+    if (!isInitializing && currentTab) {
+      const permitted = isModulePermitted(currentTab, currentRole, currentUser, rolePermissions);
+      if (!permitted) {
+        const fallback = resolveInitialTabForRole(currentRole, currentUser, rolePermissions);
+        if (fallback && fallback !== currentTab) {
+          setCurrentTab(fallback);
+        }
+      }
+    }
+  }, [currentTab, currentRole, currentUser, rolePermissions, isInitializing]);
+
+  const setDefaultTabForRole = (role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST', userObj?: any) => {
+    setCurrentTab(resolveInitialTabForRole(role, userObj, rolePermissions));
   };
 
   const syncUrlForRole = (role: string) => {
@@ -130,7 +172,7 @@ export const App: React.FC = () => {
         if (isMounted && user) {
           setCurrentUser(user);
           setCurrentRole(user.role);
-          setDefaultTabForRole(user.role, user.allowedModules);
+          setDefaultTabForRole(user.role, user);
           syncUrlForRole(user.role);
         }
       } catch (err) {
@@ -156,7 +198,7 @@ export const App: React.FC = () => {
     setAuthToken(token);
     setCurrentUser(user);
     setCurrentRole(user.role);
-    setDefaultTabForRole(user.role, user.allowedModules);
+    setDefaultTabForRole(user.role, user);
     syncUrlForRole(user.role);
   };
 
@@ -215,49 +257,73 @@ export const App: React.FC = () => {
       onLogout={handleLogout}
       isolatedPort={isolatedKey}
     >
-      {/* Universal Dynamic View Switcher: decoupled from role so Admin & cross-permitted users can render any view */}
-      {currentTab.startsWith('doctor_') && (
-        <DoctorDashboard
-          currentUser={currentUser}
-          currentTab={currentTab}
-          onSelectTab={tab => setCurrentTab(tab)}
-        />
-      )}
-
-      {currentTab.startsWith('recep_') && (
-        <ReceptionistCommandCenter
-          currentUser={currentUser}
-          currentTab={currentTab}
-          onSelectTab={tab => setCurrentTab(tab)}
-        />
-      )}
-
-      {currentTab.startsWith('patient_') && (
-        <PatientDashboard
-          currentUser={currentUser}
-          currentTab={currentTab}
-          onSelectTab={tab => setCurrentTab(tab)}
-        />
-      )}
-
-      {currentTab.startsWith('pharma_') && (
-        <PharmacyWorkspace
-          currentUser={currentUser}
-          currentTab={currentTab}
-          onSelectTab={tab => setCurrentTab(tab)}
-        />
-      )}
-
-      {currentTab.startsWith('admin_') && currentRole === 'ADMIN' && (
+      {/* Dynamic View Access Guard */}
+      {!isModulePermitted(currentTab, currentRole, currentUser, rolePermissions) ? (
+        <div className="p-8 max-w-xl mx-auto my-12 bg-white dark:bg-[#1E2718] border border-amber-300 dark:border-amber-800/60 rounded-3xl shadow-xl text-center space-y-4 animate-in fade-in duration-200">
+          <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 flex items-center justify-center mx-auto shadow-xs">
+            <ShieldAlert className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Module Access Restricted</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed">
+              Access to this hospital page has been deactivated or restricted by the Hospital Administrator in the Module & Page Studio.
+            </p>
+          </div>
+          <button
+            onClick={() => setCurrentTab(resolveInitialTabForRole(currentRole, currentUser, rolePermissions))}
+            className="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white transition-all cursor-pointer inline-flex items-center gap-2 shadow-xs"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Return to Authorized Workspace
+          </button>
+        </div>
+      ) : (
         <>
-          {currentTab === 'admin_users' && <AdminUserAccessView />}
-          {currentTab === 'admin_studio' && <AdminModuleStudio />}
-          {currentTab === 'admin_audit' && <AdminAuditVault />}
-          {currentTab === 'admin_queue' && <AdminQueueMonitor />}
-          {currentTab === 'admin_reports' && <ReportsAnalyticsDashboard userRole="ADMIN" />}
-          {currentTab === 'admin_database' && <AdminDatabaseMaintenance />}
-          {currentTab === 'admin_config' && <AdminConfigView />}
-          {currentTab === 'admin_ledger' && <AdminHospitalLedger />}
+          {/* Universal Dynamic View Switcher: decoupled from role so Admin & cross-permitted users can render any view */}
+          {currentTab.startsWith('doctor_') && (
+            <DoctorDashboard
+              currentUser={currentUser}
+              currentTab={currentTab}
+              onSelectTab={tab => setCurrentTab(tab)}
+            />
+          )}
+
+          {currentTab.startsWith('recep_') && (
+            <ReceptionistCommandCenter
+              currentUser={currentUser}
+              currentTab={currentTab}
+              onSelectTab={tab => setCurrentTab(tab)}
+            />
+          )}
+
+          {currentTab.startsWith('patient_') && (
+            <PatientDashboard
+              currentUser={currentUser}
+              currentTab={currentTab}
+              onSelectTab={tab => setCurrentTab(tab)}
+            />
+          )}
+
+          {currentTab.startsWith('pharma_') && (
+            <PharmacyWorkspace
+              currentUser={currentUser}
+              currentTab={currentTab}
+              onSelectTab={tab => setCurrentTab(tab)}
+            />
+          )}
+
+          {currentTab.startsWith('admin_') && currentRole === 'ADMIN' && (
+            <>
+              {currentTab === 'admin_users' && <AdminUserAccessView />}
+              {currentTab === 'admin_studio' && <AdminModuleStudio />}
+              {currentTab === 'admin_audit' && <AdminAuditVault />}
+              {currentTab === 'admin_queue' && <AdminQueueMonitor />}
+              {currentTab === 'admin_reports' && <ReportsAnalyticsDashboard userRole="ADMIN" />}
+              {currentTab === 'admin_database' && <AdminDatabaseMaintenance />}
+              {currentTab === 'admin_config' && <AdminConfigView />}
+              {currentTab === 'admin_ledger' && <AdminHospitalLedger />}
+            </>
+          )}
         </>
       )}
     </CommandDeckShell>

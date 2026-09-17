@@ -5,8 +5,9 @@
   "main": "dist/index.js",
   "scripts": {
     "build:server": "tsc",
-    "build:client": "npm --prefix client run build",
-    "build": "tsc && npm --prefix client run build",
+    "build:client": "npm --prefix client install --include=dev && npm --prefix client run build",
+    "build": "tsc && npm --prefix client install --include=dev && npm --prefix client run build",
+    "postinstall": "npm --prefix client install --include=dev",
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "dev:client": "npm --prefix client run dev",

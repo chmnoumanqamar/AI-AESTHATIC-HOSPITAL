@@ -188,7 +188,7 @@ const DEFAULT_ROLES_FALLBACK: HospitalRoleDefinition[] = [
     permissions: [
       { moduleId: 'recep_desk', read: true, write: true, delete: false },
       { moduleId: 'recep_approvals', read: true, write: true, delete: true },
-      { moduleId: 'recep_pos', read: true, write: true, delete: false },
+      { moduleId: 'recep_pos', read: true, write: false, delete: false },
       { moduleId: 'recep_reports', read: true, write: false, delete: false },
     ],
   },
@@ -315,8 +315,8 @@ export const AdminModuleStudio: React.FC = () => {
 
   // Toggle individual permission (Read / Write / Delete)
   const handleToggle = (roleKey: RoleKey, moduleId: string, field: 'read' | 'write' | 'delete') => {
-    setRoles((prev) =>
-      prev.map((r) => {
+    setRoles((prev) => {
+      const nextRoles = prev.map((r) => {
         if (r.role !== roleKey) return r;
         const updated = r.permissions.map((p) => {
           if (p.moduleId !== moduleId) return p;
@@ -332,15 +332,27 @@ export const AdminModuleStudio: React.FC = () => {
           return newRule;
         });
         return { ...r, permissions: updated };
-      })
-    );
-    setHasUnsavedChanges((prev) => ({ ...prev, [roleKey]: true }));
+      });
+
+      // Synchronize immediately to local storage and reactive event bus
+      localStorage.setItem('hospital_role_permissions_cache', JSON.stringify(nextRoles));
+      window.dispatchEvent(new CustomEvent('hospital:permissions-updated', { detail: { roleKey, roles: nextRoles } }));
+
+      // Auto-persist to backend
+      const targetRoleDef = nextRoles.find((r) => r.role === roleKey);
+      if (targetRoleDef) {
+        api.put(`/admin/role-permissions/${roleKey}`, { permissions: targetRoleDef.permissions }).catch(() => {});
+      }
+
+      return nextRoles;
+    });
+    setHasUnsavedChanges((prev) => ({ ...prev, [roleKey]: false }));
   };
 
   // Bulk Grant (All Full / All Read / Clear)
   const handleBulkSet = (roleKey: RoleKey, mode: 'full' | 'read' | 'clear') => {
-    setRoles((prev) =>
-      prev.map((r) => {
+    setRoles((prev) => {
+      const nextRoles = prev.map((r) => {
         if (r.role !== roleKey) return r;
         return {
           ...r,
@@ -350,9 +362,19 @@ export const AdminModuleStudio: React.FC = () => {
             return { ...p, read: false, write: false, delete: false };
           }),
         };
-      })
-    );
-    setHasUnsavedChanges((prev) => ({ ...prev, [roleKey]: true }));
+      });
+
+      localStorage.setItem('hospital_role_permissions_cache', JSON.stringify(nextRoles));
+      window.dispatchEvent(new CustomEvent('hospital:permissions-updated', { detail: { roleKey, roles: nextRoles } }));
+
+      const targetRoleDef = nextRoles.find((r) => r.role === roleKey);
+      if (targetRoleDef) {
+        api.put(`/admin/role-permissions/${roleKey}`, { permissions: targetRoleDef.permissions }).catch(() => {});
+      }
+
+      return nextRoles;
+    });
+    setHasUnsavedChanges((prev) => ({ ...prev, [roleKey]: false }));
     showToast(`Applied ${mode === 'full' ? 'Full Access' : mode === 'read' ? 'Read-Only' : 'Revoked'} to ${roleKey}`);
   };
 
@@ -392,10 +414,12 @@ export const AdminModuleStudio: React.FC = () => {
         permissions: target.permissions,
       });
       localStorage.setItem('hospital_role_permissions_cache', JSON.stringify(roles));
+      window.dispatchEvent(new CustomEvent('hospital:permissions-updated', { detail: { roleKey, roles } }));
       setHasUnsavedChanges((prev) => ({ ...prev, [roleKey]: false }));
       showToast(`✓ Permissions saved for ${roleKey}`);
     } catch (err: any) {
       localStorage.setItem('hospital_role_permissions_cache', JSON.stringify(roles));
+      window.dispatchEvent(new CustomEvent('hospital:permissions-updated', { detail: { roleKey, roles } }));
       setHasUnsavedChanges((prev) => ({ ...prev, [roleKey]: false }));
       showToast(`✓ Permissions saved locally for ${roleKey}`);
     } finally {
@@ -412,13 +436,18 @@ export const AdminModuleStudio: React.FC = () => {
       if (res.data?.data?.roles) {
         setRoles(res.data.data.roles);
         localStorage.setItem('hospital_role_permissions_cache', JSON.stringify(res.data.data.roles));
+        window.dispatchEvent(new CustomEvent('hospital:permissions-updated', { detail: { roles: res.data.data.roles } }));
       } else {
         setRoles(DEFAULT_ROLES_FALLBACK);
+        localStorage.setItem('hospital_role_permissions_cache', JSON.stringify(DEFAULT_ROLES_FALLBACK));
+        window.dispatchEvent(new CustomEvent('hospital:permissions-updated', { detail: { roles: DEFAULT_ROLES_FALLBACK } }));
       }
       setHasUnsavedChanges({});
       showToast('✓ Reset to system defaults');
     } catch (err) {
       setRoles(DEFAULT_ROLES_FALLBACK);
+      localStorage.setItem('hospital_role_permissions_cache', JSON.stringify(DEFAULT_ROLES_FALLBACK));
+      window.dispatchEvent(new CustomEvent('hospital:permissions-updated', { detail: { roles: DEFAULT_ROLES_FALLBACK } }));
       setHasUnsavedChanges({});
       showToast('✓ Reset to system defaults');
     } finally {

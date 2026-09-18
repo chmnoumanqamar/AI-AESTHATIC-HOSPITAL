@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, X, Clock, Calendar, User, Sparkles } from 'lucide-react';
+import { Check, X, Clock, Calendar, User, Sparkles, Lock } from 'lucide-react';
 import { StatusBadge } from '../common/StatusBadge';
 
 export interface PendingBookingRequest {
@@ -22,12 +22,16 @@ interface BookingApprovalDeckProps {
   pendingRequests: PendingBookingRequest[];
   onApprove: (appointmentId: string) => Promise<void>;
   onDecline: (appointmentId: string) => Promise<void>;
+  canWrite?: boolean;
+  canDelete?: boolean;
 }
 
 export const BookingApprovalDeck: React.FC<BookingApprovalDeckProps> = ({
   pendingRequests,
   onApprove,
-  onDecline
+  onDecline,
+  canWrite = true,
+  canDelete = true
 }) => {
   return (
     <div className="bg-white rounded-lg overflow-hidden shadow-xs border" style={{ borderColor: '#C2C5AA' }}>
@@ -101,19 +105,43 @@ export const BookingApprovalDeck: React.FC<BookingApprovalDeckProps> = ({
               <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => onDecline(req.id)}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 border text-xs font-semibold rounded-lg transition-colors cursor-pointer"
-                    style={{ backgroundColor: '#F2E8DE', borderColor: '#A68A64', color: '#582F0E' }}
+                    onClick={() => {
+                      if (!canDelete) {
+                        alert('Action Blocked: Delete/Decline permission is disabled by Administrator.');
+                        return;
+                      }
+                      onDecline(req.id);
+                    }}
+                    disabled={!canDelete}
+                    title={!canDelete ? 'Decline permission disabled by Administrator' : 'Decline booking'}
+                    className={`inline-flex items-center gap-1 px-3 py-1.5 border text-xs font-semibold rounded-lg transition-colors ${
+                      !canDelete
+                        ? 'bg-slate-100 border-slate-300 text-slate-400 cursor-not-allowed dark:bg-slate-800 dark:border-slate-700'
+                        : 'cursor-pointer'
+                    }`}
+                    style={canDelete ? { backgroundColor: '#F2E8DE', borderColor: '#A68A64', color: '#582F0E' } : undefined}
                   >
-                    <X className="w-3.5 h-3.5" />
-                    Decline
+                    {!canDelete ? <Lock className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
+                    <span>{!canDelete ? 'Decline (Locked)' : 'Decline'}</span>
                   </button>
                   <button
-                    onClick={() => onApprove(req.id)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-white text-xs font-bold rounded-lg transition-colors shadow-xs bg-emerald-700 hover:bg-emerald-800 active:scale-95 cursor-pointer"
+                    onClick={() => {
+                      if (!canWrite) {
+                        alert('Action Blocked: Write/Approve permission is disabled by Administrator.');
+                        return;
+                      }
+                      onApprove(req.id);
+                    }}
+                    disabled={!canWrite}
+                    title={!canWrite ? 'Approve permission disabled by Administrator' : 'Approve and confirm booking'}
+                    className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-colors shadow-xs ${
+                      !canWrite
+                        ? 'bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                        : 'text-white bg-emerald-700 hover:bg-emerald-800 active:scale-95 cursor-pointer'
+                    }`}
                   >
-                    <Check className="w-3.5 h-3.5 text-white" />
-                    Approve & Confirm
+                    {!canWrite ? <Lock className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5 text-white" />}
+                    <span>{!canWrite ? 'Approve (Locked)' : 'Approve & Confirm'}</span>
                   </button>
                 </div>
                 <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium">

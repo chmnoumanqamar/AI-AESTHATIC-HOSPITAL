@@ -59,6 +59,15 @@ async function runSystemTestSuite() {
   // TEST 2: Queue Engine - "Call Next Patient" Skip Logic
   console.log('\n--- TEST GROUP 2: QUEUE ENGINE "CALL NEXT" SKIP LOGIC ---');
   // In seed: Token 3 is NOT_CHECKED_IN, Token 4 is WAITING
+  const t3 = db.dailyTokens.find(t => t.doctorId === doc1Id && t.date === today && t.tokenNumber === 3);
+  const apt3 = t3 ? db.appointments.find(a => a.tokenId === t3.id) : null;
+  const q3 = apt3 ? db.queueEntries.find(q => q.appointmentId === apt3.id) : null;
+  if (q3) q3.queueStatus = 'NOT_CHECKED_IN';
+
+  const t4 = db.dailyTokens.find(t => t.doctorId === doc1Id && t.date === today && t.tokenNumber === 4);
+  const apt4 = t4 ? db.appointments.find(a => a.tokenId === t4.id) : null;
+  const q4 = apt4 ? db.queueEntries.find(q => q.appointmentId === apt4.id) : null;
+  if (q4) q4.queueStatus = 'WAITING';
   const callNextResult = await queueService.callNextPatient(doc1Id, 'u-doc-01', 'DOCTOR');
   assert(
     callNextResult.tokenNumber === 4,

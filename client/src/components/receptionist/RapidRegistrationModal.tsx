@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
-import { X, UserPlus, AlertTriangle, CheckCircle } from 'lucide-react';
+import { X, UserPlus, AlertTriangle, CheckCircle, Lock } from 'lucide-react';
 import { api } from '../../services/api';
 
 interface RapidRegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (newPatient: any) => void;
+  canWrite?: boolean;
 }
 
 export const RapidRegistrationModal: React.FC<RapidRegistrationModalProps> = ({
   isOpen,
   onClose,
-  onSuccess
+  onSuccess,
+  canWrite = true
 }) => {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -53,6 +55,10 @@ export const RapidRegistrationModal: React.FC<RapidRegistrationModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canWrite) {
+      alert('Action Blocked: Write permission is disabled for Front-Desk Queue & Patient Check-In by Administrator.');
+      return;
+    }
     if (duplicateWarning?.isDuplicate) {
       alert('Registration Blocked: Duplicate patient record detected.');
       return;
@@ -250,11 +256,16 @@ export const RapidRegistrationModal: React.FC<RapidRegistrationModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={loading || Boolean(duplicateWarning?.isDuplicate)}
-              className="clinical-button-primary text-xs flex items-center gap-1.5 disabled:opacity-50"
+              disabled={loading || Boolean(duplicateWarning?.isDuplicate) || !canWrite}
+              title={!canWrite ? 'Write permission disabled by Administrator' : 'Complete Registration'}
+              className={`text-xs flex items-center gap-1.5 px-4 py-2 rounded-lg font-medium transition-colors ${
+                !canWrite
+                  ? 'bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400 cursor-not-allowed border border-slate-300 dark:border-slate-700'
+                  : 'clinical-button-primary disabled:opacity-50'
+              }`}
             >
-              <CheckCircle className="w-4 h-4" />
-              <span>{loading ? 'Creating Record...' : 'Complete Registration'}</span>
+              {!canWrite ? <Lock className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+              <span>{loading ? 'Creating Record...' : !canWrite ? 'Registration (Locked)' : 'Complete Registration'}</span>
             </button>
           </div>
         </form>

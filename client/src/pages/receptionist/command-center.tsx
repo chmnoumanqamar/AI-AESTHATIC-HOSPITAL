@@ -6,8 +6,9 @@ import { RapidRegistrationModal } from '../../components/receptionist/RapidRegis
 import { FrontDeskBillingPOS } from '../../components/receptionist/FrontDeskBillingPOS';
 import { ReportsAnalyticsDashboard } from '../../components/reports/ReportsAnalyticsDashboard';
 import { useQueueStream } from '../../hooks/useQueueStream';
+import { useModulePermissions } from '../../hooks/useModulePermissions';
 import { api } from '../../services/api';
-import { UserPlus, Shield } from 'lucide-react';
+import { UserPlus, Shield, Lock } from 'lucide-react';
 
 interface ReceptionistCommandCenterProps {
   currentUser?: any;
@@ -19,6 +20,12 @@ export const ReceptionistCommandCenter: React.FC<ReceptionistCommandCenterProps>
   currentUser,
   currentTab = 'recep_desk'
 }) => {
+  const userRole = currentUser?.role || 'RECEPTIONIST';
+  const deskPerms = useModulePermissions('recep_desk', userRole, currentUser);
+  const approvalsPerms = useModulePermissions('recep_approvals', userRole, currentUser);
+  const posPerms = useModulePermissions('recep_pos', userRole, currentUser);
+  const reportsPerms = useModulePermissions('recep_reports', userRole, currentUser);
+
   const { queue, refreshQueue } = useQueueStream();
   const [pendingBookings, setPendingBookings] = useState<any[]>([]);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
@@ -78,6 +85,10 @@ export const ReceptionistCommandCenter: React.FC<ReceptionistCommandCenterProps>
 
 
   const handleApprove = async (appointmentId: string) => {
+    if (!approvalsPerms.canWrite) {
+      alert('Action Blocked: Write/Approval permission is disabled for Pending Bookings by Administrator.');
+      return;
+    }
     try {
       await api.patch(`/appointments/${appointmentId}/status`, {
         status: 'CONFIRMED'
@@ -90,6 +101,10 @@ export const ReceptionistCommandCenter: React.FC<ReceptionistCommandCenterProps>
   };
 
   const handleDecline = async (appointmentId: string) => {
+    if (!approvalsPerms.canDelete) {
+      alert('Action Blocked: Delete/Decline permission is disabled for Pending Bookings by Administrator.');
+      return;
+    }
     try {
       await api.patch(`/appointments/${appointmentId}/status`, {
         status: 'DECLINED',
@@ -103,6 +118,10 @@ export const ReceptionistCommandCenter: React.FC<ReceptionistCommandCenterProps>
   };
 
   const handleCheckIn = async (appointmentId: string) => {
+    if (!deskPerms.canWrite) {
+      alert('Action Blocked: Write permission is disabled for Queue & Patient Check-In by Administrator.');
+      return;
+    }
     try {
       await api.post('/queue/check-in', { appointmentId });
       await refreshQueue();
@@ -112,6 +131,10 @@ export const ReceptionistCommandCenter: React.FC<ReceptionistCommandCenterProps>
   };
 
   const handleSearchAndCheckIn = async (query: string) => {
+    if (!deskPerms.canWrite) {
+      alert('Action Blocked: Write permission is disabled for Queue & Patient Check-In by Administrator.');
+      return;
+    }
     const match = queue.find(
       q =>
         String(q.tokenNumber) === query ||
@@ -127,6 +150,13 @@ export const ReceptionistCommandCenter: React.FC<ReceptionistCommandCenterProps>
     }
   };
 
+  // Receptionist cannot create new patient if:
+  // 1. Queue Desk write is disabled
+  // 2. Pending Bookings is only read (Rule: "pending booking only read should not allow to create new patient in receptionist role")
+  const isApprovalsReadOnly = !approvalsPerms.canWrite;
+  const isDeskReadOnly = !deskPerms.canWrite;
+  const canCreatePatient = !isDeskReadOnly && !isApprovalsReadOnly;
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header & Quick Action Bar (Only for Desk Operations) */}
@@ -134,11 +164,33 @@ export const ReceptionistCommandCenter: React.FC<ReceptionistCommandCenterProps>
         <>
           <div className="flex items-center justify-end gap-2 pb-2">
             <button
-              onClick={() => setIsRegisterModalOpen(true)}
-              className="clinical-button-primary flex items-center gap-2 text-xs"
+              onClick={() => {
+                if (isApprovalsReadOnly) {
+                  alert('Action Blocked: Write permission is disabled for Pending Bookings by Administrator. You cannot register new patients.');
+                  return;
+                }
+                if (isDeskReadOnly) {
+                  alert('Action Blocked: Write permission for Queue & Patient Check-In has been disabled by Administrator. You cannot register new patients.');
+                  return;
+                }
+                setIsRegisterModalOpen(true);
+              }}
+              disabled={!canCreatePatient}
+              title={
+                !canCreatePatient
+                  ? isApprovalsReadOnly
+                    ? 'Pending Bookings is in Read-Only mode. Patient creation locked.'
+                    : 'Write permission disabled by Administrator'
+                  : 'Register new patient'
+              }
+              className={`flex items-center gap-2 text-xs transition-all ${
+                !canCreatePatient
+                  ? 'bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400 cursor-not-allowed border border-slate-300 dark:border-slate-700 px-4 py-2 rounded-lg font-medium shadow-xs'
+                  : 'clinical-button-primary'
+              }`}
             >
-              <UserPlus className="w-4 h-4" />
-              <span>New Patient (Duplicate Check)</span>
+              {!canCreatePatient ? <Lock className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+              <span>New Patient {!canCreatePatient ? '(Locked by Admin)' : '(Duplicate Check)'}</span>
             </button>
           </div>
 
@@ -158,17 +210,47 @@ export const ReceptionistCommandCenter: React.FC<ReceptionistCommandCenterProps>
       {/* TAB 2: PENDING APPROVALS */}
       {currentTab === 'recep_approvals' && (
         <div className="space-y-4 animate-fade-in">
+          {!approvalsPerms.canWrite && (
+            <div className="rounded-xl p-3.5 flex items-center justify-between gap-3 text-xs border bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
+              <div className="flex items-center gap-2.5">
+                <Lock className="w-4 h-4 shrink-0 text-amber-700 dark:text-amber-400" />
+                <span>
+                  <strong>Read-Only Mode Active:</strong> Hospital Administrator has set <strong>WRITE ACCESS TO OFF</strong> for Pending Bookings Approval. Approval actions are disabled.
+                </span>
+              </div>
+              <span className="px-2 py-0.5 font-bold uppercase tracking-wider rounded text-[10px] bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100 border border-amber-300">
+                Write Locked
+              </span>
+            </div>
+          )}
           <BookingApprovalDeck
             pendingRequests={pendingBookings}
             onApprove={handleApprove}
             onDecline={handleDecline}
+            canWrite={approvalsPerms.canWrite}
+            canDelete={approvalsPerms.canDelete}
           />
         </div>
       )}
 
       {/* TAB 3: FRONT-DESK POS & FINANCIAL DOSSIER */}
       {currentTab === 'recep_pos' && (
-        <FrontDeskBillingPOS queue={queue} />
+        <div className="space-y-6 animate-fade-in">
+          {!posPerms.canWrite && (
+            <div className="rounded-xl p-3.5 flex items-center justify-between gap-3 text-xs border bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
+              <div className="flex items-center gap-2.5">
+                <Lock className="w-4 h-4 shrink-0 text-amber-700 dark:text-amber-400" />
+                <span>
+                  <strong>Read-Only Mode Active:</strong> Hospital Administrator has set <strong>WRITE ACCESS TO OFF</strong> for Front-Desk Billing POS. Payment settlement, discounting, and receipt generation are temporarily locked.
+                </span>
+              </div>
+              <span className="px-2 py-0.5 font-bold uppercase tracking-wider rounded text-[10px] bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100 border border-amber-300">
+                Write Locked
+              </span>
+            </div>
+          )}
+          <FrontDeskBillingPOS queue={queue} canWrite={posPerms.canWrite} />
+        </div>
       )}
 
       {/* TAB 4: EXECUTIVE REPORTS & ANALYTICS */}
@@ -179,17 +261,32 @@ export const ReceptionistCommandCenter: React.FC<ReceptionistCommandCenterProps>
       {/* TAB 1: COMMAND DESK (DEFAULT) */}
       {(currentTab === 'recep_desk' || (!['recep_approvals', 'recep_pos', 'recep_reports'].includes(currentTab))) && (
         <div className="space-y-6 animate-fade-in">
+          {!deskPerms.canWrite && (
+            <div className="rounded-xl p-3.5 flex items-center justify-between gap-3 text-xs border bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
+              <div className="flex items-center gap-2.5">
+                <Lock className="w-4 h-4 shrink-0 text-amber-700 dark:text-amber-400" />
+                <span>
+                  <strong>Read-Only Mode Active:</strong> Hospital Administrator has set <strong>WRITE ACCESS TO OFF</strong> for Queue & Patient Check-In. Patient registration and check-in actions are temporarily disabled.
+                </span>
+              </div>
+              <span className="px-2 py-0.5 font-bold uppercase tracking-wider rounded text-[10px] bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100 border border-amber-300">
+                Write Locked
+              </span>
+            </div>
+          )}
           <CheckInController 
             onSearchAndCheckIn={handleSearchAndCheckIn}
             queue={queue}
             searchQuery={searchFilter}
             onSearchChange={setSearchFilter}
             onCheckInPatient={handleCheckIn}
+            canWrite={deskPerms.canWrite}
           />
           <LiveQueueTable
             queue={filteredQueue}
             userRole="RECEPTIONIST"
             onCheckIn={handleCheckIn}
+            canWrite={deskPerms.canWrite}
           />
         </div>
       )}
@@ -198,6 +295,7 @@ export const ReceptionistCommandCenter: React.FC<ReceptionistCommandCenterProps>
       <RapidRegistrationModal
         isOpen={isRegisterModalOpen}
         onClose={() => setIsRegisterModalOpen(false)}
+        canWrite={canCreatePatient}
         onSuccess={newP => {
           alert(`✅ Patient ${newP.fullName} registered successfully!`);
           fetchPendingBookings();

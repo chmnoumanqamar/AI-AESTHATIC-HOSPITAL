@@ -221,6 +221,20 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
     };
   }, []);
 
+  // Listen to live permission updates from Module Studio
+  const [, setRolePermTick] = useState(0);
+  useEffect(() => {
+    const handlePermUpdate = () => {
+      setRolePermTick(t => t + 1);
+    };
+    window.addEventListener('hospital:permissions-updated', handlePermUpdate);
+    window.addEventListener('storage', handlePermUpdate);
+    return () => {
+      window.removeEventListener('hospital:permissions-updated', handlePermUpdate);
+      window.removeEventListener('storage', handlePermUpdate);
+    };
+  }, []);
+
   // Map role to its primary domain category
   const roleToCategoryKey: Record<string, 'CLINICAL' | 'RECEPTION' | 'PATIENT' | 'ADMIN' | 'PHARMACY'> = {
     ADMIN: 'ADMIN',
@@ -232,6 +246,27 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
 
   const primaryCategory = roleToCategoryKey[currentRole] || 'ADMIN';
 
+  // Helper to check if a module has read permission enabled by Admin
+  const isModuleReadable = (modId: string): boolean => {
+    if (currentRole === 'ADMIN') return true;
+    try {
+      const cached = localStorage.getItem('hospital_role_permissions_cache');
+      if (cached) {
+        const roles = JSON.parse(cached);
+        const roleDef = roles.find((r: any) => r.role === currentRole);
+        if (roleDef && Array.isArray(roleDef.permissions)) {
+          const rule = roleDef.permissions.find((p: any) => p.moduleId === modId);
+          if (rule) return rule.read === true;
+        }
+      }
+    } catch (e) {}
+    if (currentUser?.permissions && Array.isArray(currentUser.permissions)) {
+      const rule = currentUser.permissions.find((p: any) => p.moduleId === modId);
+      if (rule) return rule.read === true;
+    }
+    return true;
+  };
+
   // Compute active modules based on permissions
   let visibleModules: ModuleNavDef[] = [];
 
@@ -239,15 +274,9 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
     // Admin sees ALL modules across all domains
     visibleModules = modulesRegistry;
   } else if (currentUser?.allowedModules && Array.isArray(currentUser.allowedModules) && currentUser.allowedModules.length > 0) {
-    // User has custom granular permissions assigned by Admin.
-    // STRICT SECURITY ENFORCEMENT: System Administration modules (ADMIN category) are STRICTLY reserved for ADMIN role!
-    // Doctors, Receptionists, Patients, and Pharmacists can never access or see System Administration in their sidebar.
-    visibleModules = modulesRegistry.filter(m => currentUser.allowedModules.includes(m.id) && m.category !== 'ADMIN');
+    visibleModules = modulesRegistry.filter(m => currentUser.allowedModules.includes(m.id) && m.category !== 'ADMIN' && isModuleReadable(m.id));
   } else {
-    // Dynamic role department membership:
-    // Any page whose category matches this role's department is automatically visible!
-    // When a page is moved into or out of this department, it dynamically reflects in real-time!
-    visibleModules = modulesRegistry.filter(m => m.category === primaryCategory && m.category !== 'ADMIN');
+    visibleModules = modulesRegistry.filter(m => m.category === primaryCategory && m.category !== 'ADMIN' && isModuleReadable(m.id));
   }
 
   // Category display order: Current role's own department is ALWAYS placed at the TOP

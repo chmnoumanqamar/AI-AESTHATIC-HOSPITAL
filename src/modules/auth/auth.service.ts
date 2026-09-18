@@ -8,24 +8,34 @@ import { LoginInput, RegisterPatientInput } from './auth.dto';
 import { JwtAuthPayload } from '../../common/middleware/auth.middleware';
 
 export class AuthService {
+  getEffectivePermissions(user: DbUser) {
+    if (user.role === 'ADMIN') {
+      return ORIGINAL_HOSPITAL_MODULES.map(m => ({
+        moduleId: m.id,
+        read: true,
+        write: true,
+        delete: true
+      }));
+    }
+    return db.getPermissionsForRole(user.role);
+  }
+
   getEffectiveAllowedModules(user: DbUser): string[] {
-    const roleDefaultModules: Record<string, string[]> = {
-      DOCTOR: ['doctor_queue', 'doctor_consultation', 'doctor_tokens'],
-      RECEPTIONIST: ['recep_desk', 'recep_approvals', 'recep_pos', 'recep_reports'],
-      PATIENT: ['patient_portal', 'patient_booking', 'patient_history', 'patient_billing'],
-      PHARMACIST: ['pharma_queue', 'pharma_inventory', 'pharma_pos', 'pharma_safety', 'pharma_procurement'],
-      ADMIN: ORIGINAL_HOSPITAL_MODULES.map(m => m.id)
-    };
+    const rolePermissions = this.getEffectivePermissions(user);
+    const readableModules = rolePermissions.filter(p => p.read).map(p => p.moduleId);
 
     if (user.role === 'ADMIN') {
       return user.allowedModules && user.allowedModules.length > 0
         ? user.allowedModules
-        : roleDefaultModules.ADMIN;
+        : ORIGINAL_HOSPITAL_MODULES.map(m => m.id);
     }
 
-    // STRICT SECURITY: Non-admin users can never access or receive admin modules
-    const nonAdminModules = (user.allowedModules || []).filter(m => !m.startsWith('admin_'));
-    return nonAdminModules.length > 0 ? nonAdminModules : (roleDefaultModules[user.role] || []);
+    if (user.allowedModules && user.allowedModules.length > 0) {
+      // Filter custom modules by both non-admin check and role read permission
+      return user.allowedModules.filter(m => !m.startsWith('admin_') && (readableModules.length === 0 || readableModules.includes(m)));
+    }
+
+    return readableModules;
   }
 
   async login(input: LoginInput) {
@@ -88,6 +98,7 @@ export class AuthService {
     }
 
     const effectiveAllowedModules = this.getEffectiveAllowedModules(user);
+    const effectivePermissions = this.getEffectivePermissions(user);
 
     const tokenPayload: JwtAuthPayload = {
       userId: user.id,
@@ -95,7 +106,8 @@ export class AuthService {
       phone: user.phone,
       email: user.email,
       profileId,
-      allowedModules: effectiveAllowedModules
+      allowedModules: effectiveAllowedModules,
+      permissions: effectivePermissions
     };
 
     const token = jwt.sign(tokenPayload, ENV.JWT_SECRET, {
@@ -116,7 +128,8 @@ export class AuthService {
         department: user.department,
         profileId,
         profile: profileData,
-        allowedModules: effectiveAllowedModules
+        allowedModules: effectiveAllowedModules,
+        permissions: effectivePermissions
       }
     };
   }
@@ -255,6 +268,7 @@ export class AuthService {
     }
 
     const effectiveAllowedModules = this.getEffectiveAllowedModules(user);
+    const effectivePermissions = this.getEffectivePermissions(user);
 
     return {
       id: user.id,
@@ -264,7 +278,8 @@ export class AuthService {
       role: user.role,
       profileId,
       profile: profileData,
-      allowedModules: effectiveAllowedModules
+      allowedModules: effectiveAllowedModules,
+      permissions: effectivePermissions
     };
   }
 

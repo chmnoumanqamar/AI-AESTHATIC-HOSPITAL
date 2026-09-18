@@ -1,18 +1,26 @@
 import { Router } from 'express';
 import { clinicalController } from './clinical.controller';
 import { authMiddleware } from '../../common/middleware/auth.middleware';
-import { requireRoles } from '../../common/middleware/rbac.middleware';
+import { requireRoles, requireModulePermission } from '../../common/middleware/rbac.middleware';
 
 const router = Router();
 
 // Create new clinical record (Doctor only)
-router.post('/records', authMiddleware, requireRoles('DOCTOR'), (req, res, next) =>
-  clinicalController.createRecord(req, res, next)
+router.post(
+  '/records',
+  authMiddleware,
+  requireRoles('DOCTOR'),
+  requireModulePermission('doctor_consultation', 'write'),
+  (req, res, next) => clinicalController.createRecord(req, res, next)
 );
 
 // Edit clinical record (Doctor only, generates mandatory audit log)
-router.put('/records/:id', authMiddleware, requireRoles('DOCTOR'), (req, res, next) =>
-  clinicalController.updateRecord(req, res, next)
+router.put(
+  '/records/:id',
+  authMiddleware,
+  requireRoles('DOCTOR'),
+  requireModulePermission('doctor_consultation', 'write'),
+  (req, res, next) => clinicalController.updateRecord(req, res, next)
 );
 
 // Get clinical history (Patient, Doctor with permitted boundary, Admin)
@@ -21,8 +29,12 @@ router.get('/patient/:patientId/history', authMiddleware, (req, res, next) =>
 );
 
 // Version a prescription: v1 -> v2 (Doctor only)
-router.post('/prescriptions/version', authMiddleware, requireRoles('DOCTOR'), (req, res, next) =>
-  clinicalController.createPrescriptionVersion(req, res, next)
+router.post(
+  '/prescriptions/version',
+  authMiddleware,
+  requireRoles('DOCTOR'),
+  requireModulePermission('doctor_consultation', 'write'),
+  (req, res, next) => clinicalController.createPrescriptionVersion(req, res, next)
 );
 
 // Git-style audit diff view for prescription (Doctor & Admin)

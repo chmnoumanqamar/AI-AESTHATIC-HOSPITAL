@@ -10,6 +10,7 @@ export interface JwtAuthPayload {
   phone: string;
   profileId?: string; // patientId, doctorId, or receptionistId
   allowedModules?: string[];
+  permissions?: Array<{ moduleId: string; read: boolean; write: boolean; delete: boolean }>;
 }
 
 declare global {

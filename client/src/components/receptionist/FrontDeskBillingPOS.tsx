@@ -17,7 +17,8 @@ import {
   UserCheck,
   TrendingUp,
   Percent,
-  FileText
+  FileText,
+  Lock
 } from 'lucide-react';
 
 interface QueueItem {
@@ -32,6 +33,7 @@ interface QueueItem {
 
 interface FrontDeskBillingPOSProps {
   queue?: QueueItem[];
+  canWrite?: boolean;
 }
 
 interface PatientBillingSummary {
@@ -94,7 +96,7 @@ const PAYMENT_PLANS = [
   { id: 'SPECIAL_WAIVER', label: 'Welfare / Special Discount' }
 ];
 
-export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue = [] }) => {
+export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue = [], canWrite = true }) => {
   const [selectedPatientId, setSelectedPatientId] = useState<string>('');
   const [patientSummary, setPatientSummary] = useState<PatientBillingSummary | null>(null);
   const [hospitalLedger, setHospitalLedger] = useState<any>(null);
@@ -239,6 +241,10 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
 
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canWrite) {
+      alert('Action Blocked: Write permission is disabled for Front-Desk Billing POS by Administrator.');
+      return;
+    }
     if (!selectedPatientId) {
       alert('Baraye meharbani pehle patient select karein.');
       return;
@@ -356,6 +362,20 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
           </div>
         </div>
       </div>
+
+      {!canWrite && (
+        <div className="rounded-xl p-3.5 flex items-center justify-between gap-3 text-xs border bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
+          <div className="flex items-center gap-2.5">
+            <Lock className="w-4 h-4 shrink-0 text-amber-700 dark:text-amber-400" />
+            <span>
+              <strong>Read-Only Mode Active:</strong> Hospital Administrator has set <strong>WRITE ACCESS TO OFF</strong> for Front-Desk Billing POS. Payment collection and invoice recording are disabled.
+            </span>
+          </div>
+          <span className="px-2 py-0.5 font-bold uppercase tracking-wider rounded text-[10px] bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100 border border-amber-300">
+            Write Locked
+          </span>
+        </div>
+      )}
 
       {/* 2. Patient Selector & Quick Filter Bar */}
       <div className="bg-white dark:bg-[#1E2718] border border-slate-200 dark:border-[#2F3E29] rounded-xl p-5 shadow-sm space-y-4">
@@ -560,11 +580,17 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
                     </div>
                     <button
                       type="button"
+                      disabled={!canWrite}
                       onClick={() => {
+                        if (!canWrite) return;
                         setCategory('CONSULTATION');
                         handleGrossChange(String(patientSummary.unpaidAppointments[0].fee));
                       }}
-                      className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold shrink-0 transition-colors cursor-pointer"
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold shrink-0 transition-colors ${
+                        !canWrite
+                          ? 'bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed'
+                          : 'bg-amber-600 hover:bg-amber-700 text-white cursor-pointer'
+                      }`}
                     >
                       Load Consultation Fee
                     </button>
@@ -592,6 +618,20 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
         </div>
 
         <form onSubmit={handleSubmitPayment} className="space-y-6">
+          {!canWrite && (
+            <div className="rounded-xl p-4 flex items-center justify-between gap-3 text-xs border bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 shadow-xs">
+              <div className="flex items-center gap-2.5">
+                <Lock className="w-5 h-5 shrink-0 text-amber-700 dark:text-amber-400" />
+                <span>
+                  <strong>Front-Desk Billing POS Locked:</strong> Hospital Administrator has restricted Write access for Front-Desk Billing POS. Payment settlement, discounting, and receipt generation are set to Read-Only mode.
+                </span>
+              </div>
+              <span className="px-2.5 py-1 font-bold uppercase tracking-wider rounded text-[10px] bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100 border border-amber-300 shrink-0">
+                Write Locked
+              </span>
+            </div>
+          )}
+
           {/* A. Payment Category */}
           <div>
             <label className="text-xs font-bold text-slate-700 dark:text-[#C2C5AA] block mb-2">1. Billing Head / Category</label>
@@ -600,11 +640,14 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
                 <button
                   type="button"
                   key={cat.id}
-                  onClick={() => setCategory(cat.id)}
-                  className={`px-3 py-2.5 rounded-xl text-xs font-semibold border text-left transition-all cursor-pointer ${
-                    category === cat.id
-                      ? 'bg-[#2D6A4F] text-white border-[#2D6A4F] shadow-sm ring-2 ring-emerald-500/30 dark:bg-[#204532] dark:border-[#52B788] dark:ring-emerald-400/40 dark:text-white'
-                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 dark:bg-[#151D12] dark:text-[#C2C5AA] dark:border-[#2F3E29] dark:hover:bg-[#1D2719]'
+                  disabled={!canWrite}
+                  onClick={() => canWrite && setCategory(cat.id)}
+                  className={`px-3 py-2.5 rounded-xl text-xs font-semibold border text-left transition-all ${
+                    !canWrite
+                      ? 'bg-slate-100 text-slate-400 border-slate-200 dark:bg-[#151D12] dark:text-slate-600 dark:border-[#2F3E29] cursor-not-allowed opacity-60'
+                      : category === cat.id
+                      ? 'bg-[#2D6A4F] text-white border-[#2D6A4F] shadow-sm ring-2 ring-emerald-500/30 dark:bg-[#204532] dark:border-[#52B788] dark:ring-emerald-400/40 dark:text-white cursor-pointer'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 dark:bg-[#151D12] dark:text-[#C2C5AA] dark:border-[#2F3E29] dark:hover:bg-[#1D2719] cursor-pointer'
                   }`}
                 >
                   {cat.label}
@@ -624,16 +667,21 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
                   <button
                     type="button"
                     key={m.id}
-                    onClick={() => setPaymentMethod(m.id)}
-                    className={`p-3 rounded-xl border text-left flex flex-col justify-between gap-2.5 transition-all cursor-pointer ${
-                      isSelected
-                        ? 'border-[#2D6A4F] dark:border-[#52B788] bg-[#E8F3EB] dark:bg-[#203622] ring-2 ring-[#2D6A4F]/20 dark:ring-[#52B788]/40 shadow-sm'
-                        : 'border-slate-200 dark:border-[#2F3E29] bg-white dark:bg-[#151D12] hover:bg-slate-50 dark:hover:bg-[#1D2719]'
+                    disabled={!canWrite}
+                    onClick={() => canWrite && setPaymentMethod(m.id)}
+                    className={`p-3 rounded-xl border text-left flex flex-col justify-between gap-2.5 transition-all ${
+                      !canWrite
+                        ? 'border-slate-200 dark:border-[#2F3E29] bg-slate-100 dark:bg-[#151D12] text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-60'
+                        : isSelected
+                        ? 'border-[#2D6A4F] dark:border-[#52B788] bg-[#E8F3EB] dark:bg-[#203622] ring-2 ring-[#2D6A4F]/20 dark:ring-[#52B788]/40 shadow-sm cursor-pointer'
+                        : 'border-slate-200 dark:border-[#2F3E29] bg-white dark:bg-[#151D12] hover:bg-slate-50 dark:hover:bg-[#1D2719] cursor-pointer'
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className={`p-1.5 rounded-lg border transition-colors ${
-                        isSelected
+                        !canWrite
+                          ? 'bg-slate-200 text-slate-400 border-slate-300 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-600'
+                          : isSelected
                           ? 'bg-[#2D6A4F] text-white border-[#2D6A4F] dark:bg-[#2D6A4F] dark:border-[#52B788] dark:text-white'
                           : m.color
                       }`}>
@@ -642,7 +690,11 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
                       {isSelected && <CheckCircle2 className="w-4 h-4 text-[#2D6A4F] dark:text-[#52B788]" />}
                     </div>
                     <span className={`text-xs font-bold ${
-                      isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-900 dark:text-[#C2C5AA]'
+                      !canWrite
+                        ? 'text-slate-400 dark:text-slate-600'
+                        : isSelected
+                        ? 'text-slate-900 dark:text-white'
+                        : 'text-slate-900 dark:text-[#C2C5AA]'
                     }`}>
                       {m.label}
                     </span>
@@ -662,11 +714,14 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
                   <button
                     type="button"
                     key={plan.id}
-                    onClick={() => handlePaymentPlanChange(plan.id)}
-                    className={`px-3 py-2.5 rounded-xl text-xs font-semibold border text-left transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#2D6A4F] text-white border-[#2D6A4F] shadow-sm ring-2 ring-emerald-500/30 dark:bg-[#204532] dark:border-[#52B788] dark:ring-emerald-400/40 dark:text-white'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 dark:bg-[#151D12] dark:text-[#C2C5AA] dark:border-[#2F3E29] dark:hover:bg-[#1D2719]'
+                    disabled={!canWrite}
+                    onClick={() => canWrite && handlePaymentPlanChange(plan.id)}
+                    className={`px-3 py-2.5 rounded-xl text-xs font-semibold border text-left transition-all ${
+                      !canWrite
+                        ? 'bg-slate-100 text-slate-400 border-slate-200 dark:bg-[#151D12] dark:text-slate-600 dark:border-[#2F3E29] cursor-not-allowed opacity-60'
+                        : isSelected
+                        ? 'bg-[#2D6A4F] text-white border-[#2D6A4F] shadow-sm ring-2 ring-emerald-500/30 dark:bg-[#204532] dark:border-[#52B788] dark:ring-emerald-400/40 dark:text-white cursor-pointer'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 dark:bg-[#151D12] dark:text-[#C2C5AA] dark:border-[#2F3E29] dark:hover:bg-[#1D2719] cursor-pointer'
                     }`}
                   >
                     {plan.label}
@@ -685,9 +740,14 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
                   type="number"
                   step="0.01"
                   required
+                  disabled={!canWrite}
                   value={grossAmount}
                   onChange={e => handleGrossChange(e.target.value)}
-                  className="w-full clinical-input font-mono font-bold text-sm dark:bg-[#1E2718] dark:border-[#38482E] dark:text-white"
+                  className={`w-full clinical-input font-mono font-bold text-sm ${
+                    !canWrite
+                      ? 'bg-slate-100 dark:bg-[#171F13] text-slate-400 dark:text-slate-600 border-dashed cursor-not-allowed'
+                      : 'dark:bg-[#1E2718] dark:border-[#38482E] dark:text-white'
+                  }`}
                 />
               </div>
 
@@ -696,9 +756,14 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
                 <input
                   type="number"
                   step="0.01"
+                  disabled={!canWrite}
                   value={discount}
                   onChange={e => handleDiscountChange(e.target.value)}
-                  className="w-full clinical-input font-mono font-bold text-sm text-emerald-700 dark:text-emerald-400 dark:bg-[#1E2718] dark:border-[#38482E]"
+                  className={`w-full clinical-input font-mono font-bold text-sm ${
+                    !canWrite
+                      ? 'bg-slate-100 dark:bg-[#171F13] text-slate-400 dark:text-slate-600 border-dashed cursor-not-allowed'
+                      : 'text-emerald-700 dark:text-emerald-400 dark:bg-[#1E2718] dark:border-[#38482E]'
+                  }`}
                 />
               </div>
 
@@ -722,9 +787,14 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
                   type="number"
                   step="0.01"
                   required
+                  disabled={!canWrite}
                   value={amountPaid}
                   onChange={e => setAmountPaid(e.target.value)}
-                  className="w-full clinical-input font-mono font-extrabold text-base text-emerald-800 dark:text-emerald-300 border-emerald-400 dark:border-emerald-600 bg-white dark:bg-[#1E2718]"
+                  className={`w-full clinical-input font-mono font-extrabold text-base ${
+                    !canWrite
+                      ? 'bg-slate-100 dark:bg-[#171F13] text-slate-400 dark:text-slate-600 border-dashed cursor-not-allowed'
+                      : 'text-emerald-800 dark:text-emerald-300 border-emerald-400 dark:border-emerald-600 bg-white dark:bg-[#1E2718]'
+                  }`}
                 />
               </div>
 
@@ -751,21 +821,31 @@ export const FrontDeskBillingPOS: React.FC<FrontDeskBillingPOSProps> = ({ queue 
               </label>
               <input
                 type="text"
+                disabled={!canWrite}
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 placeholder="e.g. JazzCash TID #981248, Visa Card Auth 49201, or installment terms agreed..."
-                className="w-full clinical-input text-xs dark:bg-[#1E2718] dark:border-[#38482E] dark:text-white"
+                className={`w-full clinical-input text-xs ${
+                  !canWrite
+                    ? 'bg-slate-100 dark:bg-[#171F13] text-slate-400 dark:text-slate-600 border-dashed cursor-not-allowed'
+                    : 'dark:bg-[#1E2718] dark:border-[#38482E] dark:text-white'
+                }`}
               />
             </div>
 
             <button
               type="submit"
-              disabled={!selectedPatientId || isSubmitting}
-              className="w-full sm:w-auto px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              style={{ background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)' }}
+              disabled={!selectedPatientId || isSubmitting || !canWrite}
+              title={!canWrite ? 'Payment collection disabled by Administrator' : 'Collect and issue receipt'}
+              className={`w-full sm:w-auto px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all ${
+                !canWrite
+                  ? 'bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400 cursor-not-allowed border border-slate-300 dark:border-slate-700'
+                  : 'text-white hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+              }`}
+              style={canWrite ? { background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)' } : undefined}
             >
-              <Printer className="w-4 h-4" />
-              <span>{isSubmitting ? 'Committing to Ledger...' : 'Collect & Issue Official Receipt'}</span>
+              {!canWrite ? <Lock className="w-4 h-4" /> : <Printer className="w-4 h-4" />}
+              <span>{isSubmitting ? 'Committing to Ledger...' : !canWrite ? 'Payment Collection Locked (Read-Only)' : 'Collect & Issue Official Receipt'}</span>
             </button>
           </div>
         </form>

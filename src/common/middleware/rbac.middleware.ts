@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../errors/AppError';
+import { db } from '../data/mock-db';
 
 export type UserRole = 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'PATIENT' | 'PHARMACIST' | 'AI_AGENT';
 
@@ -38,6 +39,40 @@ export const requireRoles = (...allowedRoles: UserRole[]) => {
     throw AppError.forbidden(
       `Access Denied: Your account role [${req.user.role}] does not have authorization for this clinical module. Required: [${allowedRoles.join(', ')}]`
     );
+  };
+};
+
+/**
+ * Enforce granular Read / Write / Delete permissions per module based on Admin Module Studio
+ */
+export const requireModulePermission = (moduleId: string, action: 'read' | 'write' | 'delete') => {
+  return (req: Request, _res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      throw AppError.unauthorized();
+    }
+
+    // Invariant: System Administrator has supreme universal access across all modules
+    if (req.user.role === 'ADMIN') {
+      return next();
+    }
+
+    // Get live role permissions from persistent db
+    const rolePermissions = db.getPermissionsForRole(req.user.role);
+    const rule = rolePermissions.find((p: any) => p.moduleId === moduleId);
+
+    if (!rule) {
+      throw AppError.forbidden(
+        `Access Denied: Module [${moduleId}] is not configured for your role [${req.user.role}].`
+      );
+    }
+
+    if (!rule[action]) {
+      throw AppError.forbidden(
+        `Access Denied: Administrative restriction. You do not have '${action.toUpperCase()}' permission for module '${moduleId}'.`
+      );
+    }
+
+    return next();
   };
 };
 

@@ -125,6 +125,16 @@ export const App: React.FC = () => {
 
     const initSession = async () => {
       try {
+        // Fetch ground-truth role permissions to prime local RBAC cache
+        api.get('/admin/role-permissions')
+          .then(permRes => {
+            if (permRes.data?.data?.roles && Array.isArray(permRes.data.data.roles)) {
+              localStorage.setItem('hospital_role_permissions_cache', JSON.stringify(permRes.data.data.roles));
+              window.dispatchEvent(new CustomEvent('hospital:permissions-updated'));
+            }
+          })
+          .catch(() => {});
+
         const res = await api.get('/auth/me');
         const user = res.data.data;
         if (isMounted && user) {

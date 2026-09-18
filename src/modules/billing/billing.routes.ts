@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { billingController } from './billing.controller';
 import { authMiddleware } from '../../common/middleware/auth.middleware';
-import { requireRoles } from '../../common/middleware/rbac.middleware';
+import { requireRoles, requireModulePermission } from '../../common/middleware/rbac.middleware';
 
 const router = Router();
 
@@ -14,8 +14,12 @@ router.get('/patient/:patientId', authMiddleware, requireRoles('ADMIN', 'RECEPTI
 );
 
 // POS Payment collection (Receptionist / Admin)
-router.post('/pay', authMiddleware, requireRoles('ADMIN', 'RECEPTIONIST'), (req, res, next) =>
-  billingController.recordPayment(req, res, next)
+router.post(
+  '/pay',
+  authMiddleware,
+  requireRoles('ADMIN', 'RECEPTIONIST'),
+  requireModulePermission('recep_pos', 'write'),
+  (req, res, next) => billingController.recordPayment(req, res, next)
 );
 
 // Hospital-wide ledger (Admin only)

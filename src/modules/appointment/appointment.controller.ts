@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { appointmentService } from './appointment.service';
 import { createBookingDto, updateAppointmentStatusDto, rescheduleAppointmentDto } from './appointment.dto';
 import { AppError } from '../../common/errors/AppError';
+import { db } from '../../common/data/mock-db';
 
 export class AppointmentController {
   async getAll(req: Request, res: Response, next: NextFunction) {
@@ -47,8 +48,16 @@ export class AppointmentController {
       const validated = createBookingDto.parse(req.body);
 
       // Default patientId to logged in user if patient role and not explicitly specified (e.g. booking for family)
-      if (req.user?.role === 'PATIENT' && !validated.patientId) {
-        validated.patientId = req.user.profileId;
+      // Default patientId to logged in user if patient role and not explicitly specified (e.g. booking for family)
+      if (req.user?.role === 'PATIENT') {
+        const perms = db.getPermissionsForRole('PATIENT');
+        const rule = perms.find(p => p.moduleId === 'patient_booking');
+        if (rule && !rule.write) {
+          throw AppError.forbidden('Access Denied: Appointment booking is disabled for patients by Administrator.');
+        }
+        if (!validated.patientId) {
+          validated.patientId = req.user.profileId;
+        }
       }
 
       if (!validated.patientId) {
@@ -73,6 +82,25 @@ export class AppointmentController {
   async updateStatus(req: Request, res: Response, next: NextFunction) {
     try {
       const validated = updateAppointmentStatusDto.parse(req.body);
+
+      // Enforce granular role permissions for approval & decline
+      if (req.user?.role === 'RECEPTIONIST') {
+        const perms = db.getPermissionsForRole('RECEPTIONIST');
+        const rule = perms.find(p => p.moduleId === 'recep_approvals');
+        if (validated.status === 'CONFIRMED' && rule && !rule.write) {
+          throw AppError.forbidden('Access Denied: Appointment approval write permission is disabled by Administrator.');
+        }
+        if ((validated.status === 'DECLINED' || validated.status === 'CANCELLED') && rule && !rule.delete) {
+          throw AppError.forbidden('Access Denied: Appointment decline/delete permission is disabled by Administrator.');
+        }
+      } else if (req.user?.role === 'PATIENT') {
+        const perms = db.getPermissionsForRole('PATIENT');
+        const rule = perms.find(p => p.moduleId === 'patient_booking');
+        if (validated.status === 'CANCELLED' && rule && !rule.delete) {
+          throw AppError.forbidden('Access Denied: Appointment cancellation is disabled for patients by Administrator.');
+        }
+      }
+
       const updated = await appointmentService.updateStatus(
         req.params.id,
         validated,

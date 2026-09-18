@@ -6,6 +6,7 @@ import { TokenMatrixGrid } from '../../components/token/TokenMatrixGrid';
 import { ConsultationWorkspace } from '../../components/clinical/ConsultationWorkspace';
 import { useQueueStream } from '../../hooks/useQueueStream';
 import { useTokenMatrix } from '../../hooks/useTokenMatrix';
+import { useModulePermissions } from '../../hooks/useModulePermissions';
 import { api } from '../../services/api';
 import {
   FileText,
@@ -25,7 +26,8 @@ import {
   SlidersHorizontal,
   Minus,
   Plus,
-  X
+  X,
+  Lock
 } from 'lucide-react';
 import { StatusBadge } from '../../components/common/StatusBadge';
 
@@ -40,6 +42,11 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
   currentTab = 'doctor_queue',
   onSelectTab
 }) => {
+  const userRole = currentUser?.role || 'DOCTOR';
+  const queuePerms = useModulePermissions('doctor_queue', userRole, currentUser);
+  const consultPerms = useModulePermissions('doctor_consultation', userRole, currentUser);
+  const tokenPerms = useModulePermissions('doctor_tokens', userRole, currentUser);
+
   const isDefaultDemoAccount = !currentUser || currentUser.email === 'dr.aisha@hospital.com' || currentUser.id === 'u-doc-01';
   const doctorId = currentUser?.profileId || (isDefaultDemoAccount ? 'doc-01' : (currentUser?.id || ''));
   const todayStr = new Date().toISOString().split('T')[0];
@@ -83,6 +90,10 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
   };
 
   const handleUpdateLimit = async (customLimit?: number) => {
+    if (!tokenPerms.canWrite) {
+      setLimitFeedback({ type: 'error', text: 'Action Blocked: Write permission is disabled for Token Matrix by Administrator.' });
+      return;
+    }
     const targetLimit = customLimit !== undefined ? customLimit : newLimitInput;
     if (isNaN(targetLimit) || targetLimit < 1) {
       setLimitFeedback({ type: 'error', text: 'Daily limit must be at least 1.' });
@@ -133,6 +144,10 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
   const currentCalledTokenNumber = calledPatient?.tokenNumber || inConsultationPatient?.tokenNumber || null;
 
   const handleCallNext = async () => {
+    if (!queuePerms.canWrite) {
+      alert('Action Blocked: Write permission is disabled for Clinical Queue by Administrator.');
+      return null;
+    }
     try {
       const res = await api.post('/queue/call-next', { doctorId });
       await refreshQueue();
@@ -145,6 +160,10 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
   };
 
   const handleStartConsultation = async (appointmentId: string) => {
+    if (!consultPerms.canWrite) {
+      alert('Action Blocked: Write permission is disabled for Consultations & Rx by Administrator.');
+      return;
+    }
     try {
       await api.post(`/queue/${appointmentId}/start`);
       await refreshQueue();
@@ -165,6 +184,10 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
   };
 
   const handleCompleteConsultation = async (recordData: any) => {
+    if (!consultPerms.canWrite) {
+      alert('Action Blocked: Write permission is disabled for Consultations & Rx by Administrator.');
+      return;
+    }
     try {
       const resolvedApptId = recordData.appointmentId || activeConsultation?.appointmentId || activeConsultation?.id;
       // 1. Create clinical record & initial prescription
@@ -293,6 +316,20 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
       {/* TAB 1: TODAY'S QUEUE */}
       {currentTab === 'doctor_queue' && (
         <div className="space-y-6">
+          {!queuePerms.canWrite && (
+            <div className="rounded-xl p-3.5 flex items-center justify-between gap-3 text-xs border bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
+              <div className="flex items-center gap-2.5">
+                <Lock className="w-4 h-4 shrink-0 text-amber-700 dark:text-amber-400" />
+                <span>
+                  <strong>Read-Only Mode Active:</strong> Hospital Administrator has set <strong>WRITE ACCESS TO OFF</strong> for Clinical Queue. Calling next patients and starting consultations are disabled.
+                </span>
+              </div>
+              <span className="px-2 py-0.5 font-bold uppercase tracking-wider rounded text-[10px] bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100 border border-amber-300">
+                Write Locked
+              </span>
+            </div>
+          )}
+
           {/* Digital Monospace Token HUD */}
           <DigitalTokenHUD
             currentCalledToken={currentCalledTokenNumber}
@@ -310,6 +347,7 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
             userRole="DOCTOR"
             onStartConsultation={handleStartConsultation}
             onCompleteConsultation={id => handleStartConsultation(id)}
+            canWrite={consultPerms.canWrite}
           />
         </div>
       )}
@@ -317,6 +355,19 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
       {/* TAB 2: CONSULTATIONS & RX */}
       {currentTab === 'doctor_consultation' && (
         <div className="space-y-6">
+          {!consultPerms.canWrite && (
+            <div className="rounded-xl p-3.5 flex items-center justify-between gap-3 text-xs border bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
+              <div className="flex items-center gap-2.5">
+                <Lock className="w-4 h-4 shrink-0 text-amber-700 dark:text-amber-400" />
+                <span>
+                  <strong>Read-Only Mode Active:</strong> Hospital Administrator has set <strong>WRITE ACCESS TO OFF</strong> for Consultations & Rx. Saving clinical records and prescriptions is disabled.
+                </span>
+              </div>
+              <span className="px-2 py-0.5 font-bold uppercase tracking-wider rounded text-[10px] bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100 border border-amber-300">
+                Write Locked
+              </span>
+            </div>
+          )}
           {/* Active Called Patient Quick Resume Banner */}
           {calledPatient && (
             <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-pulse shadow-xs">

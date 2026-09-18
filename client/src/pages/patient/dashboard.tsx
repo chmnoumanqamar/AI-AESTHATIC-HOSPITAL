@@ -18,11 +18,13 @@ import {
   RefreshCw,
   Phone,
   Shield,
-  MessageSquare
+  MessageSquare,
+  Lock
 } from 'lucide-react';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { ConfirmationModal } from '../../components/common/ConfirmationModal';
 import { api } from '../../services/api';
+import { useModulePermissions } from '../../hooks/useModulePermissions';
 
 interface PatientDashboardProps {
   currentUser: any;
@@ -37,6 +39,8 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
 }) => {
   const isDefaultDemoAccount = !currentUser || currentUser.email === 'john.doe@example.com' || currentUser.id === 'u-pat-01';
   const patientId = currentUser?.profileId || (isDefaultDemoAccount ? 'pat-01' : (currentUser?.id || ''));
+
+  const bookingPerms = useModulePermissions('patient_booking', 'PATIENT', currentUser);
 
   // Active tab state synced with prop
   const [activeTab, setActiveTab] = useState<string>(currentTab);
@@ -145,6 +149,10 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
 
   const handlePromptCrossCheck = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!bookingPerms.canWrite) {
+      alert('Action Blocked: Online appointment booking is disabled by Administrator.');
+      return;
+    }
     if (bookingFor === 'NEW') {
       if (!newPatientName.trim() || !newPatientPhone.trim()) {
         alert('Baraye meharbani Mareez ka Naam aur Mobile Number darj karein.');
@@ -155,6 +163,10 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
   };
 
   const handleExecuteBooking = async () => {
+    if (!bookingPerms.canWrite) {
+      alert('Action Blocked: Online appointment booking is disabled by Administrator.');
+      return;
+    }
     setIsSubmittingBooking(true);
     setBookingSuccessData(null);
 
@@ -221,6 +233,10 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
 
   const handleCancelAppointment = async () => {
     if (!targetActionApp) return;
+    if (!bookingPerms.canDelete) {
+      alert('Action Blocked: Appointment cancellation is disabled by Administrator.');
+      return;
+    }
     try {
       await api.patch(`/appointments/${targetActionApp.id}/status`, {
         status: 'CANCELLED',
@@ -283,13 +299,15 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
       {/* Top Patient Action Bar */}
       {activeTab !== 'patient_booking' && (
         <div className="flex justify-end pb-2">
-          <button
-            onClick={() => switchTab('patient_booking')}
-            className="clinical-button-primary flex items-center gap-2 text-xs"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Book Appointment</span>
-          </button>
+          {bookingPerms.canWrite && (
+            <button
+              onClick={() => switchTab('patient_booking')}
+              className="clinical-button-primary flex items-center gap-2 text-xs"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Book Appointment</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -408,16 +426,18 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                       >
                         Reschedule
                       </button>
-                      <button
-                        onClick={() => {
-                          setTargetActionApp(app);
-                          setIsCancelConfirmOpen(true);
-                        }}
-                        className="px-3.5 py-1.5 border text-xs font-semibold rounded transition-colors shadow-2xs cursor-pointer active:scale-95"
-                        style={{ backgroundColor: '#F2E8DE', borderColor: '#A68A64', color: '#582F0E' }}
-                      >
-                        Cancel
-                      </button>
+                      {bookingPerms.canDelete && (
+                        <button
+                          onClick={() => {
+                            setTargetActionApp(app);
+                            setIsCancelConfirmOpen(true);
+                          }}
+                          className="px-3.5 py-1.5 border text-xs font-semibold rounded transition-colors shadow-2xs cursor-pointer active:scale-95"
+                          style={{ backgroundColor: '#F2E8DE', borderColor: '#A68A64', color: '#582F0E' }}
+                        >
+                          Cancel
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -502,6 +522,16 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                 Book an Appointment
               </h2>
             </div>
+
+            {!bookingPerms.canWrite && (
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span><strong>Online Booking Disabled:</strong> Self-service appointment scheduling is currently set to Read-Only by hospital administration.</span>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300">View Only</span>
+              </div>
+            )}
 
             <form onSubmit={handlePromptCrossCheck} className="space-y-6">
               {/* STEP 1: PATIENT IDENTITY SELECTION */}
@@ -710,15 +740,26 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                   </span>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={isSubmittingBooking}
-                  className="w-full sm:w-auto px-9 py-3.5 rounded-xl font-bold text-sm text-white shadow-lg shadow-emerald-900/30 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70"
-                  style={{ background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)' }}
-                >
-                  <CalendarCheck className="w-5 h-5" />
-                  <span>{isSubmittingBooking ? 'Reserving Token...' : 'Confirm & Book Appointment'}</span>
-                </button>
+                {!bookingPerms.canWrite ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full sm:w-auto px-9 py-3.5 rounded-xl font-bold text-sm text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-2 cursor-not-allowed"
+                  >
+                    <Lock className="w-5 h-5" />
+                    <span>Booking Locked (Read-Only)</span>
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={isSubmittingBooking}
+                    className="w-full sm:w-auto px-9 py-3.5 rounded-xl font-bold text-sm text-white shadow-lg shadow-emerald-900/30 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70"
+                    style={{ background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)' }}
+                  >
+                    <CalendarCheck className="w-5 h-5" />
+                    <span>{isSubmittingBooking ? 'Reserving Token...' : 'Confirm & Book Appointment'}</span>
+                  </button>
+                )}
               </div>
             </form>
           </div>

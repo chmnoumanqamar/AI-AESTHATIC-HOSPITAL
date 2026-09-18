@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserCheck, Search, X, Sparkles, AlertCircle, Phone, Stethoscope } from 'lucide-react';
+import { UserCheck, Search, X, Sparkles, AlertCircle, Phone, Stethoscope, Lock } from 'lucide-react';
 import { StatusBadge } from '../common/StatusBadge';
 import { QueueItem } from '../queue/LiveQueueTable';
 
@@ -9,6 +9,7 @@ interface CheckInControllerProps {
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
   onCheckInPatient?: (appointmentId: string) => Promise<void>;
+  canWrite?: boolean;
 }
 
 export const CheckInController: React.FC<CheckInControllerProps> = ({
@@ -16,7 +17,8 @@ export const CheckInController: React.FC<CheckInControllerProps> = ({
   queue = [],
   searchQuery: externalSearchQuery,
   onSearchChange,
-  onCheckInPatient
+  onCheckInPatient,
+  canWrite = true
 }) => {
   const [internalQuery, setInternalQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -69,6 +71,10 @@ export const CheckInController: React.FC<CheckInControllerProps> = ({
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!trimmedQuery) return;
+    if (!canWrite) {
+      alert('Action Blocked: Write permission is disabled for Front-Desk Queue & Patient Check-In by Administrator.');
+      return;
+    }
     setLoading(true);
     try {
       await onSearchAndCheckIn(query.trim());
@@ -78,6 +84,10 @@ export const CheckInController: React.FC<CheckInControllerProps> = ({
   };
 
   const handleSelectSuggestion = async (item: QueueItem) => {
+    if (!canWrite) {
+      alert('Action Blocked: Write permission is disabled for Front-Desk Queue & Patient Check-In by Administrator.');
+      return;
+    }
     if (item.queueStatus === 'NOT_CHECKED_IN' && onCheckInPatient) {
       setLoading(true);
       try {
@@ -125,11 +135,16 @@ export const CheckInController: React.FC<CheckInControllerProps> = ({
 
         <button
           type="submit"
-          disabled={loading || !trimmedQuery}
-          className="w-full sm:w-auto clinical-button-primary text-xs flex items-center justify-center gap-2 whitespace-nowrap py-2.5 px-4"
+          disabled={loading || !trimmedQuery || !canWrite}
+          title={!canWrite ? 'Write permission is disabled by Administrator' : 'Check In Patient'}
+          className={`w-full sm:w-auto text-xs flex items-center justify-center gap-2 whitespace-nowrap py-2.5 px-4 rounded-lg font-medium transition-colors ${
+            !canWrite
+              ? 'bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400 cursor-not-allowed border border-slate-300 dark:border-slate-700'
+              : 'clinical-button-primary'
+          }`}
         >
-          <UserCheck className="w-4 h-4 text-white" />
-          <span>{loading ? 'Verifying...' : 'Check In Patient'}</span>
+          {!canWrite ? <Lock className="w-4 h-4" /> : <UserCheck className="w-4 h-4 text-white" />}
+          <span>{loading ? 'Verifying...' : !canWrite ? 'Check-In (Write Disabled)' : 'Check In Patient'}</span>
         </button>
       </form>
 
@@ -197,17 +212,24 @@ export const CheckInController: React.FC<CheckInControllerProps> = ({
                 <div className="flex items-center gap-3 shrink-0">
                   <StatusBadge status={item.queueStatus} size="sm" />
                   {item.queueStatus === 'NOT_CHECKED_IN' ? (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSelectSuggestion(item);
-                      }}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold clinical-button-primary rounded-lg shadow-sm"
-                    >
-                      <UserCheck className="w-3.5 h-3.5" />
-                      <span>Check In</span>
-                    </button>
+                    canWrite ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectSuggestion(item);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold clinical-button-primary rounded-lg shadow-sm"
+                      >
+                        <UserCheck className="w-3.5 h-3.5" />
+                        <span>Check In</span>
+                      </button>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                        <Lock className="w-3 h-3" />
+                        <span>View Only</span>
+                      </span>
+                    )
                   ) : (
                     <span className="text-xs font-semibold px-2.5 py-1 rounded-md text-slate-500 dark:text-[#A4AC86] bg-slate-100 dark:bg-[#2D3923] border border-slate-200 dark:border-[#414833]">
                       In System

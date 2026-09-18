@@ -27,8 +27,10 @@ import {
   Activity,
   FileText,
   BadgeAlert,
-  ArrowRight
+  ArrowRight,
+  Lock
 } from 'lucide-react';
+import { useModulePermissions } from '../../hooks/useModulePermissions';
 
 interface PharmacyWorkspaceProps {
   currentUser?: any;
@@ -41,6 +43,12 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
   currentTab = 'pharma_queue',
   onSelectTab
 }) => {
+  const userRole = currentUser?.role || 'PHARMACIST';
+  const pharmaQueuePerms = useModulePermissions('pharma_queue', userRole, currentUser);
+  const pharmaInvPerms = useModulePermissions('pharma_inventory', userRole, currentUser);
+  const pharmaPosPerms = useModulePermissions('pharma_pos', userRole, currentUser);
+  const pharmaProcurePerms = useModulePermissions('pharma_procurement', userRole, currentUser);
+
   // Active inner sub-tab mapped to structural rail currentTab
   const activeSubTab = currentTab.startsWith('pharma_') ? currentTab : 'pharma_queue';
 
@@ -135,6 +143,10 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
   // Handle Prescription Dispensation
   const handleConfirmDispense = async () => {
     if (!selectedRxToDispense) return;
+    if (!pharmaQueuePerms.canWrite) {
+      alert('Action Blocked: Write permission is disabled for Pharmacy Queue by Administrator.');
+      return;
+    }
     setDispenseLoading(true);
     try {
       const res = await api.post('/pharmacy/dispense', {
@@ -160,6 +172,10 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
   // Handle Add Medicine
   const handleSaveMedicine = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!pharmaInvPerms.canWrite) {
+      alert('Action Blocked: Write permission is disabled for Drug Inventory Vault by Administrator.');
+      return;
+    }
     try {
       await api.post('/pharmacy/inventory', newMedicine);
       setShowAddMedicineModal(false);
@@ -228,6 +244,10 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
   // Handle POS Checkout
   const handlePosCheckout = async () => {
     if (cart.length === 0) return;
+    if (!pharmaPosPerms.canWrite) {
+      alert('Action Blocked: Write permission is disabled for Dispensary Point of Sale by Administrator.');
+      return;
+    }
     setPosProcessing(true);
     try {
       const res = await api.post('/pharmacy/pos', {
@@ -282,6 +302,10 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
 
   // Handle Receiving Procurement Shipment
   const handleReceiveShipment = async (orderId: string) => {
+    if (!pharmaProcurePerms.canWrite) {
+      alert('Action Blocked: Write permission is disabled for Procurement & Restock by Administrator.');
+      return;
+    }
     setReceivingOrderId(orderId);
     try {
       await api.post(`/pharmacy/procurement/${orderId}/receive`);
@@ -411,6 +435,15 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
             </div>
           </div>
         <div className="space-y-6">
+          {!pharmaQueuePerms.canWrite && (
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+                <span><strong>Read-Only Mode Active:</strong> Dispensation is locked because Administrator has revoked write permissions for Prescription Fulfillment.</span>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300">View Only</span>
+            </div>
+          )}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
@@ -516,13 +549,23 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
                     {/* Action Button */}
                     <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end">
                       {isPending ? (
-                        <button
-                          onClick={() => setSelectedRxToDispense(item)}
-                          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
-                        >
-                          <Pill className="w-4 h-4" />
-                          <span>Verify & Dispense Rx</span>
-                        </button>
+                        !pharmaQueuePerms.canWrite ? (
+                          <button
+                            disabled
+                            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 font-semibold text-xs border border-slate-200 dark:border-slate-700 cursor-not-allowed"
+                          >
+                            <Lock className="w-3.5 h-3.5" />
+                            <span>Dispensing Locked (Read-Only)</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setSelectedRxToDispense(item)}
+                            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                          >
+                            <Pill className="w-4 h-4" />
+                            <span>Verify & Dispense Rx</span>
+                          </button>
+                        )
                       ) : (
                         <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -544,6 +587,15 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
       {/* ========================================================================= */}
       {activeSubTab === 'pharma_inventory' && (
         <div className="space-y-6">
+          {!pharmaInvPerms.canWrite && (
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+                <span><strong>Read-Only Mode Active:</strong> Adding or editing medications is locked because Administrator has revoked write permissions for Drug Inventory Vault.</span>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300">View Only</span>
+            </div>
+          )}
           {/* Controls Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#1E2718] p-4 rounded-3xl border border-slate-200 dark:border-slate-800">
             <div className="flex flex-wrap items-center gap-3 flex-1">
@@ -570,13 +622,23 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
               </select>
             </div>
 
-            <button
-              onClick={() => setShowAddMedicineModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all cursor-pointer shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Register New Drug SKU</span>
-            </button>
+            {!pharmaInvPerms.canWrite ? (
+              <button
+                disabled
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 text-xs font-bold border border-slate-200 dark:border-slate-700 cursor-not-allowed shrink-0"
+              >
+                <Lock className="w-4 h-4" />
+                <span>Add SKU Locked (Read-Only)</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowAddMedicineModal(true)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all cursor-pointer shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Register New Drug SKU</span>
+              </button>
+            )}
           </div>
 
           {/* Low Stock Warning Banner if any items triggered */}
@@ -685,7 +747,17 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
       {/* SUB-VIEW 3: PHARMACY POS COUNTER */}
       {/* ========================================================================= */}
       {activeSubTab === 'pharma_pos' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="space-y-4">
+          {!pharmaPosPerms.canWrite && (
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+                <span><strong>Read-Only Mode Active:</strong> Completing sales is locked because Administrator has revoked write permissions for Dispensary Point of Sale.</span>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300">View Only</span>
+            </div>
+          )}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column: Medicine Catalog (7 Cols) */}
           <div className="lg:col-span-7 space-y-4">
             <div className="bg-white dark:bg-[#1E2718] p-4 rounded-3xl border border-slate-200 dark:border-slate-800">
@@ -879,16 +951,27 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
               </div>
 
               {/* Checkout Button */}
-              <button
-                onClick={handlePosCheckout}
-                disabled={cart.length === 0 || posProcessing}
-                className="w-full mt-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer flex items-center justify-center gap-2"
-              >
-                <Printer className="w-4 h-4" />
-                <span>{posProcessing ? 'Processing Transaction...' : 'Complete Sale & Generate Receipt'}</span>
-              </button>
+              {!pharmaPosPerms.canWrite ? (
+                <button
+                  disabled
+                  className="w-full mt-4 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 font-bold text-xs border border-slate-200 dark:border-slate-700 cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <Lock className="w-4 h-4" />
+                  <span>POS Checkout Locked (Read-Only)</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handlePosCheckout}
+                  disabled={cart.length === 0 || posProcessing}
+                  className="w-full mt-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>{posProcessing ? 'Processing Transaction...' : 'Complete Sale & Generate Receipt'}</span>
+                </button>
+              )}
             </div>
           </div>
+        </div>
         </div>
       )}
 
@@ -1122,6 +1205,15 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
       {/* ========================================================================= */}
       {activeSubTab === 'pharma_procurement' && (
         <div className="space-y-6">
+          {!pharmaProcurePerms.canWrite && (
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+                <span><strong>Read-Only Mode Active:</strong> Receiving shipments is locked because Administrator has revoked write permissions for Procurement & Restock.</span>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300">View Only</span>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
@@ -1191,6 +1283,14 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
                         <CheckCircle2 className="w-4 h-4" />
                         <span>Inventory Restocked</span>
                       </div>
+                    ) : !pharmaProcurePerms.canWrite ? (
+                      <button
+                        disabled
+                        className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 font-bold text-xs border border-slate-200 dark:border-slate-700 cursor-not-allowed flex items-center gap-2"
+                      >
+                        <Lock className="w-4 h-4" />
+                        <span>Restock Locked (Read-Only)</span>
+                      </button>
                     ) : (
                       <button
                         onClick={() => handleReceiveShipment(order.id)}

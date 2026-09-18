@@ -1,6 +1,6 @@
 import React from 'react';
 import { StatusBadge } from '../common/StatusBadge';
-import { Play, Check, Clock, UserCheck, AlertCircle, Calendar } from 'lucide-react';
+import { Play, Check, Clock, UserCheck, AlertCircle, Calendar, Lock } from 'lucide-react';
 
 export interface QueueItem {
   appointmentId: string;
@@ -26,6 +26,7 @@ interface LiveQueueTableProps {
   onCheckIn?: (appointmentId: string) => void;
   onStartConsultation?: (appointmentId: string) => void;
   onCompleteConsultation?: (appointmentId: string) => void;
+  canWrite?: boolean;
 }
 
 export const LiveQueueTable: React.FC<LiveQueueTableProps> = ({
@@ -33,7 +34,8 @@ export const LiveQueueTable: React.FC<LiveQueueTableProps> = ({
   userRole = 'DOCTOR',
   onCheckIn,
   onStartConsultation,
-  onCompleteConsultation
+  onCompleteConsultation,
+  canWrite = true
 }) => {
   return (
     <div className="clinical-card overflow-hidden">
@@ -111,35 +113,56 @@ export const LiveQueueTable: React.FC<LiveQueueTableProps> = ({
                   {/* Operational Actions */}
                   <td className="py-3.5 px-5 text-right">
                     {/* Receptionist Quick Check-In */}
-                    {(userRole === 'RECEPTIONIST' || userRole === 'ADMIN') && isNotCheckedIn && onCheckIn && (
-                      <button
-                        onClick={() => onCheckIn(item.appointmentId)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 clinical-button-primary rounded-lg text-xs font-semibold shadow-xs"
-                      >
-                        <UserCheck className="w-3.5 h-3.5 text-white" />
-                        <span>Check In</span>
-                      </button>
+                    {(userRole === 'RECEPTIONIST' || userRole === 'ADMIN') && isNotCheckedIn && (
+                      canWrite && onCheckIn ? (
+                        <button
+                          onClick={() => onCheckIn(item.appointmentId)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 clinical-button-primary rounded-lg text-xs font-semibold shadow-xs"
+                        >
+                          <UserCheck className="w-3.5 h-3.5 text-white" />
+                          <span>Check In</span>
+                        </button>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                          <Lock className="w-3 h-3" />
+                          <span>View Only</span>
+                        </span>
+                      )
                     )}
 
                     {/* Doctor Consultation Controls */}
-                    {(userRole === 'DOCTOR' || userRole === 'ADMIN') && isCalled && onStartConsultation && (
-                      <button
-                        onClick={() => onStartConsultation(item.appointmentId)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-xs animate-pulse"
-                      >
-                        <Play className="w-3.5 h-3.5 text-white" />
-                        <span>Begin Consultation</span>
-                      </button>
+                    {(userRole === 'DOCTOR' || userRole === 'ADMIN') && isCalled && (
+                      canWrite && onStartConsultation ? (
+                        <button
+                          onClick={() => onStartConsultation(item.appointmentId)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-xs animate-pulse"
+                        >
+                          <Play className="w-3.5 h-3.5 text-white" />
+                          <span>Begin Consultation</span>
+                        </button>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                          <Lock className="w-3 h-3" />
+                          <span>Write Disabled</span>
+                        </span>
+                      )
                     )}
 
-                    {(userRole === 'DOCTOR' || userRole === 'ADMIN') && isInConsultation && onCompleteConsultation && (
-                      <button
-                        onClick={() => onCompleteConsultation(item.appointmentId)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 clinical-button-primary rounded-lg text-xs font-semibold shadow-xs"
-                      >
-                        <Check className="w-3.5 h-3.5 text-white" />
-                        <span>Prescribe & Finish</span>
-                      </button>
+                    {(userRole === 'DOCTOR' || userRole === 'ADMIN') && isInConsultation && (
+                      canWrite && onCompleteConsultation ? (
+                        <button
+                          onClick={() => onCompleteConsultation(item.appointmentId)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 clinical-button-primary rounded-lg text-xs font-semibold shadow-xs"
+                        >
+                          <Check className="w-3.5 h-3.5 text-white" />
+                          <span>Prescribe & Finish</span>
+                        </button>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                          <Lock className="w-3 h-3" />
+                          <span>In Consultation (Read-Only)</span>
+                        </span>
+                      )
                     )}
 
                     {isCompleted && (

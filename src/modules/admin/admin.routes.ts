@@ -8,6 +8,9 @@ const router = Router();
 // Module & Page Hierarchy: Layout can be read by all roles and clients
 router.get('/hierarchy', (req, res, next) => adminController.getModuleHierarchy(req, res, next));
 
+// Role Permissions: Can be read by all roles and client terminals for real-time RBAC UI synchronization
+router.get('/role-permissions', (req, res, next) => adminController.getRolePermissions(req, res, next));
+
 // Invariant: All Admin management endpoints require valid authentication and strict ADMIN role authorization
 router.use(authMiddleware);
 router.use(requireRoles('ADMIN'));
@@ -27,7 +30,6 @@ router.patch('/hierarchy/move-page', (req, res, next) => adminController.movePag
 router.post('/hierarchy/reset', (req, res, next) => adminController.resetModuleHierarchy(req, res, next));
 
 // Role Sections & Granular Read/Write/Delete Permissions
-router.get('/role-permissions', (req, res, next) => adminController.getRolePermissions(req, res, next));
 router.put('/role-permissions/:role', (req, res, next) => adminController.updateRolePermissions(req, res, next));
 router.post('/role-permissions/module', (req, res, next) => adminController.addModuleToRole(req, res, next));
 router.delete('/role-permissions/:role/:moduleId', (req, res, next) => adminController.removeModuleFromRole(req, res, next));

@@ -168,7 +168,7 @@ export const DEFAULT_ROLE_PERMISSIONS: HospitalRoleDefinition[] = [
     permissions: [
       { moduleId: 'recep_desk', read: true, write: true, delete: false },
       { moduleId: 'recep_approvals', read: true, write: true, delete: true },
-      { moduleId: 'recep_pos', read: true, write: true, delete: false },
+      { moduleId: 'recep_pos', read: true, write: false, delete: false },
       { moduleId: 'recep_reports', read: true, write: false, delete: false }
     ]
   },
@@ -668,6 +668,15 @@ class InMemoryHospitalDatabase {
 
   getRolePermissions(): HospitalRoleDefinition[] {
     return this.rolePermissions;
+  }
+
+  getPermissionsForRole(role: string): RolePermissionRule[] {
+    const roleDef = this.rolePermissions.find(r => r.role === role);
+    if (roleDef && Array.isArray(roleDef.permissions)) {
+      return roleDef.permissions;
+    }
+    const fallback = DEFAULT_ROLE_PERMISSIONS.find(r => r.role === role);
+    return fallback ? fallback.permissions : [];
   }
 
   updateRolePermissions(role: string, permissions: RolePermissionRule[]): HospitalRoleDefinition {

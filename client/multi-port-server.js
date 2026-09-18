@@ -97,7 +97,7 @@ PORT_MAPPINGS.forEach(({ port, role, name }) => {
     }
   });
 
-  server.listen(port, '0.0.0.0', () => {
+  server.listen(port, () => {
     console.log(`[Port ${port}] 🩺 ROLE: ${role.padEnd(12)} -> ${name.padEnd(16)} (http://localhost:${port})`);
   });
 });

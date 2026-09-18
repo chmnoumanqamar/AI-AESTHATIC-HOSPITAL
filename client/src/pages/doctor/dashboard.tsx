@@ -42,10 +42,10 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
   currentTab = 'doctor_queue',
   onSelectTab
 }) => {
-  const userRole = currentUser?.role || 'DOCTOR';
-  const queuePerms = useModulePermissions('doctor_queue', userRole, currentUser);
-  const consultPerms = useModulePermissions('doctor_consultation', userRole, currentUser);
-  const tokenPerms = useModulePermissions('doctor_tokens', userRole, currentUser);
+  // Permissions for Doctor Dashboard strictly evaluate against the DOCTOR role configuration
+  const queuePerms = useModulePermissions('doctor_queue', 'DOCTOR');
+  const consultPerms = useModulePermissions('doctor_consultation', 'DOCTOR');
+  const tokenPerms = useModulePermissions('doctor_tokens', 'DOCTOR');
 
   const isDefaultDemoAccount = !currentUser || currentUser.email === 'dr.aisha@hospital.com' || currentUser.id === 'u-doc-01';
   const doctorId = currentUser?.profileId || (isDefaultDemoAccount ? 'doc-01' : (currentUser?.id || ''));

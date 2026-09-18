@@ -43,11 +43,11 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
   currentTab = 'pharma_queue',
   onSelectTab
 }) => {
-  const userRole = currentUser?.role || 'PHARMACIST';
-  const pharmaQueuePerms = useModulePermissions('pharma_queue', userRole, currentUser);
-  const pharmaInvPerms = useModulePermissions('pharma_inventory', userRole, currentUser);
-  const pharmaPosPerms = useModulePermissions('pharma_pos', userRole, currentUser);
-  const pharmaProcurePerms = useModulePermissions('pharma_procurement', userRole, currentUser);
+  // Permissions for Pharmacy Workspace strictly evaluate against the PHARMACIST role configuration
+  const pharmaQueuePerms = useModulePermissions('pharma_queue', 'PHARMACIST');
+  const pharmaInvPerms = useModulePermissions('pharma_inventory', 'PHARMACIST');
+  const pharmaPosPerms = useModulePermissions('pharma_pos', 'PHARMACIST');
+  const pharmaProcurePerms = useModulePermissions('pharma_procurement', 'PHARMACIST');
 
   // Active inner sub-tab mapped to structural rail currentTab
   const activeSubTab = currentTab.startsWith('pharma_') ? currentTab : 'pharma_queue';

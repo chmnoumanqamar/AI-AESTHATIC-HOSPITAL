@@ -40,7 +40,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
   const isDefaultDemoAccount = !currentUser || currentUser.email === 'john.doe@example.com' || currentUser.id === 'u-pat-01';
   const patientId = currentUser?.profileId || (isDefaultDemoAccount ? 'pat-01' : (currentUser?.id || ''));
 
-  const bookingPerms = useModulePermissions('patient_booking', 'PATIENT', currentUser);
+  const bookingPerms = useModulePermissions('patient_booking', 'PATIENT');
 
   // Active tab state synced with prop
   const [activeTab, setActiveTab] = useState<string>(currentTab);

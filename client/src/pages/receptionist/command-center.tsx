@@ -20,11 +20,11 @@ export const ReceptionistCommandCenter: React.FC<ReceptionistCommandCenterProps>
   currentUser,
   currentTab = 'recep_desk'
 }) => {
-  const userRole = currentUser?.role || 'RECEPTIONIST';
-  const deskPerms = useModulePermissions('recep_desk', userRole, currentUser);
-  const approvalsPerms = useModulePermissions('recep_approvals', userRole, currentUser);
-  const posPerms = useModulePermissions('recep_pos', userRole, currentUser);
-  const reportsPerms = useModulePermissions('recep_reports', userRole, currentUser);
+  // Permissions for Receptionist Command Center strictly evaluate against the RECEPTIONIST role configuration
+  const deskPerms = useModulePermissions('recep_desk', 'RECEPTIONIST');
+  const approvalsPerms = useModulePermissions('recep_approvals', 'RECEPTIONIST');
+  const posPerms = useModulePermissions('recep_pos', 'RECEPTIONIST');
+  const reportsPerms = useModulePermissions('recep_reports', 'RECEPTIONIST');
 
   const { queue, refreshQueue } = useQueueStream();
   const [pendingBookings, setPendingBookings] = useState<any[]>([]);

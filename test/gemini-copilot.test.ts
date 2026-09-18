@@ -18,6 +18,7 @@ function assert(condition: boolean, testName: string, detail?: string) {
 }
 
 async function runGeminiCopilotTestSuite() {
+  db.resetToDefaultDemo();
   console.log('\n========================================================');
   console.log('🤖 RUNNING GOOGLE GEMINI-GRADE AI COPILOT TEST SUITE');
   console.log('========================================================\n');

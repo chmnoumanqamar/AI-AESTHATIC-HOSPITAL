@@ -1,6 +1,6 @@
 import { adminService } from '../src/modules/admin/admin.service';
 import { authService } from '../src/modules/auth/auth.service';
-import { RolePermissionRule } from '../src/common/data/mock-db';
+import { db, RolePermissionRule } from '../src/common/data/mock-db';
 
 let passed = 0;
 let failed = 0;
@@ -16,6 +16,7 @@ function assert(condition: boolean, testName: string, detail?: string) {
 }
 
 async function runPermissionsTestSuite() {
+  db.resetToDefaultDemo();
   console.log('\n========================================================');
   console.log('🔒 RUNNING ROLE PERMISSION TOGGLE & ACCESS CONTROL TESTS');
   console.log('========================================================\n');

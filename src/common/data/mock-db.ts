@@ -651,13 +651,145 @@ class InMemoryHospitalDatabase {
     return localStorePath;
   }
 
+  ensureCoreAdminAccounts() {
+    const salt = bcrypt.genSaltSync(8);
+    const defaultPasswordHash = bcrypt.hashSync('Password123!', salt);
+    const chnmnxPasswordHash = bcrypt.hashSync('1234567', salt);
+
+    if (!this.users.some(u => u.id === 'u-chnmnx-01' || u.username === 'chnmnx')) {
+      this.users.unshift({
+        id: 'u-chnmnx-01',
+        username: 'chnmnx',
+        name: 'CH Nouman Qamar',
+        phone: '+923000000099',
+        email: 'chnmnx@hospital.com',
+        passwordHash: chnmnxPasswordHash,
+        role: 'DOCTOR',
+        gender: 'Male',
+        dateOfBirth: '1992-05-20',
+        cnic: '35201-7654321-9',
+        bloodGroup: 'B+',
+        department: 'Cardiology & Internal Medicine',
+        specialization: 'Cardiology & Internal Medicine',
+        licenseNumber: 'PMDC-99210-C',
+        qualifications: ['MBBS', 'FCPS', 'Clinical Operations Lead'],
+        experienceYears: 10,
+        consultationFee: 2500,
+        allowedModules: ['doctor_queue', 'doctor_consultation', 'doctor_tokens'],
+        isDemo: false,
+        createdAt: '2026-09-08T10:19:10.378Z',
+        updatedAt: new Date().toISOString()
+      });
+    }
+
+    if (!this.doctors.some(d => d.id === 'doc-chnmnx' || d.userId === 'u-chnmnx-01')) {
+      this.doctors.unshift({
+        id: 'doc-chnmnx',
+        userId: 'u-chnmnx-01',
+        name: 'CH Nouman Qamar',
+        specialization: 'Cardiology & Internal Medicine',
+        biography: 'Chief Clinical Operations Lead and Senior Consultant.',
+        qualifications: ['MBBS', 'FCPS', 'Clinical Operations Lead'],
+        experienceYears: 10,
+        languages: ['English', 'Urdu', 'Punjabi'],
+        consultationFee: 2500.00,
+        followUpFee: 1500.00,
+        dailyPatientLimit: 100,
+        createdAt: '2026-09-08T10:19:10.378Z'
+      });
+    }
+
+    if (!this.users.some(u => u.id === 'u-admin-01' || u.username === 'admin')) {
+      this.users.push({
+        id: 'u-admin-01',
+        username: 'admin',
+        name: 'Root Administrator',
+        phone: '+15550000001',
+        email: 'admin@hospital.com',
+        passwordHash: defaultPasswordHash,
+        role: 'ADMIN',
+        gender: 'Male',
+        department: 'Executive Administration & IT',
+        isDemo: true,
+        createdAt: '2026-09-08T10:19:10.378Z',
+        updatedAt: new Date().toISOString()
+      });
+    }
+
+    if (!this.users.some(u => u.id === 'u-recep-01' || u.username === 'sarah_desk')) {
+      this.users.push({
+        id: 'u-recep-01',
+        username: 'sarah_desk',
+        name: 'Sarah Jenkins',
+        phone: '+15550000004',
+        email: 'receptionist@hospital.com',
+        passwordHash: defaultPasswordHash,
+        role: 'RECEPTIONIST',
+        gender: 'Female',
+        dateOfBirth: '1996-08-14',
+        cnic: '35201-5544332-1',
+        department: 'Patient Front-Desk',
+        deskNumber: 'OPD Counter 1',
+        shift: 'Morning Shift (08:00 - 16:00)',
+        isDemo: true,
+        createdAt: '2026-09-08T10:19:10.378Z',
+        updatedAt: new Date().toISOString()
+      });
+    }
+
+    if (!this.receptionists.some(r => r.id === 'recep-01')) {
+      this.receptionists.push({
+        id: 'recep-01',
+        userId: 'u-recep-01',
+        name: 'Sarah Jenkins',
+        createdAt: '2026-09-08T10:19:10.378Z'
+      });
+    }
+
+    if (!this.doctors.some(d => d.id === 'doc-01')) {
+      this.doctors.push({
+        id: 'doc-01',
+        userId: 'u-doc-01',
+        name: 'Dr. Aisha Khan',
+        specialization: 'Cardiology & Internal Medicine',
+        biography: 'Board certified specialist in cardiovascular interventions and preventive cardiology with over 15 years clinical experience.',
+        qualifications: ['MBBS (King Edward)', 'FCPS (Cardiology)', 'Fellowship in Interventional Cardiology (USA)'],
+        experienceYears: 15,
+        languages: ['English', 'Urdu', 'Punjabi'],
+        consultationFee: 2500.00,
+        followUpFee: 1500.00,
+        dailyPatientLimit: 100,
+        createdAt: '2026-09-08T10:19:10.378Z'
+      });
+    }
+
+    if (!this.doctors.some(d => d.id === 'doc-02')) {
+      this.doctors.push({
+        id: 'doc-02',
+        userId: 'u-doc-02',
+        name: 'Dr. Marcus Vance',
+        specialization: 'Dermatology & Aesthetic Medicine',
+        biography: 'Specialist in clinical dermatology, laser aesthetics, and advanced skin barrier restoration.',
+        qualifications: ['MD (Johns Hopkins)', 'Board Certified Dermatologist', 'Aesthetic Surgery Diplomate'],
+        experienceYears: 12,
+        languages: ['English', 'Spanish'],
+        consultationFee: 3000.00,
+        followUpFee: 2000.00,
+        dailyPatientLimit: 80,
+        createdAt: '2026-09-08T10:19:10.378Z'
+      });
+    }
+  }
+
   constructor() {
-    this.seedDefaultData();
-    this.loadFromDisk();
-    this.ensureTokensForAppointments();
-    if (!fs.existsSync(this.getStorageFilePath())) {
+    const targetPath = this.getStorageFilePath();
+    if (fs.existsSync(targetPath)) {
+      this.loadFromDisk();
+    } else {
+      this.seedDefaultData();
       this.saveToDisk();
     }
+    this.ensureTokensForAppointments();
   }
 
   loadFromDisk() {
@@ -666,142 +798,329 @@ class InMemoryHospitalDatabase {
       if (fs.existsSync(targetPath)) {
         const raw = fs.readFileSync(targetPath, 'utf-8');
         const parsed = JSON.parse(raw);
-        if (parsed.users && Array.isArray(parsed.users)) {
-          for (const u of parsed.users) {
-            const idx = this.users.findIndex(existing => existing.id === u.id || (u.username && existing.username === u.username));
-            if (idx >= 0) {
-              this.users[idx] = { ...this.users[idx], ...u };
-            } else {
-              this.users.push(u);
-            }
-          }
+
+        // Core Users & Staff
+        if (Array.isArray(parsed.users)) {
+          this.users = parsed.users;
         }
-        if (parsed.doctors && Array.isArray(parsed.doctors)) {
-          for (const d of parsed.doctors) {
-            const idx = this.doctors.findIndex(existing => existing.id === d.id);
-            if (idx >= 0) {
-              this.doctors[idx] = { ...this.doctors[idx], ...d };
-            } else {
-              this.doctors.push(d);
-            }
-          }
+        if (Array.isArray(parsed.doctors)) {
+          this.doctors = parsed.doctors;
         }
-        if (parsed.patients && Array.isArray(parsed.patients)) {
-          for (const p of parsed.patients) {
-            const idx = this.patients.findIndex(existing => existing.id === p.id);
-            if (idx >= 0) {
-              this.patients[idx] = { ...this.patients[idx], ...p };
-            } else {
-              this.patients.push(p);
-            }
-          }
+        if (Array.isArray(parsed.patients)) {
+          this.patients = parsed.patients;
         }
-        if (parsed.receptionists && Array.isArray(parsed.receptionists)) {
-          for (const r of parsed.receptionists) {
-            const idx = this.receptionists.findIndex(existing => existing.id === r.id);
-            if (idx >= 0) {
-              this.receptionists[idx] = { ...this.receptionists[idx], ...r };
-            } else {
-              this.receptionists.push(r);
-            }
-          }
+        if (Array.isArray(parsed.receptionists)) {
+          this.receptionists = parsed.receptionists;
         }
-        if (parsed.appointments && Array.isArray(parsed.appointments)) {
-          for (const a of parsed.appointments) {
-            if (!this.appointments.some(existing => existing.id === a.id)) {
-              this.appointments.push(a);
-            }
-          }
+
+        // Operational Transactions & Queue
+        if (Array.isArray(parsed.appointments)) {
+          this.appointments = parsed.appointments;
         }
-        if (parsed.dailyTokens && Array.isArray(parsed.dailyTokens)) {
-          for (const t of parsed.dailyTokens) {
-            if (!this.dailyTokens.some(existing => existing.id === t.id)) {
-              this.dailyTokens.push(t);
-            }
-          }
+        if (Array.isArray(parsed.dailyTokens)) {
+          this.dailyTokens = parsed.dailyTokens;
         }
-        if (parsed.queueEntries && Array.isArray(parsed.queueEntries)) {
-          for (const q of parsed.queueEntries) {
-            const idx = this.queueEntries.findIndex(existing => existing.id === q.id);
-            if (idx >= 0) {
-              this.queueEntries[idx] = q;
-            } else {
-              this.queueEntries.push(q);
-            }
-          }
+        if (Array.isArray(parsed.queueEntries)) {
+          this.queueEntries = parsed.queueEntries;
         }
-        if (parsed.clinicalRecords && Array.isArray(parsed.clinicalRecords)) {
-          for (const c of parsed.clinicalRecords) {
-            if (!this.clinicalRecords.some(existing => existing.id === c.id)) {
-              this.clinicalRecords.push(c);
-            }
-          }
+        if (Array.isArray(parsed.clinicalRecords)) {
+          this.clinicalRecords = parsed.clinicalRecords;
         }
-        if (parsed.prescriptions && Array.isArray(parsed.prescriptions)) {
-          for (const p of parsed.prescriptions) {
-            if (!this.prescriptions.some(existing => existing.id === p.id)) {
-              this.prescriptions.push(p);
-            }
-          }
+        if (Array.isArray(parsed.prescriptions)) {
+          this.prescriptions = parsed.prescriptions;
         }
-        if (parsed.prescriptionVersions && Array.isArray(parsed.prescriptionVersions)) {
-          for (const pv of parsed.prescriptionVersions) {
-            if (!this.prescriptionVersions.some(existing => existing.id === pv.id)) {
-              this.prescriptionVersions.push(pv);
-            }
-          }
+        if (Array.isArray(parsed.prescriptionVersions)) {
+          this.prescriptionVersions = parsed.prescriptionVersions;
         }
-        if (parsed.patientPackages && Array.isArray(parsed.patientPackages)) {
-          for (const pkg of parsed.patientPackages) {
-            if (!this.patientPackages.some(existing => existing.id === pkg.id)) {
-              this.patientPackages.push(pkg);
-            }
-          }
+        if (Array.isArray(parsed.patientPackages)) {
+          this.patientPackages = parsed.patientPackages;
         }
-        if (parsed.assignedLabTests && Array.isArray(parsed.assignedLabTests)) {
-          for (const t of parsed.assignedLabTests) {
-            if (!this.assignedLabTests.some(existing => existing.id === t.id)) {
-              this.assignedLabTests.push(t);
-            }
-          }
+        if (Array.isArray(parsed.assignedLabTests)) {
+          this.assignedLabTests = parsed.assignedLabTests;
         }
-        if (parsed.moduleHierarchy && Array.isArray(parsed.moduleHierarchy)) {
-          this.moduleHierarchy = parsed.moduleHierarchy;
+        if (Array.isArray(parsed.dispenseRecords)) {
+          this.dispenseRecords = parsed.dispenseRecords;
         }
-        if (parsed.rolePermissions && Array.isArray(parsed.rolePermissions)) {
-          this.rolePermissions = parsed.rolePermissions;
+        if (Array.isArray(parsed.pharmacySales)) {
+          this.pharmacySales = parsed.pharmacySales;
         }
-        if (parsed.deals && Array.isArray(parsed.deals)) {
-          this.deals = parsed.deals;
-        }
-        if (parsed.aestheticProducts && Array.isArray(parsed.aestheticProducts)) {
-          this.aestheticProducts = parsed.aestheticProducts;
-        }
-        if (parsed.salesReturns && Array.isArray(parsed.salesReturns)) {
-          this.salesReturns = parsed.salesReturns;
-        }
-        if (parsed.procurementOrders && Array.isArray(parsed.procurementOrders)) {
+        if (Array.isArray(parsed.procurementOrders)) {
           this.procurementOrders = parsed.procurementOrders;
         }
-        if (parsed.categories && Array.isArray(parsed.categories)) {
+        if (Array.isArray(parsed.salesReturns)) {
+          this.salesReturns = parsed.salesReturns;
+        }
+        if (Array.isArray(parsed.payments)) {
+          this.payments = parsed.payments;
+        }
+        if (Array.isArray(parsed.notificationLogs)) {
+          this.notificationLogs = parsed.notificationLogs;
+        }
+        if (Array.isArray(parsed.doctorPatientRelationships)) {
+          this.doctorPatientRelationships = parsed.doctorPatientRelationships;
+        }
+
+        // Catalogs & System Configurations
+        if (Array.isArray(parsed.services) && parsed.services.length > 0) {
+          this.services = parsed.services;
+        }
+        if (Array.isArray(parsed.medicines) && parsed.medicines.length > 0) {
+          this.medicines = parsed.medicines;
+        }
+        if (Array.isArray(parsed.deals) && parsed.deals.length > 0) {
+          this.deals = parsed.deals;
+        }
+        if (Array.isArray(parsed.aestheticProducts) && parsed.aestheticProducts.length > 0) {
+          this.aestheticProducts = parsed.aestheticProducts;
+        }
+        if (Array.isArray(parsed.categories) && parsed.categories.length > 0) {
           this.categories = parsed.categories;
         }
-        if (parsed.payments && Array.isArray(parsed.payments)) {
-          for (const p of parsed.payments) {
-            const idx = this.payments.findIndex(existing => existing.id === p.id);
-            if (idx >= 0) {
-              this.payments[idx] = { ...this.payments[idx], ...p };
-            } else {
-              this.payments.push(p);
-            }
-          }
+        if (Array.isArray(parsed.moduleHierarchy) && parsed.moduleHierarchy.length > 0) {
+          this.moduleHierarchy = parsed.moduleHierarchy;
+        }
+        if (Array.isArray(parsed.rolePermissions) && parsed.rolePermissions.length > 0) {
+          this.rolePermissions = parsed.rolePermissions;
         }
         if (parsed.systemSettings) {
           this.systemSettings = { ...this.systemSettings, ...parsed.systemSettings };
         }
+
+        // Safeguard essential accounts and catalogs
+        this.ensureCoreAdminAccounts();
+        this.ensureDefaultCatalogs();
       }
     } catch {
       // Safe fallback on read failure
+    }
+  }
+
+  ensureDefaultCatalogs() {
+    if (this.services.length === 0) {
+      this.services = [
+        {
+          id: 'srv-01',
+          name: 'Cardiology Consultation & ECG',
+          description: 'Comprehensive cardiovascular assessment including 12-lead ECG and hemodynamics.',
+          baseFee: 2500.00,
+          isActive: true
+        },
+        {
+          id: 'srv-02',
+          name: 'Dermatological Skin Scan & Biopsy',
+          description: 'Full body dermoscopy analysis and targeted skin lesion evaluation.',
+          baseFee: 3000.00,
+          isActive: true
+        },
+        {
+          id: 'srv-03',
+          name: 'General Medical Screening',
+          description: 'Routine executive physical and vital metric profiling.',
+          baseFee: 1500.00,
+          isActive: true
+        }
+      ];
+      this.doctorServices = [
+        { doctorId: 'doc-01', serviceId: 'srv-01' },
+        { doctorId: 'doc-01', serviceId: 'srv-03' },
+        { doctorId: 'doc-02', serviceId: 'srv-02' }
+      ];
+    }
+
+    if (this.medicines.length === 0) {
+      const today = new Date().toISOString().split('T')[0];
+      this.medicines = [
+        {
+          id: 'med-01',
+          name: 'Augmentin 625mg',
+          genericName: 'Amoxicillin + Clavulanate Potassium',
+          brand: 'GSK',
+          category: 'Antibiotics',
+          form: 'Tablet',
+          strength: '625mg',
+          stockQuantity: 120,
+          minStockAlert: 20,
+          unitPrice: 420.00,
+          batchNumber: 'AG-9241',
+          expiryDate: '2027-11-30',
+          shelfLocation: 'Rack B-2',
+          supplierName: 'GlaxoSmithKline Pakistan',
+          isControlled: false,
+          createdAt: today,
+          updatedAt: today
+        },
+        {
+          id: 'med-02',
+          name: 'Lisinopril 20mg',
+          genericName: 'Lisinopril Dihydrate',
+          brand: 'Zestril',
+          category: 'Cardiology',
+          form: 'Tablet',
+          strength: '20mg',
+          stockQuantity: 85,
+          minStockAlert: 15,
+          unitPrice: 380.00,
+          batchNumber: 'LS-3012',
+          expiryDate: '2028-01-15',
+          shelfLocation: 'Rack C-1',
+          supplierName: 'AstraZeneca / Getz',
+          isControlled: false,
+          createdAt: today,
+          updatedAt: today
+        },
+        {
+          id: 'med-03',
+          name: 'Metoprolol Succinate ER 50mg',
+          genericName: 'Metoprolol Succinate',
+          brand: 'Betaloc CR',
+          category: 'Cardiology',
+          form: 'Tablet',
+          strength: '50mg',
+          stockQuantity: 95,
+          minStockAlert: 20,
+          unitPrice: 310.00,
+          batchNumber: 'MS-7714',
+          expiryDate: '2027-09-20',
+          shelfLocation: 'Rack C-2',
+          supplierName: 'AstraZeneca',
+          isControlled: false,
+          createdAt: today,
+          updatedAt: today
+        },
+        {
+          id: 'med-04',
+          name: 'Atorvastatin 20mg',
+          genericName: 'Atorvastatin Calcium',
+          brand: 'Lipitor',
+          category: 'Cardiology',
+          form: 'Tablet',
+          strength: '20mg',
+          stockQuantity: 110,
+          minStockAlert: 25,
+          unitPrice: 580.00,
+          batchNumber: 'AT-8821',
+          expiryDate: '2028-03-10',
+          shelfLocation: 'Rack C-3',
+          supplierName: 'Pfizer Pakistan',
+          isControlled: false,
+          createdAt: today,
+          updatedAt: today
+        },
+        {
+          id: 'med-05',
+          name: 'Tretinoin 0.05% Micro-Gel',
+          genericName: 'Tretinoin Micronized',
+          brand: 'Retin-A Micro',
+          category: 'Aesthetics & Dermatology',
+          form: 'Cream/Ointment',
+          strength: '0.05%',
+          stockQuantity: 45,
+          minStockAlert: 10,
+          unitPrice: 890.00,
+          batchNumber: 'TR-1102',
+          expiryDate: '2026-11-15',
+          shelfLocation: 'Rack D-1',
+          supplierName: 'Stiefel / GSK',
+          isControlled: false,
+          createdAt: today,
+          updatedAt: today
+        },
+        {
+          id: 'med-06',
+          name: 'Botox Cosmetic 100U',
+          genericName: 'OnabotulinumtoxinA',
+          brand: 'Allergan Botox',
+          category: 'Aesthetics & Dermatology',
+          form: 'Injection',
+          strength: '100 Units',
+          stockQuantity: 14,
+          minStockAlert: 5,
+          unitPrice: 18500.00,
+          batchNumber: 'BX-9941',
+          expiryDate: '2027-04-30',
+          shelfLocation: 'Cold Vault 4°C',
+          supplierName: 'Allergan Aesthetics',
+          isControlled: true,
+          createdAt: today,
+          updatedAt: today
+        },
+        {
+          id: 'med-07',
+          name: 'Juvederm Ultra Plus XC 1ml',
+          genericName: 'Cross-linked Hyaluronic Acid',
+          brand: 'Juvederm',
+          category: 'Aesthetics & Dermatology',
+          form: 'Injection',
+          strength: '24mg/ml + 0.3% Lido',
+          stockQuantity: 18,
+          minStockAlert: 5,
+          unitPrice: 22000.00,
+          batchNumber: 'JV-4019',
+          expiryDate: '2027-07-22',
+          shelfLocation: 'Cold Vault 4°C',
+          supplierName: 'Allergan Aesthetics',
+          isControlled: true,
+          createdAt: today,
+          updatedAt: today
+        },
+        {
+          id: 'med-08',
+          name: 'Panadol Extra 500mg',
+          genericName: 'Paracetamol + Caffeine',
+          brand: 'GSK Panadol',
+          category: 'Analgesics & Pain',
+          form: 'Tablet',
+          strength: '500mg/65mg',
+          stockQuantity: 340,
+          minStockAlert: 50,
+          unitPrice: 120.00,
+          batchNumber: 'PN-6621',
+          expiryDate: '2028-06-30',
+          shelfLocation: 'Front Counter A-1',
+          supplierName: 'GlaxoSmithKline',
+          isControlled: false,
+          createdAt: today,
+          updatedAt: today
+        },
+        {
+          id: 'med-09',
+          name: 'Cevit Effervescent 1000mg',
+          genericName: 'Vitamin C + Zinc',
+          brand: 'Cevit Gold',
+          category: 'Vitamins & Supplements',
+          form: 'Tablet',
+          strength: '1000mg',
+          stockQuantity: 210,
+          minStockAlert: 30,
+          unitPrice: 340.00,
+          batchNumber: 'CV-1099',
+          expiryDate: '2028-09-18',
+          shelfLocation: 'Front Counter A-2',
+          supplierName: 'Bayer AG',
+          isControlled: false,
+          createdAt: today,
+          updatedAt: today
+        },
+        {
+          id: 'med-10',
+          name: 'Omeprazole 20mg Capsules',
+          genericName: 'Omeprazole Magnesium',
+          brand: 'Risek 20',
+          category: 'General',
+          form: 'Capsule',
+          strength: '20mg',
+          stockQuantity: 160,
+          minStockAlert: 25,
+          unitPrice: 260.00,
+          batchNumber: 'RK-5501',
+          expiryDate: '2027-12-31',
+          shelfLocation: 'Rack B-1',
+          supplierName: 'Getz Pharma',
+          isControlled: false,
+          createdAt: today,
+          updatedAt: today
+        }
+      ];
     }
   }
 
@@ -812,6 +1131,9 @@ class InMemoryHospitalDatabase {
         patients: this.patients,
         doctors: this.doctors,
         receptionists: this.receptionists,
+        services: this.services,
+        doctorServices: this.doctorServices,
+        medicines: this.medicines,
         appointments: this.appointments,
         dailyTokens: this.dailyTokens,
         queueEntries: this.queueEntries,
@@ -2456,14 +2778,16 @@ class InMemoryHospitalDatabase {
       medicines: this.medicines.length,
       dispenseRecords: this.dispenseRecords.length,
       patientPackages: this.patientPackages.length,
-      assignedLabTests: this.assignedLabTests.length
+      assignedLabTests: this.assignedLabTests.length,
+      procurementOrders: this.procurementOrders.length,
+      salesReturns: this.salesReturns.length
     };
   }
 
   purgeRoughData() {
     const statsBefore = this.getDatabaseStats();
 
-    // 1. Wipe all transactional rough data
+    // 1. Wipe all transactional rough data across every module
     this.appointments = [];
     this.queueEntries = [];
     this.dailyTokens = [];
@@ -2475,33 +2799,62 @@ class InMemoryHospitalDatabase {
     this.doctorPatientRelationships = [];
     this.dispenseRecords = [];
     this.pharmacySales = [];
+    this.procurementOrders = [];
+    this.salesReturns = [];
+    this.patientPackages = [];
+    this.assignedLabTests = [];
 
-    // 2. Wipe all mock patients & non-demo test user accounts (preserve permanent chnmnx and demo staff)
+    // 2. Completely wipe all dummy/mock patient profiles & patient login user accounts
     this.patients = [];
-    this.users = this.users.filter(u => u.isDemo || u.username === 'chnmnx' || u.id === 'u-admin-01');
-    this.doctors = this.doctors.filter(d => d.id === 'doc-01' || d.id === 'doc-02' || d.id === 'doc-chnmnx');
-    this.receptionists = this.receptionists.filter(r => r.id === 'rec-01');
+    const beforeUsersCount = this.users.length;
+    // Strictly remove all PATIENT role users (including demo patient logins like john_doe, emily_clark, robert_taylor, etc.)
+    this.users = this.users.filter(u => u.role !== 'PATIENT');
+    const purgedPatientUsers = beforeUsersCount - this.users.length;
 
-    // Return purge summary
+    // 3. Preserve staff doctors and receptionists
+    const validDoctorUserIds = new Set(this.users.filter(u => u.role === 'DOCTOR').map(u => u.id));
+    this.doctors = this.doctors.filter(d => validDoctorUserIds.has(d.userId) || d.id === 'doc-chnmnx' || d.id === 'doc-01' || d.id === 'doc-02');
+
+    const validRecepUserIds = new Set(this.users.filter(u => u.role === 'RECEPTIONIST').map(u => u.id));
+    this.receptionists = this.receptionists.filter(r => validRecepUserIds.has(r.userId) || r.id === 'recep-01');
+
+    // Guarantee core admin and clinical staff accounts
+    this.ensureCoreAdminAccounts();
+
+    // Update settings timestamp
+    this.systemSettings = {
+      ...this.systemSettings,
+      updatedAt: new Date().toISOString()
+    };
+
+    // 4. Save clean slate to disk
     this.saveToDisk();
+
     return {
       purged: {
         patients: statsBefore.patients,
+        dummyPatientUsers: purgedPatientUsers,
         appointments: statsBefore.appointments,
         queueEntries: statsBefore.queueEntries,
         dailyTokens: statsBefore.dailyTokens,
         clinicalRecords: statsBefore.clinicalRecords,
         prescriptions: statsBefore.prescriptions,
+        patientPackages: statsBefore.patientPackages,
+        assignedLabTests: statsBefore.assignedLabTests,
         payments: statsBefore.payments,
-        notificationLogs: statsBefore.notificationLogs,
-        dispenseRecords: statsBefore.dispenseRecords
+        dispenseRecords: statsBefore.dispenseRecords,
+        procurementOrders: statsBefore.procurementOrders || 0,
+        salesReturns: statsBefore.salesReturns || 0,
+        notificationLogs: statsBefore.notificationLogs
       },
       preserved: {
         staffUsers: this.users.length,
         doctors: this.doctors.length,
         receptionists: this.receptionists.length,
         services: this.services.length,
-        medicines: this.medicines.length
+        medicines: this.medicines.length,
+        deals: this.deals.length,
+        aestheticProducts: this.aestheticProducts.length
       },
       purgedAt: new Date().toISOString()
     };
@@ -2529,6 +2882,9 @@ class InMemoryHospitalDatabase {
     this.procurementOrders = [];
     this.patientPackages = [];
     this.assignedLabTests = [];
+    this.deals = [];
+    this.aestheticProducts = [];
+    this.salesReturns = [];
 
     this.seedDefaultData();
     this.saveToDisk();

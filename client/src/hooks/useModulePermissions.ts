@@ -16,11 +16,6 @@ export function useModulePermissions(moduleId: string, targetRole: string = 'REC
   const resolvePermissions = (): ModulePermissions => {
     const role = (targetRole || 'RECEPTIONIST').toUpperCase();
 
-    // Invariant: If specifically querying ADMIN role modules, admin has supreme universal access
-    if (role === 'ADMIN') {
-      return { canRead: true, canWrite: true, canDelete: true, isBlocked: false };
-    }
-
     // 1. Dynamic client RBAC cache (synchronized live with Admin Module & Page Studio)
     try {
       const cached = localStorage.getItem('hospital_role_permissions_cache');
@@ -43,6 +38,11 @@ export function useModulePermissions(moduleId: string, targetRole: string = 'REC
       }
     } catch (e) {
       console.warn('Error reading module permissions from cache:', e);
+    }
+
+    // Default fallback for ADMIN role if no specific rule is cached
+    if (role === 'ADMIN') {
+      return { canRead: true, canWrite: true, canDelete: true, isBlocked: false };
     }
 
     // 2. Role-based fallback defaults if cache is not yet loaded
@@ -84,17 +84,40 @@ export function useModulePermissions(moduleId: string, targetRole: string = 'REC
   const [permissions, setPermissions] = useState<ModulePermissions>(resolvePermissions);
 
   useEffect(() => {
+    // Initial resolution from local state
     setPermissions(resolvePermissions());
 
     // Fetch live ground truth permissions from backend to synchronize cache
-    api.get('/admin/role-permissions')
-      .then(res => {
+    const syncFromBackend = async () => {
+      try {
+        const res = await api.get('/admin/role-permissions');
         if (res.data?.data?.roles && Array.isArray(res.data.data.roles)) {
-          localStorage.setItem('hospital_role_permissions_cache', JSON.stringify(res.data.data.roles));
-          setPermissions(resolvePermissions());
+          const freshData = JSON.stringify(res.data.data.roles);
+          const existingData = localStorage.getItem('hospital_role_permissions_cache');
+          if (freshData !== existingData) {
+            localStorage.setItem('hospital_role_permissions_cache', freshData);
+            setPermissions(resolvePermissions());
+            window.dispatchEvent(new CustomEvent('hospital:permissions-updated', { detail: { roles: res.data.data.roles } }));
+          }
         }
-      })
-      .catch(() => {});
+      } catch (err) {
+        // Fallback gracefully to cache
+      }
+    };
+
+    syncFromBackend();
+
+    // Fast 1.5s background polling to guarantee cross-window / multi-port live synchronization
+    const pollInterval = setInterval(syncFromBackend, 1500);
+
+    // Instant synchronization when switching between browser tabs or windows
+    const handleFocusSync = () => {
+      syncFromBackend();
+      setPermissions(resolvePermissions());
+    };
+
+    window.addEventListener('focus', handleFocusSync);
+    document.addEventListener('visibilitychange', handleFocusSync);
 
     const handleUpdate = () => {
       setPermissions(resolvePermissions());
@@ -104,6 +127,9 @@ export function useModulePermissions(moduleId: string, targetRole: string = 'REC
     window.addEventListener('storage', handleUpdate);
 
     return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('focus', handleFocusSync);
+      document.removeEventListener('visibilitychange', handleFocusSync);
       window.removeEventListener('hospital:permissions-updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };

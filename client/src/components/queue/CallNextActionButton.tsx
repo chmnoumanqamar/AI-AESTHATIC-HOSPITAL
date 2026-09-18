@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Megaphone, Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Megaphone, Loader2, Sparkles, CheckCircle2, Lock } from 'lucide-react';
 
 interface CallNextActionButtonProps {
   onCallNext: () => Promise<any>;
@@ -14,6 +14,7 @@ export const CallNextActionButton: React.FC<CallNextActionButtonProps> = ({
   const [lastSummoned, setLastSummoned] = useState<{ token: number; name: string } | null>(null);
 
   const handleClick = async () => {
+    if (disabled) return;
     setLoading(true);
     try {
       const result = await onCallNext();
@@ -33,15 +34,22 @@ export const CallNextActionButton: React.FC<CallNextActionButtonProps> = ({
       <button
         onClick={handleClick}
         disabled={disabled || loading}
-        className="relative group active:scale-[0.98] text-white px-5 py-3 rounded-xl font-bold text-sm tracking-wide transition-all shadow-md flex items-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-        style={{ background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)', color: '#FFFFFF', boxShadow: '0 4px 14px rgba(45, 106, 79, 0.25)' }}
+        title={disabled ? 'Write permission is disabled for Clinical Queue by Administrator' : 'Call next waiting patient'}
+        className={`relative group active:scale-[0.98] px-5 py-3 rounded-xl font-bold text-sm tracking-wide transition-all shadow-md flex items-center gap-2.5 ${
+          disabled
+            ? 'bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400 cursor-not-allowed border border-slate-300 dark:border-slate-700'
+            : 'text-white cursor-pointer'
+        }`}
+        style={!disabled ? { background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)', color: '#FFFFFF', boxShadow: '0 4px 14px rgba(45, 106, 79, 0.25)' } : undefined}
       >
         {loading ? (
           <Loader2 className="w-4 h-4 animate-spin text-white/80" />
+        ) : disabled ? (
+          <Lock className="w-4 h-4" />
         ) : (
           <Megaphone className="w-4 h-4 group-hover:scale-110 transition-transform text-white" />
         )}
-        <span>Call Next Patient</span>
+        <span>{disabled ? 'Call Next (Locked)' : 'Call Next Patient'}</span>
       </button>
 
       {lastSummoned && (

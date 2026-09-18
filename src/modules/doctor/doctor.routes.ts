@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { doctorController } from './doctor.controller';
 import { authMiddleware } from '../../common/middleware/auth.middleware';
-import { requireRoles } from '../../common/middleware/rbac.middleware';
+import { requireRoles, requireModulePermission } from '../../common/middleware/rbac.middleware';
 
 const router = Router();
 
@@ -20,7 +20,7 @@ router.patch('/profile', authMiddleware, requireRoles('DOCTOR', 'ADMIN'), (req, 
 );
 
 // Doctor daily patient limit update (dynamic/flexible capacity)
-router.patch('/daily-limit', authMiddleware, requireRoles('DOCTOR', 'ADMIN'), (req, res, next) =>
+router.patch('/daily-limit', authMiddleware, requireRoles('DOCTOR', 'ADMIN'), requireModulePermission('doctor_tokens', 'write'), (req, res, next) =>
   doctorController.updateDailyLimit(req, res, next)
 );
 

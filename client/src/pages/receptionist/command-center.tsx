@@ -209,6 +209,22 @@ export const ReceptionistCommandCenter: React.FC<ReceptionistCommandCenterProps>
 
       {/* TAB 2: PENDING APPROVALS */}
       {currentTab === 'recep_approvals' && (
+        !approvalsPerms.canRead ? (
+          <div className="rounded-2xl p-12 text-center border bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900 space-y-4 max-w-xl mx-auto my-8 animate-fade-in">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-100 dark:bg-rose-900/50 border border-rose-300 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400">
+              <Lock className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Pending Bookings Approval Access Revoked</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                Hospital Administrator has disabled <strong>Read</strong> access for Pending Bookings Approval. You do not have permission to view incoming appointment requests.
+              </p>
+            </div>
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200">
+              Permission: READ = OFF
+            </span>
+          </div>
+        ) : (
         <div className="space-y-4 animate-fade-in">
           {!approvalsPerms.canWrite && (
             <div className="rounded-xl p-3.5 flex items-center justify-between gap-3 text-xs border bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
@@ -231,10 +247,27 @@ export const ReceptionistCommandCenter: React.FC<ReceptionistCommandCenterProps>
             canDelete={approvalsPerms.canDelete}
           />
         </div>
+        )
       )}
 
       {/* TAB 3: FRONT-DESK POS & FINANCIAL DOSSIER */}
       {currentTab === 'recep_pos' && (
+        !posPerms.canRead ? (
+          <div className="rounded-2xl p-12 text-center border bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900 space-y-4 max-w-xl mx-auto my-8 animate-fade-in">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-100 dark:bg-rose-900/50 border border-rose-300 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400">
+              <Lock className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Front-Desk Billing POS Access Revoked</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                Hospital Administrator has disabled <strong>Read</strong> access for Front-Desk Billing POS. You do not have permission to view billing dossiers and POS terminals.
+              </p>
+            </div>
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200">
+              Permission: READ = OFF
+            </span>
+          </div>
+        ) : (
         <div className="space-y-6 animate-fade-in">
           {!posPerms.canWrite && (
             <div className="rounded-xl p-3.5 flex items-center justify-between gap-3 text-xs border bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
@@ -251,15 +284,49 @@ export const ReceptionistCommandCenter: React.FC<ReceptionistCommandCenterProps>
           )}
           <FrontDeskBillingPOS queue={queue} canWrite={posPerms.canWrite} />
         </div>
+        )
       )}
 
       {/* TAB 4: EXECUTIVE REPORTS & ANALYTICS */}
       {currentTab === 'recep_reports' && (
-        <ReportsAnalyticsDashboard userRole="RECEPTIONIST" />
+        !reportsPerms.canRead ? (
+          <div className="rounded-2xl p-12 text-center border bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900 space-y-4 max-w-xl mx-auto my-8 animate-fade-in">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-100 dark:bg-rose-900/50 border border-rose-300 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400">
+              <Lock className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Front-Desk Analytics Access Revoked</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                Hospital Administrator has disabled <strong>Read</strong> access for Front-Desk Analytics. You do not have permission to view throughput and check-in reports.
+              </p>
+            </div>
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200">
+              Permission: READ = OFF
+            </span>
+          </div>
+        ) : (
+          <ReportsAnalyticsDashboard userRole="RECEPTIONIST" />
+        )
       )}
 
       {/* TAB 1: COMMAND DESK (DEFAULT) */}
       {(currentTab === 'recep_desk' || (!['recep_approvals', 'recep_pos', 'recep_reports'].includes(currentTab))) && (
+        !deskPerms.canRead ? (
+          <div className="rounded-2xl p-12 text-center border bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900 space-y-4 max-w-xl mx-auto my-8 animate-fade-in">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-100 dark:bg-rose-900/50 border border-rose-300 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400">
+              <Lock className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Queue & Patient Check-In Access Revoked</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                Hospital Administrator has disabled <strong>Read</strong> access for Queue & Patient Check-In. You do not have permission to view today's patient queue and arrival list.
+              </p>
+            </div>
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200">
+              Permission: READ = OFF
+            </span>
+          </div>
+        ) : (
         <div className="space-y-6 animate-fade-in">
           {!deskPerms.canWrite && (
             <div className="rounded-xl p-3.5 flex items-center justify-between gap-3 text-xs border bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
@@ -289,6 +356,7 @@ export const ReceptionistCommandCenter: React.FC<ReceptionistCommandCenterProps>
             canWrite={deskPerms.canWrite}
           />
         </div>
+        )
       )}
 
       {/* Rapid Registration Modal */}

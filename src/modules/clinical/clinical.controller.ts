@@ -3,6 +3,7 @@ import { clinicalService } from './clinical.service';
 import { prescriptionVersionService } from './prescription-version.service';
 import { createClinicalRecordDto, updateClinicalRecordDto, createPrescriptionVersionDto } from './clinical.dto';
 import { AppError } from '../../common/errors/AppError';
+import { db } from '../../common/data/mock-db';
 
 export class ClinicalController {
   async createRecord(req: Request, res: Response, next: NextFunction) {
@@ -44,6 +45,14 @@ export class ClinicalController {
       const patientId = req.params.patientId || req.user?.profileId;
       if (!patientId) {
         throw AppError.badRequest('Patient ID is required');
+      }
+
+      if (req.user?.role === 'PATIENT') {
+        const perms = db.getPermissionsForRole('PATIENT');
+        const rule = perms.find(p => p.moduleId === 'patient_history');
+        if (rule && !rule.read) {
+          throw AppError.forbidden('Access Denied: Patient history read permission is disabled by Administrator.');
+        }
       }
 
       const role = req.user?.role || 'PATIENT';

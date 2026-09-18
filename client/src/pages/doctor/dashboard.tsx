@@ -213,6 +213,10 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
   };
 
   const handleAllocateWalkInToken = async () => {
+    if (!tokenPerms.canWrite) {
+      alert('Action Blocked: Write permission is disabled for Token Matrix by Administrator.');
+      return;
+    }
     try {
       setAllocatingToken(true);
       const res = await api.post('/tokens/allocate', {
@@ -309,12 +313,28 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
           </button>
 
           {/* Quick Call Next Button */}
-          <CallNextActionButton onCallNext={handleCallNext} />
+          <CallNextActionButton onCallNext={handleCallNext} disabled={!queuePerms.canWrite} />
         </div>
       </div>
 
       {/* TAB 1: TODAY'S QUEUE */}
       {currentTab === 'doctor_queue' && (
+        !queuePerms.canRead ? (
+          <div className="rounded-2xl p-12 text-center border bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900 space-y-4 max-w-xl mx-auto my-8 animate-fade-in">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-100 dark:bg-rose-900/50 border border-rose-300 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400">
+              <Lock className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Clinical Queue Access Revoked</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                Hospital Administrator has disabled <strong>Read</strong> access for Today's Clinical Queue. You do not have permission to view the waiting queue.
+              </p>
+            </div>
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200">
+              Permission: READ = OFF
+            </span>
+          </div>
+        ) : (
         <div className="space-y-6">
           {!queuePerms.canWrite && (
             <div className="rounded-xl p-3.5 flex items-center justify-between gap-3 text-xs border bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
@@ -350,10 +370,27 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
             canWrite={consultPerms.canWrite}
           />
         </div>
+        )
       )}
 
       {/* TAB 2: CONSULTATIONS & RX */}
       {currentTab === 'doctor_consultation' && (
+        !consultPerms.canRead ? (
+          <div className="rounded-2xl p-12 text-center border bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900 space-y-4 max-w-xl mx-auto my-8 animate-fade-in">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-100 dark:bg-rose-900/50 border border-rose-300 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400">
+              <Lock className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Consultations & Rx Access Revoked</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                Hospital Administrator has disabled <strong>Read</strong> access for Consultations & Rx Workspace. You do not have permission to view clinical records.
+              </p>
+            </div>
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200">
+              Permission: READ = OFF
+            </span>
+          </div>
+        ) : (
         <div className="space-y-6">
           {!consultPerms.canWrite && (
             <div className="rounded-xl p-3.5 flex items-center justify-between gap-3 text-xs border bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
@@ -386,10 +423,16 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
               </div>
               <button
                 onClick={() => handleStartConsultation(calledPatient.appointmentId)}
-                className="px-4 py-2.5 rounded-xl font-bold text-xs bg-amber-600 hover:bg-amber-700 text-white shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
+                disabled={!consultPerms.canWrite}
+                title={!consultPerms.canWrite ? 'Write permission is disabled by Administrator' : 'Begin examination'}
+                className={`px-4 py-2.5 rounded-xl font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2 shrink-0 ${
+                  !consultPerms.canWrite
+                    ? 'bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400 cursor-not-allowed border border-slate-300 dark:border-slate-700'
+                    : 'bg-amber-600 hover:bg-amber-700 text-white cursor-pointer'
+                }`}
               >
-                <Play className="w-4 h-4" />
-                <span>Begin Examination & Rx</span>
+                {!consultPerms.canWrite ? <Lock className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                <span>{!consultPerms.canWrite ? 'Examination Locked (Read-Only)' : 'Begin Examination & Rx'}</span>
               </button>
             </div>
           )}
@@ -480,17 +523,22 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
                     <div className="flex items-center gap-2.5 self-end sm:self-center">
                       <button
                         onClick={() => handleStartConsultation(item.appointmentId)}
-                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer ${
-                          isCalled
-                            ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                        disabled={!consultPerms.canWrite}
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold shadow-xs transition-all ${
+                          !consultPerms.canWrite
+                            ? 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed border border-slate-300 dark:border-slate-700'
+                            : isCalled
+                            ? 'bg-amber-600 hover:bg-amber-700 text-white cursor-pointer'
                             : isCompleted
-                            ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100'
-                            : 'bg-[#2D6A4F] hover:bg-[#1B4332] text-white'
+                            ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 cursor-pointer'
+                            : 'bg-[#2D6A4F] hover:bg-[#1B4332] text-white cursor-pointer'
                         }`}
                       >
-                        <FileText className="w-3.5 h-3.5" />
+                        {!consultPerms.canWrite ? <Lock className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
                         <span>
-                          {isCalled
+                          {!consultPerms.canWrite
+                            ? 'Locked (Read-Only)'
+                            : isCalled
                             ? 'Resume Called Patient'
                             : isCompleted
                             ? 'View / Edit Record & Rx'
@@ -510,11 +558,42 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
             </div>
           </div>
         </div>
+        )
       )}
 
       {/* TAB 3: TOKEN MATRIX DECK */}
       {currentTab === 'doctor_tokens' && (
+        !tokenPerms.canRead ? (
+          <div className="rounded-2xl p-12 text-center border bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900 space-y-4 max-w-xl mx-auto my-8 animate-fade-in">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-100 dark:bg-rose-900/50 border border-rose-300 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400">
+              <Lock className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Token Matrix Access Revoked</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                Hospital Administrator has disabled <strong>Read</strong> access for Token Allocation Matrix. You do not have permission to view or manage patient slot capacity.
+              </p>
+            </div>
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200">
+              Permission: READ = OFF
+            </span>
+          </div>
+        ) : (
         <div className="space-y-6">
+          {!tokenPerms.canWrite && (
+            <div className="rounded-xl p-3.5 flex items-center justify-between gap-3 text-xs border bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
+              <div className="flex items-center gap-2.5">
+                <Lock className="w-4 h-4 shrink-0 text-amber-700 dark:text-amber-400" />
+                <span>
+                  <strong>Read-Only Mode Active:</strong> Hospital Administrator has set <strong>WRITE ACCESS TO OFF</strong> for Token Allocation Matrix. Slot allocation and capacity limit adjustments are disabled.
+                </span>
+              </div>
+              <span className="px-2 py-0.5 font-bold uppercase tracking-wider rounded text-[10px] bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100 border border-amber-300">
+                Write Locked
+              </span>
+            </div>
+          )}
+
           {/* Quick Action Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-[#1E2718] border border-[#E2E6D8] dark:border-[#2F3E29] shadow-xs">
             <div>
@@ -527,19 +606,28 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
               <button
                 type="button"
                 onClick={openLimitModal}
-                className="flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-xl border border-[#D0D7C4] dark:border-[#3D523F] bg-white dark:bg-[#1E2718] text-[#2D6A4F] dark:text-[#74C69D] hover:bg-[#F2F6F0] dark:hover:bg-[#2A3725] transition-all cursor-pointer shadow-xs"
-                title="Adjust Daily Patient Limit"
+                disabled={!tokenPerms.canWrite}
+                className={`flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-xl border transition-all shadow-xs ${
+                  !tokenPerms.canWrite
+                    ? 'bg-slate-100 dark:bg-[#151D12] text-slate-400 dark:text-slate-600 border-slate-200 dark:border-[#2F3E29] cursor-not-allowed'
+                    : 'border-[#D0D7C4] dark:border-[#3D523F] bg-white dark:bg-[#1E2718] text-[#2D6A4F] dark:text-[#74C69D] hover:bg-[#F2F6F0] dark:hover:bg-[#2A3725] cursor-pointer'
+                }`}
+                title={!tokenPerms.canWrite ? 'Daily limit adjustment disabled by Administrator' : 'Adjust Daily Patient Limit'}
               >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                <span>Adjust Daily Limit</span>
+                {!tokenPerms.canWrite ? <Lock className="w-3.5 h-3.5" /> : <SlidersHorizontal className="w-3.5 h-3.5" />}
+                <span>{!tokenPerms.canWrite ? 'Limit Locked' : 'Adjust Daily Limit'}</span>
               </button>
               <button
                 onClick={handleAllocateWalkInToken}
-                disabled={allocatingToken}
-                className="clinical-button-primary flex items-center gap-2 text-xs cursor-pointer shadow-xs"
+                disabled={allocatingToken || !tokenPerms.canWrite}
+                className={`flex items-center gap-2 text-xs shadow-xs px-4 py-2 rounded-xl font-bold transition-all ${
+                  !tokenPerms.canWrite
+                    ? 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed border border-slate-300 dark:border-slate-700'
+                    : 'clinical-button-primary cursor-pointer'
+                }`}
               >
-                <PlusCircle className="w-4 h-4" />
-                <span>{allocatingToken ? 'Allocating Slot...' : 'Issue Next Walk-In Token'}</span>
+                {!tokenPerms.canWrite ? <Lock className="w-4 h-4" /> : <PlusCircle className="w-4 h-4" />}
+                <span>{allocatingToken ? 'Allocating Slot...' : !tokenPerms.canWrite ? 'Allocation Locked (Read-Only)' : 'Issue Next Walk-In Token'}</span>
               </button>
             </div>
           </div>
@@ -584,24 +672,31 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
 
             {/* Daily Limit L (Flexible & Clickable) */}
             <div
-              onClick={openLimitModal}
+              onClick={() => {
+                if (!tokenPerms.canWrite) return;
+                openLimitModal();
+              }}
               role="button"
               tabIndex={0}
-              onKeyDown={e => e.key === 'Enter' && openLimitModal()}
-              className="p-4 rounded-2xl bg-white dark:bg-[#1E2718] border border-[#E2E6D8] dark:border-[#2F3E29] hover:border-[#2D6A4F] dark:hover:border-[#74C69D] shadow-xs hover:shadow-md transition-all cursor-pointer group relative"
-              title="Click to adjust daily patient limit"
+              onKeyDown={e => e.key === 'Enter' && tokenPerms.canWrite && openLimitModal()}
+              className={`p-4 rounded-2xl border shadow-xs transition-all relative ${
+                !tokenPerms.canWrite
+                  ? 'bg-slate-50 dark:bg-[#1A2315] border-slate-200 dark:border-[#2F3E29] opacity-75 cursor-not-allowed'
+                  : 'bg-white dark:bg-[#1E2718] border-[#E2E6D8] dark:border-[#2F3E29] hover:border-[#2D6A4F] dark:hover:border-[#74C69D] hover:shadow-md cursor-pointer group'
+              }`}
+              title={!tokenPerms.canWrite ? 'Limit adjustment locked by Administrator' : 'Click to adjust daily patient limit'}
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs text-[#656D4A] dark:text-[#A4AC86] block">Daily Patient Limit ($L$)</span>
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[#EAF2EC] dark:bg-[#2D3E2F] text-[#2D6A4F] dark:text-[#74C69D] group-hover:scale-105 transition-transform flex items-center gap-1">
                   <SlidersHorizontal className="w-2.5 h-2.5" />
-                  <span>Adjust</span>
+                  <span>{!tokenPerms.canWrite ? 'Locked' : 'Adjust'}</span>
                 </span>
               </div>
               <div className="text-2xl font-extrabold text-[#1F291E] dark:text-white mt-1 group-hover:text-[#2D6A4F] dark:group-hover:text-[#74C69D] transition-colors">
                 {matrix?.dailyLimit || 100}
               </div>
-              <span className="text-[10px] text-[#878E76] dark:text-[#A4AC86] block mt-0.5">Max Threshold &bull; Click to edit</span>
+              <span className="text-[10px] text-[#878E76] dark:text-[#A4AC86] block mt-0.5">Max Threshold &bull; {!tokenPerms.canWrite ? 'Read-Only Mode' : 'Click to edit'}</span>
             </div>
           </div>
 
@@ -647,6 +742,7 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
             onRefresh={refreshMatrix}
           />
         </div>
+        )
       )}
 
       {/* Flexible Daily Patient Limit Adjustment Modal */}

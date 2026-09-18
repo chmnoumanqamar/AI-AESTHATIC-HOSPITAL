@@ -192,7 +192,7 @@
       "emergencyContact": "+15559990001",
       "hasWhatsApp": true,
       "primaryNotificationChannel": "WhatsApp",
-      "backupNotificationChannel": "SMS",
+      "backupNotificationChannel": "WhatsApp",
       "createdAt": "2026-09-18T16:30:29.484Z"
     },
     {
@@ -311,8 +311,8 @@
       "bookingSource": "PORTAL",
       "approvedByReceptionistId": "recep-01",
       "isDemo": true,
-      "createdAt": "2026-09-18T17:30:20.028Z",
-      "updatedAt": "2026-09-18T17:30:20.028Z"
+      "createdAt": "2026-09-18T18:55:11.526Z",
+      "updatedAt": "2026-09-18T18:55:11.526Z"
     },
     {
       "id": "apt-02",
@@ -325,8 +325,8 @@
       "bookingSource": "AI_AGENT",
       "approvedByReceptionistId": "recep-01",
       "isDemo": true,
-      "createdAt": "2026-09-18T17:30:20.028Z",
-      "updatedAt": "2026-09-18T17:30:20.028Z"
+      "createdAt": "2026-09-18T18:55:11.526Z",
+      "updatedAt": "2026-09-18T18:55:11.526Z"
     },
     {
       "id": "apt-03",
@@ -339,8 +339,8 @@
       "bookingSource": "RECEPTIONIST",
       "approvedByReceptionistId": "recep-01",
       "isDemo": true,
-      "createdAt": "2026-09-18T17:30:20.028Z",
-      "updatedAt": "2026-09-18T17:30:20.028Z"
+      "createdAt": "2026-09-18T18:55:11.526Z",
+      "updatedAt": "2026-09-18T18:55:11.526Z"
     },
     {
       "id": "apt-04",
@@ -353,8 +353,8 @@
       "bookingSource": "PORTAL",
       "chiefComplaint": "Follow-up consultation for recurring skin rash on forearm.",
       "isDemo": true,
-      "createdAt": "2026-09-18T16:30:20.028Z",
-      "updatedAt": "2026-09-18T16:30:20.028Z"
+      "createdAt": "2026-09-18T17:55:11.526Z",
+      "updatedAt": "2026-09-18T17:55:11.526Z"
     },
     {
       "id": "apt-05",
@@ -367,8 +367,8 @@
       "bookingSource": "AI_AGENT",
       "chiefComplaint": "Mild exertional chest tightness; cardiology checkup requested.",
       "isDemo": true,
-      "createdAt": "2026-09-18T17:00:20.028Z",
-      "updatedAt": "2026-09-18T17:00:20.028Z"
+      "createdAt": "2026-09-18T18:25:11.526Z",
+      "updatedAt": "2026-09-18T18:25:11.526Z"
     },
     {
       "id": "apt-hist-today-1",
@@ -2465,7 +2465,7 @@
       "tokenNumber": 1,
       "status": "ACTIVE",
       "isDemo": true,
-      "createdAt": "2026-09-18T17:30:20.028Z"
+      "createdAt": "2026-09-18T18:55:11.526Z"
     },
     {
       "id": "tok-02",
@@ -2473,9 +2473,9 @@
       "date": "2026-09-18",
       "tokenNumber": 2,
       "status": "CANCELLED",
-      "cancelledAt": "2026-09-18T17:30:20.028Z",
+      "cancelledAt": "2026-09-18T18:55:11.526Z",
       "isDemo": true,
-      "createdAt": "2026-09-18T17:30:20.028Z"
+      "createdAt": "2026-09-18T18:55:11.526Z"
     },
     {
       "id": "tok-03",
@@ -2484,7 +2484,7 @@
       "tokenNumber": 3,
       "status": "RESERVED",
       "isDemo": true,
-      "createdAt": "2026-09-18T17:30:20.028Z"
+      "createdAt": "2026-09-18T18:55:11.526Z"
     },
     {
       "id": "tok-04",
@@ -2493,7 +2493,7 @@
       "tokenNumber": 4,
       "status": "ACTIVE",
       "isDemo": true,
-      "createdAt": "2026-09-18T17:30:20.028Z"
+      "createdAt": "2026-09-18T18:55:11.526Z"
     },
     {
       "id": "tok-05",
@@ -2502,7 +2502,7 @@
       "tokenNumber": 1,
       "status": "RESERVED",
       "isDemo": true,
-      "createdAt": "2026-09-18T17:30:20.028Z"
+      "createdAt": "2026-09-18T18:55:11.526Z"
     },
     {
       "id": "tok-06",
@@ -2511,7 +2511,7 @@
       "tokenNumber": 5,
       "status": "RESERVED",
       "isDemo": true,
-      "createdAt": "2026-09-18T17:30:20.028Z"
+      "createdAt": "2026-09-18T18:55:11.526Z"
     },
     {
       "id": "tok-hist-today-1",
@@ -2683,6 +2683,14 @@
       "status": "ACTIVE",
       "isDemo": true,
       "createdAt": "2026-07-15T10:00:00Z"
+    },
+    {
+      "id": "90058c97-d36e-4bb8-b6c0-528eaac5168f",
+      "doctorId": "doc-01",
+      "date": "2026-09-18",
+      "tokenNumber": 11,
+      "status": "RESERVED",
+      "createdAt": "2026-09-18T18:09:22.401Z"
     },
     {
       "id": "tok-auto-apt-hist-m-1",
@@ -3960,18 +3968,22 @@
     {
       "id": "qe-02",
       "appointmentId": "apt-02",
-      "queueStatus": "WAITING",
+      "queueStatus": "IN_CONSULTATION",
       "isDemo": true,
       "createdAt": "2026-09-18T16:30:29.484Z",
-      "checkInTime": "2026-09-18T17:05:57.351Z"
+      "checkInTime": "2026-09-18T17:05:57.351Z",
+      "calledTime": "2026-09-18T18:08:10.366Z",
+      "consultationStartTime": "2026-09-18T18:11:47.312Z"
     },
     {
       "id": "qe-03",
       "appointmentId": "apt-03",
-      "queueStatus": "WAITING",
+      "queueStatus": "IN_CONSULTATION",
       "checkInTime": "2026-09-18T09:10:00Z",
       "isDemo": true,
-      "createdAt": "2026-09-18T16:30:29.484Z"
+      "createdAt": "2026-09-18T16:30:29.484Z",
+      "calledTime": "2026-09-18T18:11:27.242Z",
+      "consultationStartTime": "2026-09-18T18:11:32.971Z"
     },
     {
       "id": "qe-hist-today-1",
@@ -5682,5 +5694,5 @@
       ]
     }
   ],
-  "savedAt": "2026-09-18T17:59:17.785Z"
+  "savedAt": "2026-09-18T18:56:33.022Z"
 }

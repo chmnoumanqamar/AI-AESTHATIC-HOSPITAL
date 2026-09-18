@@ -303,6 +303,37 @@ export async function runRolePermissionsSyncSuite() {
     `Status: ${recordClinicalBlocked.status}`
   );
 
+  // 2.3 Doctor Token Allocation & Capacity Limit (doctor_tokens)
+  console.log('  Testing doctor_tokens (Capacity Limit & Token Allocation)...');
+  await setRolePerms('DOCTOR', [
+    { moduleId: 'doctor_queue', read: true, write: true, delete: false },
+    { moduleId: 'doctor_consultation', read: true, write: true, delete: true },
+    { moduleId: 'doctor_tokens', read: true, write: false, delete: false }, // WRITE & DELETE OFF
+    { moduleId: 'patient_history', read: true, write: false, delete: false }
+  ]);
+
+  const updateLimitBlocked = await fetchJson('/doctors/daily-limit', {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${doctor.token}` },
+    body: JSON.stringify({ dailyLimit: 25 })
+  });
+  assert(
+    updateLimitBlocked.status === 403,
+    'doctor_tokens [Write OFF]: Updating daily limit rejected with 403 Forbidden',
+    `Status: ${updateLimitBlocked.status}`
+  );
+
+  const allocateTokenBlocked = await fetchJson('/tokens/allocate', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${doctor.token}` },
+    body: JSON.stringify({ doctorId: 'doc-01', date: new Date().toISOString().split('T')[0] })
+  });
+  assert(
+    allocateTokenBlocked.status === 403,
+    'doctor_tokens [Write OFF]: Allocating token rejected with 403 Forbidden',
+    `Status: ${allocateTokenBlocked.status}`
+  );
+
   // Restore DOCTOR default permissions
   await setRolePerms('DOCTOR', [
     { moduleId: 'doctor_queue', read: true, write: true, delete: false },
@@ -393,6 +424,26 @@ export async function runRolePermissionsSyncSuite() {
     `Status: ${posCheckoutBlocked.status}`
   );
 
+  // 3.4 Procurement & Shipment Receiving (pharma_procurement)
+  console.log('  Testing pharma_procurement (Distributor Restock Intake)...');
+  await setRolePerms('PHARMACIST', [
+    { moduleId: 'pharma_queue', read: true, write: true, delete: false },
+    { moduleId: 'pharma_inventory', read: true, write: true, delete: true },
+    { moduleId: 'pharma_pos', read: true, write: true, delete: false },
+    { moduleId: 'pharma_safety', read: true, write: false, delete: false },
+    { moduleId: 'pharma_procurement', read: true, write: false, delete: false } // WRITE OFF
+  ]);
+
+  const receiveShipmentBlocked = await fetchJson('/pharmacy/procurement/po-01/receive', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${pharmacist.token}` }
+  });
+  assert(
+    receiveShipmentBlocked.status === 403,
+    'pharma_procurement [Write OFF]: Receiving shipment rejected with 403 Forbidden',
+    `Status: ${receiveShipmentBlocked.status}`
+  );
+
   // Restore PHARMACIST default permissions
   await setRolePerms('PHARMACIST', [
     { moduleId: 'pharma_queue', read: true, write: true, delete: false },
@@ -407,8 +458,8 @@ export async function runRolePermissionsSyncSuite() {
   // -------------------------------------------------------------
   console.log('\n--- 4. PATIENT PERMISSION SYNCHRONIZATION ---');
 
-  // 4.1 Online Appointment Booking (patient_booking): Write OFF -> Cannot Book
-  console.log('  Testing patient_booking (Online Appointment Booking)...');
+  // 4.1 Online Appointment Booking (patient_booking): Write OFF -> Cannot Book or Reschedule
+  console.log('  Testing patient_booking (Online Appointment Booking & Reschedule)...');
   await setRolePerms('PATIENT', [
     { moduleId: 'patient_portal', read: true, write: false, delete: false },
     { moduleId: 'patient_booking', read: true, write: false, delete: false }, // WRITE OFF
@@ -431,6 +482,21 @@ export async function runRolePermissionsSyncSuite() {
     `Status: ${bookAptBlocked.status}`
   );
 
+  const rescheduleBlocked = await fetchJson('/appointments/reschedule', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${patient.token}` },
+    body: JSON.stringify({
+      appointmentId: 'apt-01',
+      newDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+      reason: 'Patient changed schedule'
+    })
+  });
+  assert(
+    rescheduleBlocked.status === 403,
+    'patient_booking [Write OFF]: Appointment reschedule rejected with 403 Forbidden',
+    `Status: ${rescheduleBlocked.status}`
+  );
+
   // 4.2 Online Appointment Booking (patient_booking): Delete OFF -> Cannot Cancel
   console.log('  Testing patient_booking (Cancellation Policy)...');
   const cancelAptPatientBlocked = await fetchJson('/appointments/apt-01/status', {
@@ -442,6 +508,24 @@ export async function runRolePermissionsSyncSuite() {
     cancelAptPatientBlocked.status === 403,
     'patient_booking [Delete OFF]: Patient appointment cancellation rejected with 403 Forbidden',
     `Status: ${cancelAptPatientBlocked.status}`
+  );
+
+  // 4.3 Medical History & Records (patient_history): Read OFF -> Cannot View History
+  console.log('  Testing patient_history (Medical Records Privacy Boundary)...');
+  await setRolePerms('PATIENT', [
+    { moduleId: 'patient_portal', read: true, write: false, delete: false },
+    { moduleId: 'patient_booking', read: true, write: true, delete: true },
+    { moduleId: 'patient_history', read: false, write: false, delete: false }, // READ OFF
+    { moduleId: 'patient_billing', read: true, write: false, delete: false }
+  ]);
+
+  const readHistoryBlocked = await fetchJson('/clinical-records/patient/pat-01/history', {
+    headers: { Authorization: `Bearer ${patient.token}` }
+  });
+  assert(
+    readHistoryBlocked.status === 403,
+    'patient_history [Read OFF]: Reading medical records rejected with 403 Forbidden',
+    `Status: ${readHistoryBlocked.status}`
   );
 
   // Restore PATIENT default permissions

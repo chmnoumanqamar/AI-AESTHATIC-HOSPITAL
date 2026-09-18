@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, AlertCircle, Plus, Trash2 } from 'lucide-react';
+import { Save, AlertCircle, Plus, Trash2, Lock } from 'lucide-react';
 import { MedicationItem } from './PrescriptionDiffViewer';
 
 interface ClinicalRecordEditorProps {
@@ -12,6 +12,7 @@ interface ClinicalRecordEditorProps {
   initialTreatment?: string;
   initialPrivateNotes?: string;
   isEditMode?: boolean;
+  canWrite?: boolean;
   onSave: (recordData: any) => Promise<void>;
 }
 
@@ -25,6 +26,7 @@ export const ClinicalRecordEditor: React.FC<ClinicalRecordEditorProps> = ({
   initialTreatment = '',
   initialPrivateNotes = '',
   isEditMode = false,
+  canWrite = true,
   onSave
 }) => {
   const [chiefComplaint, setChiefComplaint] = useState(initialChiefComplaint);
@@ -61,6 +63,10 @@ export const ClinicalRecordEditor: React.FC<ClinicalRecordEditorProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canWrite) {
+      alert('Action Blocked: Write permission is disabled for Clinical Consultations & Rx by Administrator.');
+      return;
+    }
     if (isEditMode && !editReason.trim()) {
       alert('Mandatory Rule: Reason for clinical modification is required for immutable audit capture.');
       return;
@@ -96,6 +102,20 @@ export const ClinicalRecordEditor: React.FC<ClinicalRecordEditorProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="bg-white border border-brand-300 rounded-lg p-5 shadow-subtle-card space-y-4">
+      {!canWrite && (
+        <div className="rounded-xl p-3.5 flex items-center justify-between gap-3 text-xs border bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
+          <div className="flex items-center gap-2.5">
+            <Lock className="w-4 h-4 shrink-0 text-amber-700 dark:text-amber-400" />
+            <span>
+              <strong>Read-Only Mode Active:</strong> Hospital Administrator has set <strong>WRITE ACCESS TO OFF</strong> for Consultations & Rx. Saving clinical records and prescriptions is disabled.
+            </span>
+          </div>
+          <span className="px-2 py-0.5 font-bold uppercase tracking-wider rounded text-[10px] bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100 border border-amber-300 shrink-0">
+            Write Locked
+          </span>
+        </div>
+      )}
+
       <div className="flex items-center justify-between pb-3 border-b border-brand-300">
         <div>
           <h3 className="operational-sub-header">
@@ -106,11 +126,15 @@ export const ClinicalRecordEditor: React.FC<ClinicalRecordEditorProps> = ({
 
         <button
           type="submit"
-          disabled={loading}
-          className="clinical-button-primary flex items-center gap-2"
+          disabled={loading || !canWrite}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold shadow-xs transition-all ${
+            !canWrite
+              ? 'bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400 cursor-not-allowed border border-slate-300 dark:border-slate-700'
+              : 'clinical-button-primary cursor-pointer'
+          }`}
         >
-          <Save className="w-4 h-4" />
-          <span>{loading ? 'Saving to Vault...' : isEditMode ? 'Commit Revision' : 'Save & Issue Rx'}</span>
+          {!canWrite ? <Lock className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+          <span>{loading ? 'Saving to Vault...' : !canWrite ? 'Clinical Record Locked (Read-Only)' : isEditMode ? 'Commit Revision' : 'Save & Issue Rx'}</span>
         </button>
       </div>
 

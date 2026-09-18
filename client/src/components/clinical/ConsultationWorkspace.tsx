@@ -9,6 +9,7 @@ interface ConsultationWorkspaceProps {
   onFinishConsultation: (recordData: any) => Promise<void>;
   onVersionPrescription?: (prescriptionId: string, medications: any[], reason: string) => Promise<void>;
   onBackToQueue: () => void;
+  canWrite?: boolean;
 }
 
 export const ConsultationWorkspace: React.FC<ConsultationWorkspaceProps> = ({
@@ -16,7 +17,8 @@ export const ConsultationWorkspace: React.FC<ConsultationWorkspaceProps> = ({
   patientHistory,
   onFinishConsultation,
   onVersionPrescription,
-  onBackToQueue
+  onBackToQueue,
+  canWrite = true
 }) => {
   const [activeTab, setActiveTab] = useState<'editor' | 'history' | 'rx_diff'>('editor');
   const [showVersionModal, setShowVersionModal] = useState(false);
@@ -90,6 +92,7 @@ export const ConsultationWorkspace: React.FC<ConsultationWorkspaceProps> = ({
           appointmentId={appointment.appointmentId || appointment.id}
           patientId={appointment.patientId}
           patientName={appointment.patientName}
+          canWrite={canWrite}
           onSave={onFinishConsultation}
         />
       )}

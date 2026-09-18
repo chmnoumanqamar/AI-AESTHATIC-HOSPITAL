@@ -119,6 +119,14 @@ export class AppointmentController {
 
   async reschedule(req: Request, res: Response, next: NextFunction) {
     try {
+      if (req.user?.role === 'PATIENT') {
+        const perms = db.getPermissionsForRole('PATIENT');
+        const rule = perms.find(p => p.moduleId === 'patient_booking');
+        if (rule && !rule.write) {
+          throw AppError.forbidden('Access Denied: Appointment reschedule write permission is disabled by Administrator.');
+        }
+      }
+
       const validated = rescheduleAppointmentDto.parse(req.body);
       const result = await appointmentService.rescheduleAppointment(
         validated,

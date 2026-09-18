@@ -41,6 +41,9 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
   const patientId = currentUser?.profileId || (isDefaultDemoAccount ? 'pat-01' : (currentUser?.id || ''));
 
   const bookingPerms = useModulePermissions('patient_booking', 'PATIENT');
+  const portalPerms = useModulePermissions('patient_portal', 'PATIENT');
+  const historyPerms = useModulePermissions('patient_history', 'PATIENT');
+  const billingPerms = useModulePermissions('patient_billing', 'PATIENT');
 
   // Active tab state synced with prop
   const [activeTab, setActiveTab] = useState<string>(currentTab);
@@ -253,6 +256,10 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
 
   const handleRescheduleAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!bookingPerms.canWrite) {
+      alert('Action Blocked: Rescheduling is disabled by Administrator.');
+      return;
+    }
     if (!targetActionApp || !newRescheduleDate) return;
     try {
       const res = await api.post('/appointments/reschedule', {
@@ -270,6 +277,10 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
   };
 
   const handleSavePreferences = async () => {
+    if (!historyPerms.canWrite) {
+      alert('Action Blocked: Updating notification preferences is disabled by Administrator.');
+      return;
+    }
     setIsSavingPrefs(true);
     try {
       await api.patch('/patients/preferences', {
@@ -317,6 +328,19 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
           TAB 1: MY APPOINTMENTS & LIVE TOKENS (patient_portal)
           ========================================================================= */}
       {activeTab === 'patient_portal' && (
+        !portalPerms.canRead ? (
+          <div className="rounded-2xl p-8 border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/20 text-center space-y-4 max-w-xl mx-auto my-12">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/40 rounded-2xl flex items-center justify-center mx-auto text-red-600">
+              <Lock className="w-8 h-8" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Portal Access Revoked</h3>
+              <p className="text-xs text-gray-500 max-w-md mx-auto">
+                Your organization administrator has disabled read access to the Patient Portal module (READ = OFF).
+              </p>
+            </div>
+          </div>
+        ) : (
         <div className="space-y-6 animate-fade-in">
           {/* Overview Metric Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -415,18 +439,30 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                   {/* Patient Self-Service Controls */}
                   {['PENDING', 'CONFIRMED'].includes(app.status) && (
                     <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                      <button
-                        onClick={() => {
-                          setTargetActionApp(app);
-                          setNewRescheduleDate(new Date(Date.now() + 86400000).toISOString().split('T')[0]);
-                          setIsRescheduleOpen(true);
-                        }}
-                        className="px-3.5 py-1.5 border text-xs font-semibold rounded transition-colors shadow-2xs cursor-pointer active:scale-95"
-                        style={{ backgroundColor: '#FAFBF7', borderColor: '#C2C5AA', color: '#333D29' }}
-                      >
-                        Reschedule
-                      </button>
-                      {bookingPerms.canDelete && (
+                      {bookingPerms.canWrite ? (
+                        <button
+                          onClick={() => {
+                            setTargetActionApp(app);
+                            setNewRescheduleDate(new Date(Date.now() + 86400000).toISOString().split('T')[0]);
+                            setIsRescheduleOpen(true);
+                          }}
+                          className="px-3.5 py-1.5 border text-xs font-semibold rounded transition-colors shadow-2xs cursor-pointer active:scale-95"
+                          style={{ backgroundColor: '#FAFBF7', borderColor: '#C2C5AA', color: '#333D29' }}
+                        >
+                          Reschedule
+                        </button>
+                      ) : (
+                        <button
+                          disabled
+                          className="px-3.5 py-1.5 border text-xs font-semibold rounded transition-colors shadow-2xs cursor-not-allowed opacity-60 flex items-center gap-1.5 bg-gray-100 dark:bg-neutral-800 text-gray-400 dark:text-gray-500 border-gray-300 dark:border-neutral-700"
+                          title="Rescheduling disabled by Administrator (Write = OFF)"
+                        >
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>Reschedule (Locked)</span>
+                        </button>
+                      )}
+
+                      {bookingPerms.canDelete ? (
                         <button
                           onClick={() => {
                             setTargetActionApp(app);
@@ -436,6 +472,15 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                           style={{ backgroundColor: '#F2E8DE', borderColor: '#A68A64', color: '#582F0E' }}
                         >
                           Cancel
+                        </button>
+                      ) : (
+                        <button
+                          disabled
+                          className="px-3.5 py-1.5 border text-xs font-semibold rounded transition-colors shadow-2xs cursor-not-allowed opacity-60 flex items-center gap-1.5 bg-gray-100 dark:bg-neutral-800 text-gray-400 dark:text-gray-500 border-gray-300 dark:border-neutral-700"
+                          title="Cancellation disabled by Administrator (Delete = OFF)"
+                        >
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>Cancel (Locked)</span>
                         </button>
                       )}
                     </div>
@@ -458,12 +503,26 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
             </div>
           </div>
         </div>
+        )
       )}
 
       {/* =========================================================================
           TAB 2: BOOK CONSULTATION & NEW PATIENT DESK (patient_booking)
           ========================================================================= */}
       {activeTab === 'patient_booking' && (
+        !bookingPerms.canRead ? (
+          <div className="rounded-2xl p-8 border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/20 text-center space-y-4 max-w-xl mx-auto my-12">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/40 rounded-2xl flex items-center justify-center mx-auto text-red-600">
+              <Lock className="w-8 h-8" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Booking Module Access Revoked</h3>
+              <p className="text-xs text-gray-500 max-w-md mx-auto">
+                Your organization administrator has disabled read access to the Online Booking module (READ = OFF).
+              </p>
+            </div>
+          </div>
+        ) : (
         <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
           {/* Booking Success Confirmation Banner */}
           {bookingSuccessData && (
@@ -764,12 +823,26 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
             </form>
           </div>
         </div>
+        )
       )}
 
       {/* =========================================================================
           TAB 3: MEDICAL RECORDS & RX (patient_history)
           ========================================================================= */}
       {activeTab === 'patient_history' && (
+        !historyPerms.canRead ? (
+          <div className="rounded-2xl p-8 border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/20 text-center space-y-4 max-w-xl mx-auto my-12">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/40 rounded-2xl flex items-center justify-center mx-auto text-red-600">
+              <Lock className="w-8 h-8" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Medical History Access Revoked</h3>
+              <p className="text-xs text-gray-500 max-w-md mx-auto">
+                Your organization administrator has disabled read access to the Patient History module (READ = OFF).
+              </p>
+            </div>
+          </div>
+        ) : (
         <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
           {/* Clinical Privacy Wall Banner */}
           <div 
@@ -902,22 +975,47 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                 </label>
               </div>
 
-              <button
-                onClick={handleSavePreferences}
-                disabled={isSavingPrefs}
-                className="clinical-button-primary text-xs cursor-pointer active:scale-95"
-              >
-                {isSavingPrefs ? 'Saving...' : 'Save Preferences'}
-              </button>
+              {historyPerms.canWrite ? (
+                <button
+                  onClick={handleSavePreferences}
+                  disabled={isSavingPrefs}
+                  className="clinical-button-primary text-xs cursor-pointer active:scale-95"
+                >
+                  {isSavingPrefs ? 'Saving...' : 'Save Preferences'}
+                </button>
+              ) : (
+                <button
+                  disabled
+                  className="px-4 py-2 border text-xs font-semibold rounded-lg shadow-2xs cursor-not-allowed opacity-60 flex items-center gap-1.5 bg-gray-100 dark:bg-neutral-800 text-gray-400 dark:text-gray-500 border-gray-300 dark:border-neutral-700"
+                  title="Preferences updating disabled by Administrator (Write = OFF)"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Save Preferences (Locked)</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
+        )
       )}
 
       {/* =========================================================================
           TAB 4: BILLING & INVOICES (patient_billing)
           ========================================================================= */}
       {activeTab === 'patient_billing' && (
+        !billingPerms.canRead ? (
+          <div className="rounded-2xl p-8 border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/20 text-center space-y-4 max-w-xl mx-auto my-12">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/40 rounded-2xl flex items-center justify-center mx-auto text-red-600">
+              <Lock className="w-8 h-8" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Billing Access Revoked</h3>
+              <p className="text-xs text-gray-500 max-w-md mx-auto">
+                Your organization administrator has disabled read access to the Patient Invoices module (READ = OFF).
+              </p>
+            </div>
+          </div>
+        ) : (
         <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
           {/* Financial Overview Metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -1059,6 +1157,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
             </div>
           </div>
         </div>
+        )
       )}
 
       {/* Reschedule Confirmation Modal */}

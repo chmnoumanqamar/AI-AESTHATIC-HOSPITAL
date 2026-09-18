@@ -47,6 +47,7 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
   const pharmaQueuePerms = useModulePermissions('pharma_queue', 'PHARMACIST');
   const pharmaInvPerms = useModulePermissions('pharma_inventory', 'PHARMACIST');
   const pharmaPosPerms = useModulePermissions('pharma_pos', 'PHARMACIST');
+  const pharmaSafetyPerms = useModulePermissions('pharma_safety', 'PHARMACIST');
   const pharmaProcurePerms = useModulePermissions('pharma_procurement', 'PHARMACIST');
 
   // Active inner sub-tab mapped to structural rail currentTab
@@ -323,6 +324,22 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
       {/* SUB-VIEW 1: LIVE DISPENSE QUEUE */}
       {/* ========================================================================= */}
       {activeSubTab === 'pharma_queue' && (
+        !pharmaQueuePerms.canRead ? (
+          <div className="rounded-2xl p-12 text-center border bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900 space-y-4 max-w-xl mx-auto my-8 animate-fade-in">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-100 dark:bg-rose-900/50 border border-rose-300 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400">
+              <Lock className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Live Dispense Queue Access Revoked</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                Hospital Administrator has disabled <strong>Read</strong> access for Live Dispense Queue. You do not have permission to view pending doctor prescriptions.
+              </p>
+            </div>
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200">
+              Permission: READ = OFF
+            </span>
+          </div>
+        ) : (
         <div className="space-y-6">
           {/* Top Clinical Pharmacist Banner & HUD Metrics */}
           <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 dark:from-[#064E3B] dark:via-[#0F766E] dark:to-[#134E4A] p-6 sm:p-8 text-slate-900 dark:text-white shadow-xs dark:shadow-xl border border-emerald-200/80 dark:border-emerald-600/30">
@@ -434,7 +451,6 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
               </div>
             </div>
           </div>
-        <div className="space-y-6">
           {!pharmaQueuePerms.canWrite && (
             <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
@@ -579,13 +595,29 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
             </div>
           )}
         </div>
-      </div>
-    )}
+        )
+      )}
 
       {/* ========================================================================= */}
       {/* SUB-VIEW 2: DRUG INVENTORY VAULT */}
       {/* ========================================================================= */}
       {activeSubTab === 'pharma_inventory' && (
+        !pharmaInvPerms.canRead ? (
+          <div className="rounded-2xl p-12 text-center border bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900 space-y-4 max-w-xl mx-auto my-8 animate-fade-in">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-100 dark:bg-rose-900/50 border border-rose-300 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400">
+              <Lock className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Drug Inventory Vault Access Revoked</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                Hospital Administrator has disabled <strong>Read</strong> access for Drug Inventory Vault. You do not have permission to view medicine stocks and shelf locations.
+              </p>
+            </div>
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200">
+              Permission: READ = OFF
+            </span>
+          </div>
+        ) : (
         <div className="space-y-6">
           {!pharmaInvPerms.canWrite && (
             <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-center justify-between gap-3">
@@ -741,12 +773,29 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
             </div>
           </div>
         </div>
+        )
       )}
 
       {/* ========================================================================= */}
       {/* SUB-VIEW 3: PHARMACY POS COUNTER */}
       {/* ========================================================================= */}
       {activeSubTab === 'pharma_pos' && (
+        !pharmaPosPerms.canRead ? (
+          <div className="rounded-2xl p-12 text-center border bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900 space-y-4 max-w-xl mx-auto my-8 animate-fade-in">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-100 dark:bg-rose-900/50 border border-rose-300 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400">
+              <Lock className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Dispensary POS Counter Access Revoked</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                Hospital Administrator has disabled <strong>Read</strong> access for Dispensary POS. You do not have permission to view or process walk-in OTC transactions.
+              </p>
+            </div>
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200">
+              Permission: READ = OFF
+            </span>
+          </div>
+        ) : (
         <div className="space-y-4">
           {!pharmaPosPerms.canWrite && (
             <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-center justify-between gap-3">
@@ -973,12 +1022,29 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
           </div>
         </div>
         </div>
+        )
       )}
 
       {/* ========================================================================= */}
       {/* SUB-VIEW 4: DRUG SAFETY & AI INTERACTION SCREENER */}
       {/* ========================================================================= */}
       {activeSubTab === 'pharma_safety' && (
+        !pharmaSafetyPerms.canRead ? (
+          <div className="rounded-2xl p-12 text-center border bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900 space-y-4 max-w-xl mx-auto my-8 animate-fade-in">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-100 dark:bg-rose-900/50 border border-rose-300 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400">
+              <Lock className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Drug Safety Screener Access Revoked</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                Hospital Administrator has disabled <strong>Read</strong> access for Drug Safety & Interaction Screener. You do not have permission to run contraindication cross-checks.
+              </p>
+            </div>
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200">
+              Permission: READ = OFF
+            </span>
+          </div>
+        ) : (
         <div className="space-y-6">
           <div className="bg-white dark:bg-[#1E2718] p-6 rounded-3xl border border-slate-200 dark:border-slate-800">
             <div className="max-w-2xl">
@@ -1136,11 +1202,15 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
             <div className="mt-6 flex justify-end">
               <button
                 onClick={handleRunSafetyCheck}
-                disabled={safetyChecking || safetySelectedDrugs.length === 0}
-                className="px-6 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer flex items-center gap-2"
+                disabled={safetyChecking || safetySelectedDrugs.length === 0 || !pharmaSafetyPerms.canWrite}
+                className={`px-6 py-2.5 rounded-2xl font-bold text-xs shadow-md transition-all flex items-center gap-2 ${
+                  !pharmaSafetyPerms.canWrite
+                    ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700 cursor-not-allowed'
+                    : 'bg-emerald-600 hover:bg-emerald-700 active:scale-95 disabled:opacity-50 text-white shadow-emerald-600/20 cursor-pointer'
+                }`}
               >
-                <Sparkles className="w-4 h-4" />
-                <span>{safetyChecking ? 'Analyzing Combinations...' : 'Run Interaction Analysis'}</span>
+                {!pharmaSafetyPerms.canWrite ? <Lock className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+                <span>{safetyChecking ? 'Analyzing Combinations...' : !pharmaSafetyPerms.canWrite ? 'Analysis Locked (Read-Only)' : 'Run Interaction Analysis'}</span>
               </button>
             </div>
           </div>
@@ -1198,12 +1268,29 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
             </div>
           )}
         </div>
+        )
       )}
 
       {/* ========================================================================= */}
       {/* SUB-VIEW 5: SUPPLIERS & PROCUREMENT */}
       {/* ========================================================================= */}
       {activeSubTab === 'pharma_procurement' && (
+        !pharmaProcurePerms.canRead ? (
+          <div className="rounded-2xl p-12 text-center border bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900 space-y-4 max-w-xl mx-auto my-8 animate-fade-in">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-100 dark:bg-rose-900/50 border border-rose-300 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400">
+              <Lock className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Distributor Procurement Access Revoked</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                Hospital Administrator has disabled <strong>Read</strong> access for Procurement & Restock. You do not have permission to view distributor purchase orders.
+              </p>
+            </div>
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200">
+              Permission: READ = OFF
+            </span>
+          </div>
+        ) : (
         <div className="space-y-6">
           {!pharmaProcurePerms.canWrite && (
             <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-center justify-between gap-3">
@@ -1307,6 +1394,7 @@ export const PharmacyWorkspace: React.FC<PharmacyWorkspaceProps> = ({
             })}
           </div>
         </div>
+        )
       )}
 
       {/* ========================================================================= */}

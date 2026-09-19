@@ -1,6 +1,7 @@
 import { db } from '../src/common/data/mock-db';
 import { adminService } from '../src/modules/admin/admin.service';
 import { authService } from '../src/modules/auth/auth.service';
+import '../src/index';
 
 let passed = 0;
 let failed = 0;
@@ -15,7 +16,7 @@ function assert(condition: boolean, testName: string, detail?: string) {
   }
 }
 
-const BASE_URL = 'http://localhost:4000/api';
+const BASE_URL = 'http://127.0.0.1:4000/api';
 
 async function fetchJson(endpoint: string, options: RequestInit = {}) {
   const res = await fetch(`${BASE_URL}${endpoint}`, {
@@ -569,6 +570,8 @@ export async function runRolePermissionsSyncSuite() {
 
   if (failed > 0) {
     process.exit(1);
+  } else {
+    process.exit(0);
   }
 }
 

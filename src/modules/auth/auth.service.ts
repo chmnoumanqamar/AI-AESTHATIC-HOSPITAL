@@ -22,7 +22,21 @@ export class AuthService {
 
   getEffectiveAllowedModules(user: DbUser): string[] {
     const rolePermissions = this.getEffectivePermissions(user);
-    const readableModules = rolePermissions.filter(p => p.read).map(p => p.moduleId);
+    const readableModules = Array.isArray(rolePermissions)
+      ? rolePermissions.filter(p => p && p.read).map(p => p.moduleId)
+      : [];
+
+    const fallbackDefaults: Record<string, string[]> = {
+      DOCTOR: ['doctor_queue', 'doctor_consultation', 'doctor_tokens'],
+      RECEPTIONIST: ['recep_desk', 'recep_approvals', 'recep_pos', 'recep_reports'],
+      PATIENT: ['patient_portal', 'patient_booking', 'patient_history', 'patient_billing'],
+      PHARMACIST: ['pharma_queue', 'pharma_inventory', 'pharma_pos', 'pharma_safety', 'pharma_procurement'],
+      ADMIN: ORIGINAL_HOSPITAL_MODULES.map(m => m.id)
+    };
+
+    const baseModules = readableModules.length > 0
+      ? readableModules
+      : (fallbackDefaults[user.role] || []);
 
     if (user.role === 'ADMIN') {
       return user.allowedModules && user.allowedModules.length > 0
@@ -30,12 +44,15 @@ export class AuthService {
         : ORIGINAL_HOSPITAL_MODULES.map(m => m.id);
     }
 
-    if (user.allowedModules && user.allowedModules.length > 0) {
-      // Filter custom modules by both non-admin check and role read permission
-      return user.allowedModules.filter(m => !m.startsWith('admin_') && (readableModules.length === 0 || readableModules.includes(m)));
+    // STRICT SECURITY: Non-admin users can never access or receive admin modules
+    const nonAdminBase = baseModules.filter(m => !m.startsWith('admin_'));
+
+    if (user.allowedModules && Array.isArray(user.allowedModules) && user.allowedModules.length > 0) {
+      // If user has specific overrides from User Access Control, only allow modules permitted by both
+      return user.allowedModules.filter(m => !m.startsWith('admin_') && nonAdminBase.includes(m));
     }
 
-    return readableModules;
+    return nonAdminBase;
   }
 
   async login(input: LoginInput) {

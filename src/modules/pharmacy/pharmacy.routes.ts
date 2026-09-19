@@ -31,6 +31,9 @@ router.post('/safety-check', (req, res, next) => pharmacyController.checkDrugSaf
 
 // Distributor Procurement & Shipment Receiving
 router.get('/procurement', (req, res, next) => pharmacyController.getProcurementOrders(req, res, next));
+router.post('/procurement', requireModulePermission('pharma_procurement', 'write'), (req, res, next) =>
+  pharmacyController.createProcurementOrder(req, res, next)
+);
 router.post('/procurement/:orderId/receive', requireModulePermission('pharma_procurement', 'write'), (req, res, next) =>
   pharmacyController.receiveProcurementOrder(req, res, next)
 );

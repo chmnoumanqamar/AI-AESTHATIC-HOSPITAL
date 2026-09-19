@@ -37,6 +37,14 @@ import {
   createCustomPalette, 
   ThemeColorOption 
 } from '../../utils/themePalette';
+import {
+  HospitalRoleDefinition,
+  getStoredRolePermissions,
+  isModulePermitted,
+  syncRolePermissionsFromServer,
+  PERMISSIONS_UPDATE_EVENT,
+  PERMISSIONS_STORAGE_KEY
+} from '../../utils/permissions';
 
 export interface HospitalNotification {
   id: string;
@@ -223,6 +231,39 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // Sync role permissions for Omnibar search filtering
+  const [rolePermissions, setRolePermissions] = useState<HospitalRoleDefinition[]>(getStoredRolePermissions);
+
+  useEffect(() => {
+    const handlePermUpdate = (e: any) => {
+      if (e.detail && Array.isArray(e.detail)) {
+        setRolePermissions(e.detail);
+      }
+    };
+
+    syncRolePermissionsFromServer().then(roles => {
+      if (roles && Array.isArray(roles)) {
+        setRolePermissions(roles);
+      }
+    });
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === PERMISSIONS_STORAGE_KEY && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setRolePermissions(parsed);
+        } catch {}
+      }
+    };
+
+    window.addEventListener(PERMISSIONS_UPDATE_EVENT, handlePermUpdate);
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener(PERMISSIONS_UPDATE_EVENT, handlePermUpdate);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
   // Load patients from API or fallback
   useEffect(() => {
     let isMounted = true;
@@ -386,30 +427,32 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
       patientData?: any;
     }> = [];
 
-    // 1. All Navigation Windows & Modules
+    // 1. All Navigation Windows & Modules (filtered strictly by permission)
     let currentModules: ModuleNavDef[] = ALL_HOSPITAL_MODULES;
     try {
       currentModules = getStoredHierarchy();
     } catch {}
 
-    currentModules.forEach(m => {
-      const extraKeywords = m.id === 'admin_config' 
-        ? ['format', 'color', 'font', 'theme', 'appearance', 'settings', 'window format', 'typography', 'customization'] 
-        : [];
-      items.push({
-        id: `window-${m.id}`,
-        title: m.label,
-        subtitle: `${m.categoryLabel} • Switch to window`,
-        category: 'WINDOW',
-        categoryLabel: 'Windows',
-        targetTab: m.id,
-        icon: m.icon || Layers,
-        badge: m.category,
-        keywords: [m.id, m.categoryLabel, 'window', 'view', 'module', 'deck', 'tab', ...extraKeywords]
+    currentModules
+      .filter(m => isModulePermitted(m.id, currentRole, currentUser, rolePermissions))
+      .forEach(m => {
+        const extraKeywords = m.id === 'admin_config' 
+          ? ['format', 'color', 'font', 'theme', 'appearance', 'settings', 'window format', 'typography', 'customization'] 
+          : [];
+        items.push({
+          id: `window-${m.id}`,
+          title: m.label,
+          subtitle: `${m.categoryLabel} • Switch to window`,
+          category: 'WINDOW',
+          categoryLabel: 'Windows',
+          targetTab: m.id,
+          icon: m.icon || Layers,
+          badge: m.category,
+          keywords: [m.id, m.categoryLabel, 'window', 'view', 'module', 'deck', 'tab', ...extraKeywords]
+        });
       });
-    });
 
-    // 2. Predefined Reports & BI Analytics
+    // 2. Predefined Reports & BI Analytics (strictly filtered by permission)
     const reportsDef = [
       { id: 'rep-rev', title: 'Daily Revenue & Billing Analytics', subtitle: 'POS collections, cash vs card & fiscal receipts', tab: 'admin_reports', icon: BarChart3, badge: 'Revenue' },
       { id: 'rep-tokens', title: 'Patient Inflow & Token Turnaround', subtitle: 'Hourly patient arrival, wait times & bottlenecks', tab: 'admin_reports', icon: Activity, badge: 'Flow' },
@@ -419,21 +462,23 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
       { id: 'rep-audit', title: 'Audit Trail Cryptographic Logs', subtitle: 'Immutable SHA-256 ledger tamper-proof records', tab: 'admin_audit', icon: ShieldCheck, badge: 'Security' }
     ];
 
-    reportsDef.forEach(r => {
-      items.push({
-        id: r.id,
-        title: r.title,
-        subtitle: r.subtitle,
-        category: 'REPORT',
-        categoryLabel: 'Reports & BI',
-        targetTab: r.tab,
-        icon: r.icon,
-        badge: r.badge,
-        keywords: ['report', 'analytics', 'bi', 'chart', 'metric', 'export', 'summary', 'data', 'finance']
+    reportsDef
+      .filter(r => isModulePermitted(r.tab, currentRole, currentUser, rolePermissions))
+      .forEach(r => {
+        items.push({
+          id: r.id,
+          title: r.title,
+          subtitle: r.subtitle,
+          category: 'REPORT',
+          categoryLabel: 'Reports & BI',
+          targetTab: r.tab,
+          icon: r.icon,
+          badge: r.badge,
+          keywords: ['report', 'analytics', 'bi', 'chart', 'metric', 'export', 'summary', 'data', 'finance']
+        });
       });
-    });
 
-    // 3. System Tools & Policies
+    // 3. System Tools & Policies (strictly filtered by permission)
     const systemTools = [
       { id: 'sys-users', title: 'User Access Control Vault', subtitle: 'Manage staff credentials, RBAC roles & accounts', tab: 'admin_users', icon: Users, badge: 'Staff' },
       { id: 'sys-studio', title: 'Module & Page Studio', subtitle: 'Drag-and-drop structural hierarchy & sidebar', tab: 'admin_studio', icon: Layers, badge: 'Studio' },
@@ -442,19 +487,21 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
       { id: 'sys-queue', title: 'Live System Queue Monitor', subtitle: 'Real-time multi-department waiting queue matrix', tab: 'admin_queue', icon: Activity, badge: 'Queue' }
     ];
 
-    systemTools.forEach(s => {
-      items.push({
-        id: s.id,
-        title: s.title,
-        subtitle: s.subtitle,
-        category: 'SYSTEM',
-        categoryLabel: 'System & Tools',
-        targetTab: s.tab,
-        icon: s.icon,
-        badge: s.badge,
-        keywords: ['system', 'config', 'security', 'tool', 'setting', 'admin', 'maintenance', 'reset']
+    systemTools
+      .filter(s => isModulePermitted(s.tab, currentRole, currentUser, rolePermissions))
+      .forEach(s => {
+        items.push({
+          id: s.id,
+          title: s.title,
+          subtitle: s.subtitle,
+          category: 'SYSTEM',
+          categoryLabel: 'System & Tools',
+          targetTab: s.tab,
+          icon: s.icon,
+          badge: s.badge,
+          keywords: ['system', 'config', 'security', 'tool', 'setting', 'admin', 'maintenance', 'reset']
+        });
       });
-    });
 
     // 4. Patients
     patients.forEach(p => {
@@ -473,7 +520,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
     });
 
     return items;
-  }, [patients]);
+  }, [patients, currentRole, currentUser, rolePermissions]);
 
   const filteredResults = useMemo(() => {
     let list = allSearchItems;

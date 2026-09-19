@@ -44,6 +44,8 @@ export class AdminService {
         blockedReason: u.blockedReason || null,
         blockedAt: u.blockedAt || null,
         allowedModules: u.allowedModules || [],
+        linkedEmployeeId: u.linkedEmployeeId || null,
+        linkedEmployeeName: u.linkedEmployeeName || null,
         createdAt: u.createdAt,
         name: displayName,
         profile
@@ -386,6 +388,8 @@ export class AdminService {
       deskNumber: input.deskNumber,
       shift: input.shift,
       allergies: input.allergies,
+      linkedEmployeeId: input.linkedEmployeeId || undefined,
+      linkedEmployeeName: input.linkedEmployeeName || undefined,
       isBlocked: false,
       isDemo: false,
       createdAt: new Date().toISOString(),
@@ -498,6 +502,32 @@ export class AdminService {
     } else {
       throw AppError.badRequest('Invalid database maintenance action requested.');
     }
+  }
+
+  // --- Clinic Profile & Thermal Receipt Settings ---
+  getClinicProfile() {
+    const taxNumber = db.systemSettings.taxNumber || 'NTN-7418902-1';
+    return {
+      clinicName: db.systemSettings.clinicName || 'Skin-Lab Aesthetic Hospital & Institute',
+      clinicPhone: db.systemSettings.clinicPhone || '+92 42 35876543',
+      clinicAddress: db.systemSettings.clinicAddress || 'Plot 14-C, Main Boulevard, Gulberg III, Lahore, Pakistan',
+      taxNumber,
+      clinicNtn: taxNumber,
+      receiptFooterNote: db.systemSettings.receiptFooterNote || 'Thank you for choosing Skin-Lab! All clinical procedures are performed by certified doctors. Retain this invoice for session verification.',
+      clinicLogoUrl: db.systemSettings.clinicLogoUrl || ''
+    };
+  }
+
+  updateClinicProfile(payload: { clinicName?: string; clinicPhone?: string; clinicAddress?: string; taxNumber?: string; clinicNtn?: string; receiptFooterNote?: string; clinicLogoUrl?: string }) {
+    const taxNumber = payload.taxNumber || payload.clinicNtn || db.systemSettings.taxNumber;
+    db.systemSettings = {
+      ...db.systemSettings,
+      ...payload,
+      taxNumber,
+      updatedAt: new Date().toISOString()
+    };
+    db.saveToDisk();
+    return this.getClinicProfile();
   }
 }
 

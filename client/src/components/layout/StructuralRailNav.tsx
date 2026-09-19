@@ -30,6 +30,14 @@ import {
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { getStoredThemeColor, THEME_COLOR_OPTIONS, ThemeColorOption, getCurrentPalette } from '../../utils/themePalette';
+import {
+  HospitalRoleDefinition,
+  getStoredRolePermissions,
+  isModulePermitted,
+  syncRolePermissionsFromServer,
+  PERMISSIONS_UPDATE_EVENT,
+  PERMISSIONS_STORAGE_KEY
+} from '../../utils/permissions';
 
 export interface ModuleNavDef {
   id: string;
@@ -123,6 +131,7 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
 }) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [modulesRegistry, setModulesRegistry] = useState<ModuleNavDef[]>(getStoredHierarchy);
+  const [rolePermissions, setRolePermissions] = useState<HospitalRoleDefinition[]>(getStoredRolePermissions);
   const [isHovered, setIsHovered] = useState(false);
 
   // When pinned it stays expanded; otherwise expands dynamically on cursor hover and hides on leave
@@ -171,7 +180,7 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
     targetCategoryLabel: string;
   } | null>(null);
 
-  // Sync with backend dynamic hierarchy & cross-tab localStorage
+  // Sync with backend dynamic hierarchy, role permissions & cross-tab localStorage
   useEffect(() => {
     const applyHierarchy = (data: any[]) => {
       if (!Array.isArray(data)) return;
@@ -194,11 +203,22 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
     };
 
     fetchDynamicHierarchy();
+    syncRolePermissionsFromServer().then(roles => {
+      if (roles && Array.isArray(roles)) {
+        setRolePermissions(roles);
+      }
+    });
 
     const handleUpdate = (e: any) => {
       if (e.detail && Array.isArray(e.detail)) {
         applyHierarchy(e.detail);
         localStorage.setItem('hospital_dynamic_hierarchy', JSON.stringify(e.detail));
+      }
+    };
+
+    const handlePermUpdate = (e: any) => {
+      if (e.detail && Array.isArray(e.detail)) {
+        setRolePermissions(e.detail);
       }
     };
 
@@ -211,12 +231,24 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
           // ignore
         }
       }
+      if (e.key === PERMISSIONS_STORAGE_KEY && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            setRolePermissions(parsed);
+          }
+        } catch (err) {
+          // ignore
+        }
+      }
     };
 
     window.addEventListener('hospital_hierarchy_updated', handleUpdate);
+    window.addEventListener(PERMISSIONS_UPDATE_EVENT, handlePermUpdate);
     window.addEventListener('storage', handleStorageChange);
     return () => {
       window.removeEventListener('hospital_hierarchy_updated', handleUpdate);
+      window.removeEventListener(PERMISSIONS_UPDATE_EVENT, handlePermUpdate);
       window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
@@ -246,37 +278,19 @@ export const StructuralRailNav: React.FC<StructuralRailNavProps> = ({
 
   const primaryCategory = roleToCategoryKey[currentRole] || 'ADMIN';
 
-  // Helper to check if a module has read permission enabled by Admin
-  const isModuleReadable = (modId: string): boolean => {
-    if (currentRole === 'ADMIN') return true;
-    try {
-      const cached = localStorage.getItem('hospital_role_permissions_cache');
-      if (cached) {
-        const roles = JSON.parse(cached);
-        const roleDef = roles.find((r: any) => r.role === currentRole);
-        if (roleDef && Array.isArray(roleDef.permissions)) {
-          const rule = roleDef.permissions.find((p: any) => p.moduleId === modId);
-          if (rule) return rule.read === true;
-        }
-      }
-    } catch (e) {}
-    if (currentUser?.permissions && Array.isArray(currentUser.permissions)) {
-      const rule = currentUser.permissions.find((p: any) => p.moduleId === modId);
-      if (rule) return rule.read === true;
-    }
-    return true;
-  };
+  // Compute active modules strictly filtered by role permissions and user overrides
+  const permittedModules = modulesRegistry.filter(m =>
+    isModulePermitted(m.id, currentRole, currentUser, rolePermissions)
+  );
 
-  // Compute active modules based on permissions
   let visibleModules: ModuleNavDef[] = [];
 
   if (currentRole === 'ADMIN') {
-    // Admin sees ALL modules across all domains
-    visibleModules = modulesRegistry;
-  } else if (currentUser?.allowedModules && Array.isArray(currentUser.allowedModules) && currentUser.allowedModules.length > 0) {
-    visibleModules = modulesRegistry.filter(m => currentUser.allowedModules.includes(m.id) && m.category !== 'ADMIN' && isModuleReadable(m.id));
+    // Admin sees all permitted modules where read === true
+    visibleModules = permittedModules;
   } else {
-    visibleModules = modulesRegistry.filter(m => m.category === primaryCategory && m.category !== 'ADMIN' && isModuleReadable(m.id));
+    // Non-admin roles strictly see their permitted modules (system admin modules strictly excluded)
+    visibleModules = permittedModules.filter(m => m.category !== 'ADMIN');
   }
 
   // Category display order: Current role's own department is ALWAYS placed at the TOP

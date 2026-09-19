@@ -17,6 +17,7 @@ import {
   Building2,
   ShieldCheck,
   ChevronRight,
+  ChevronDown,
   Filter,
   Sparkles,
   ArrowUpRight,
@@ -27,7 +28,8 @@ import {
   Banknote,
   Smartphone,
   LineChart as LineChartIcon,
-  BarChart3 as BarChartIcon
+  BarChart3 as BarChartIcon,
+  Wallet
 } from 'lucide-react';
 import { StatusBadge } from '../common/StatusBadge';
 
@@ -46,6 +48,46 @@ export const ReportsAnalyticsDashboard: React.FC<ReportsAnalyticsDashboardProps>
   const [error, setError] = useState<string | null>(null);
   const [searchTxQuery, setSearchTxQuery] = useState<string>('');
   const [hoveredBarIndex, setHoveredBarIndex] = useState<number | null>(null);
+  const [showExportMenu, setShowExportMenu] = useState<boolean>(false);
+
+  // Collect Due Modal States (Item 5)
+  const [selectedTxForDue, setSelectedTxForDue] = useState<any | null>(null);
+  const [collectDueAmount, setCollectDueAmount] = useState<string>('');
+  const [collectDueMethod, setCollectDueMethod] = useState<string>('CASH');
+  const [collectDueNotes, setCollectDueNotes] = useState<string>('');
+  const [isCollectingDue, setIsCollectingDue] = useState<boolean>(false);
+
+  const handleOpenCollectDue = (tx: any) => {
+    setSelectedTxForDue(tx);
+    const remaining = tx.balanceDue ?? Math.max(0, (tx.totalAmount || 0) - (tx.amountPaid || 0));
+    setCollectDueAmount(String(remaining));
+    setCollectDueMethod('CASH');
+    setCollectDueNotes('');
+  };
+
+  const handleConfirmCollectDue = async () => {
+    if (!selectedTxForDue) return;
+    const amountVal = parseFloat(collectDueAmount);
+    if (isNaN(amountVal) || amountVal <= 0) {
+      alert('Please enter a valid amount');
+      return;
+    }
+    setIsCollectingDue(true);
+    try {
+      const res = await api.post(`/billing/payments/${selectedTxForDue.id}/collect-due`, {
+        amountPaidNow: amountVal,
+        paymentMethod: collectDueMethod,
+        notes: collectDueNotes
+      });
+      alert(res.data.data?.message || 'Payment collected successfully!');
+      setSelectedTxForDue(null);
+      await fetchAnalytics(period);
+    } catch (err: any) {
+      alert(err.response?.data?.error?.message || 'Failed to collect payment');
+    } finally {
+      setIsCollectingDue(false);
+    }
+  };
 
   const fetchAnalytics = async (selectedPeriod: 'daily' | 'weekly' | 'monthly' | 'yearly') => {
     setLoading(true);
@@ -71,27 +113,161 @@ export const ReportsAnalyticsDashboard: React.FC<ReportsAnalyticsDashboardProps>
     setPeriod(newPeriod);
   };
 
-  // CSV Export Handler
-  const handleExportCSV = () => {
+  const downloadBlob = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // 1. Master Sales Register CSV
+  const handleExportSalesCSV = () => {
     if (!data) return;
 
     const headers = [
       'Invoice #',
       'Date Time',
       'Patient Name',
-      'Doctor / Clinic',
+      'Doctor / Aesthetician',
       'Category',
       'Payment Method',
+      'Items / Deals Details',
       'Total (PKR)',
       'Discount (PKR)',
       'Paid (PKR)',
       'Balance Due (PKR)',
       'Status'
     ];
+    const rows = (data.transactions || []).map((t: any) => {
+      const itemsDetail = (t.items || []).map((i: any) => `${i.name} (x${i.quantity})`).join('; ');
+      return [
+        t.invoiceNumber,
+        new Date(t.createdAt).toLocaleString(),
+        `"${t.patientName}"`,
+        `"${t.doctorName}"`,
+        t.category,
+        t.paymentMethod,
+        `"${itemsDetail || '-'}"`,
+        t.totalAmount,
+        t.discount,
+        t.amountPaid,
+        t.balanceDue,
+        t.status
+      ];
+    });
+
+    const csvContent = [
+      `"SkinLab Aesthetic Hospital - Master Sales Register (${data.dateRange?.formattedLabel || period.toUpperCase()})"`,
+      `"Generated At: ${new Date().toLocaleString()}"`,
+      `"Total Settled Revenue: PKR ${data.summary?.totalRevenue || 0}"`,
+      `"Total Gross Volume: PKR ${data.summary?.totalGross || 0}"`,
+      '',
+      headers.join(','),
+      ...rows.map((r: any[]) => r.join(','))
+    ].join('\n');
+
+    downloadBlob(csvContent, `SkinLab_Sales_Register_${period}_${new Date().toISOString().split('T')[0]}.csv`);
+  };
+
+  // 2. Treatments & Procedures Performance Ranking CSV
+  const handleExportTreatmentsCSV = () => {
+    if (!data?.topTreatments) return;
+
+    const headers = ['Rank', 'Treatment / Deal / Retail Product', 'Classification', 'Procedures Performed', 'Revenue Generated (PKR)'];
+    const rows = (data.topTreatments || []).map((t: any, idx: number) => [
+      idx + 1,
+      `"${t.name}"`,
+      t.type,
+      t.count,
+      t.revenue
+    ]);
+
+    const csvContent = [
+      `"SkinLab Aesthetic Hospital - Treatments & Procedures Ranking (${period.toUpperCase()})"`,
+      `"Generated At: ${new Date().toLocaleString()}"`,
+      `"Interval: ${data.dateRange?.formattedLabel || period}"`,
+      '',
+      headers.join(','),
+      ...rows.map((r: any[]) => r.join(','))
+    ].join('\n');
+
+    downloadBlob(csvContent, `SkinLab_Top_Treatments_${period}_${new Date().toISOString().split('T')[0]}.csv`);
+  };
+
+  // 3. Payment Channels Breakdown CSV
+  const handleExportPaymentsCSV = () => {
+    if (!data?.paymentMethodBreakdown) return;
+
+    const headers = ['Payment Channel', 'Transaction Count', 'Settled Amount (PKR)', 'Revenue Share %'];
+    const rows = (data.paymentMethodBreakdown || []).map((p: any) => [
+      `"${p.label}"`,
+      p.count,
+      p.revenue,
+      `${p.percentage}%`
+    ]);
+
+    const csvContent = [
+      `"SkinLab Aesthetic Hospital - Payment Channel Breakdown (${period.toUpperCase()})"`,
+      `"Generated At: ${new Date().toLocaleString()}"`,
+      `"Total Revenue: PKR ${data.summary?.totalRevenue || 0}"`,
+      '',
+      headers.join(','),
+      ...rows.map((r: any[]) => r.join(','))
+    ].join('\n');
+
+    downloadBlob(csvContent, `SkinLab_Payment_Channels_${period}_${new Date().toISOString().split('T')[0]}.csv`);
+  };
+
+  // 4. Specialist Productivity CSV
+  const handleExportDoctorsCSV = () => {
+    if (!data?.doctorPerformance) return;
+
+    const headers = ['Specialist / Doctor', 'Specialization', 'Patients Attended', 'Billed Revenue (PKR)'];
+    const rows = (data.doctorPerformance || []).map((d: any) => [
+      `"${d.doctorName}"`,
+      `"${d.specialization}"`,
+      d.patientCount,
+      d.revenue
+    ]);
+
+    const csvContent = [
+      `"SkinLab Aesthetic Hospital - Specialist & Doctor Productivity (${period.toUpperCase()})"`,
+      `"Generated At: ${new Date().toLocaleString()}"`,
+      '',
+      headers.join(','),
+      ...rows.map((r: any[]) => r.join(','))
+    ].join('\n');
+
+    downloadBlob(csvContent, `SkinLab_Physician_Productivity_${period}_${new Date().toISOString().split('T')[0]}.csv`);
+  };
+
+  // 5. Patient Ledger & Accounts Summary CSV
+  const handleExportPatientLedgerCSV = () => {
+    if (!data?.transactions) return;
+
+    const headers = [
+      'Patient ID',
+      'Patient Name',
+      'Invoice Number',
+      'Date',
+      'Attending Specialist',
+      'Category',
+      'Payment Channel',
+      'Billed Total (PKR)',
+      'Discount (PKR)',
+      'Paid Amount (PKR)',
+      'Outstanding Balance (PKR)',
+      'Account Status'
+    ];
     const rows = (data.transactions || []).map((t: any) => [
+      t.patientId || 'N/A',
+      `"${t.patientName}"`,
       t.invoiceNumber,
       new Date(t.createdAt).toLocaleString(),
-      `"${t.patientName}"`,
       `"${t.doctorName}"`,
       t.category,
       t.paymentMethod,
@@ -103,24 +279,19 @@ export const ReportsAnalyticsDashboard: React.FC<ReportsAnalyticsDashboardProps>
     ]);
 
     const csvContent = [
-      `"Aesthetic Hospital - ${data.dateRange?.formattedLabel || period.toUpperCase()} Report"`,
+      `"SkinLab Aesthetic Hospital - Patient Accounts Ledger (${period.toUpperCase()})"`,
       `"Generated At: ${new Date().toLocaleString()}"`,
-      `"Total Revenue: PKR ${data.summary?.totalRevenue || 0}"`,
-      `"Total Patients: ${data.summary?.totalPatients || 0}"`,
+      `"Interval: ${data.dateRange?.formattedLabel || period}"`,
+      `"Total Settled: PKR ${data.summary?.totalRevenue || 0} | Total Outstanding Dues: PKR ${data.summary?.totalOutstanding || 0}"`,
       '',
       headers.join(','),
-      ...rows.map((r: string[]) => r.join(','))
+      ...rows.map((r: any[]) => r.join(','))
     ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `Hospital_Report_${period}_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    downloadBlob(csvContent, `SkinLab_Patient_Ledger_${period}_${new Date().toISOString().split('T')[0]}.csv`);
   };
+
+  const handleExportCSV = handleExportSalesCSV;
 
   // Print Handler
   const handlePrint = () => {
@@ -281,15 +452,65 @@ export const ReportsAnalyticsDashboard: React.FC<ReportsAnalyticsDashboardProps>
 
           {/* Action Buttons */}
           <div className="flex items-center gap-1.5">
-            <button
-              onClick={handleExportCSV}
-              disabled={loading || !data}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-slate-800 dark:text-white bg-white dark:bg-[#242E1C] border border-[#E2E6D8] dark:border-[#333D29] hover:bg-slate-50 dark:hover:bg-[#2D3923] flex items-center gap-1 transition-all shadow-xs cursor-pointer"
-              title="Download CSV"
-            >
-              <Download className="w-3 h-3 text-[#2D6A4F] dark:text-[#52B788]" />
-              <span>CSV</span>
-            </button>
+            {/* 1-Click Export CSV Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowExportMenu(!showExportMenu)}
+                disabled={loading || !data}
+                className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-slate-800 dark:text-white bg-white dark:bg-[#242E1C] border border-[#E2E6D8] dark:border-[#333D29] hover:bg-slate-50 dark:hover:bg-[#2D3923] flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                title="Download CSV Reports"
+              >
+                <Download className="w-3.5 h-3.5 text-[#2D6A4F] dark:text-[#52B788]" />
+                <span>Export CSV</span>
+                <ChevronDown className="w-3 h-3 text-slate-400" />
+              </button>
+
+              {showExportMenu && (
+                <div
+                  className="absolute right-0 mt-1.5 w-60 rounded-xl bg-white dark:bg-[#1E2718] border border-[#E2E6D8] dark:border-[#333D29] shadow-xl py-1.5 z-40 animate-fade-in text-xs"
+                  onMouseLeave={() => setShowExportMenu(false)}
+                >
+                  <div className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-[#A4AC86] border-b border-[#E2E6D8] dark:border-[#333D29]">
+                    1-Click Export CSV
+                  </div>
+                  <button
+                    onClick={() => { handleExportSalesCSV(); setShowExportMenu(false); }}
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-[#283620] font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between group cursor-pointer"
+                  >
+                    <span>Master Sales Register</span>
+                    <span className="text-[10px] font-mono text-emerald-600 dark:text-[#74C69D]">CSV</span>
+                  </button>
+                  <button
+                    onClick={() => { handleExportTreatmentsCSV(); setShowExportMenu(false); }}
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-[#283620] font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between group cursor-pointer"
+                  >
+                    <span>Treatments &amp; Deals Ranking</span>
+                    <span className="text-[10px] font-mono text-emerald-600 dark:text-[#74C69D]">CSV</span>
+                  </button>
+                  <button
+                    onClick={() => { handleExportPaymentsCSV(); setShowExportMenu(false); }}
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-[#283620] font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between group cursor-pointer"
+                  >
+                    <span>Payment Streams Breakdown</span>
+                    <span className="text-[10px] font-mono text-emerald-600 dark:text-[#74C69D]">CSV</span>
+                  </button>
+                  <button
+                    onClick={() => { handleExportDoctorsCSV(); setShowExportMenu(false); }}
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-[#283620] font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between group cursor-pointer"
+                  >
+                    <span>Specialist Productivity</span>
+                    <span className="text-[10px] font-mono text-emerald-600 dark:text-[#74C69D]">CSV</span>
+                  </button>
+                  <button
+                    onClick={() => { handleExportPatientLedgerCSV(); setShowExportMenu(false); }}
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-[#283620] font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between group cursor-pointer border-t border-slate-100 dark:border-[#333D29]"
+                  >
+                    <span>Patient Accounts Ledger</span>
+                    <span className="text-[10px] font-mono text-emerald-600 dark:text-[#74C69D]">CSV</span>
+                  </button>
+                </div>
+              )}
+            </div>
 
             <button
               onClick={handlePrint}
@@ -914,18 +1135,99 @@ export const ReportsAnalyticsDashboard: React.FC<ReportsAnalyticsDashboardProps>
         </div>
       </div>
 
-      {/* 5. ATTENDING PHYSICIANS PRODUCTIVITY MATRIX */}
+      {/* 5. TOP AESTHETIC TREATMENTS & SKINCARE VOLUME */}
+      <div className="p-4 sm:p-5 rounded-xl border border-[#E2E6D8] dark:border-[#333D29] bg-[#FAFBF7] dark:bg-[#1E2717] shadow-xs space-y-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-[#E2E6D8] dark:border-[#333D29]">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-[#2D6A4F] dark:text-[#52B788]" />
+            <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">
+              Top Aesthetic Treatments &amp; Skincare Volume
+            </h3>
+            <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-[#2D3923] text-emerald-800 dark:text-[#74C69D] border border-emerald-200 dark:border-[#406343]">
+              Ranked Leaderboard
+            </span>
+          </div>
+          <button
+            onClick={handleExportTreatmentsCSV}
+            className="text-[11px] font-bold text-[#2D6A4F] dark:text-[#52B788] hover:underline flex items-center gap-1 cursor-pointer"
+          >
+            <Download className="w-3 h-3" />
+            <span>Export Treatments CSV</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          {(data?.topTreatments || []).map((t: any, idx: number) => {
+            const maxTreatmentRev = Math.max(...(data.topTreatments || []).map((x: any) => x.revenue || 0), 1);
+            const percentage = Math.round((t.revenue / maxTreatmentRev) * 100);
+
+            const badgeStyles: Record<string, string> = {
+              DEAL: 'bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border-purple-300',
+              PRODUCT: 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-300',
+              PROCEDURE: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-[#74C69D] border-emerald-300',
+              CONSULTATION: 'bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300 border-sky-300'
+            };
+
+            return (
+              <div
+                key={t.name}
+                className="p-3.5 rounded-xl border border-[#E2E6D8] dark:border-[#333D29] bg-white dark:bg-[#151D10] shadow-xs space-y-2"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-[#1E2718] font-mono text-[11px] font-black text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0 border border-slate-200 dark:border-[#2F3E29]">
+                      #{idx + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-xs text-slate-900 dark:text-white truncate">{t.name}</h4>
+                      <span className={`inline-block mt-0.5 px-1.5 py-0.2 rounded text-[8.5px] font-extrabold uppercase border ${badgeStyles[t.type] || badgeStyles.PROCEDURE}`}>
+                        {t.type}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right font-mono shrink-0">
+                    <div className="text-xs font-black text-slate-900 dark:text-white">
+                      Rs. {t.revenue.toLocaleString()}
+                    </div>
+                    <div className="text-[10px] text-slate-500 dark:text-[#A4AC86]">
+                      {t.count} completed
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-[#1C2615] overflow-hidden">
+                  <div
+                    style={{ width: `${Math.max(5, percentage)}%` }}
+                    className="h-full rounded-full bg-gradient-to-r from-[#2D6A4F] to-[#52B788] transition-all duration-300"
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 6. ATTENDING PHYSICIANS PRODUCTIVITY MATRIX */}
       <div className="p-4 sm:p-5 rounded-xl border border-[#E2E6D8] dark:border-[#333D29] bg-[#FAFBF7] dark:bg-[#1E2717] shadow-xs space-y-3.5">
         <div className="flex items-center justify-between pb-2.5 border-b border-[#E2E6D8] dark:border-[#333D29]">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-[#2D6A4F] dark:text-[#52B788]" />
             <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">
-              Physician Consultation & Billing Productivity
+              Physician Consultation &amp; Billing Productivity
             </h3>
           </div>
-          <span className="text-xs text-slate-500 dark:text-[#A4AC86] font-mono">
-            {data?.doctorPerformance?.length || 0} Specialists
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-slate-500 dark:text-[#A4AC86] font-mono">
+              {data?.doctorPerformance?.length || 0} Specialists
+            </span>
+            <button
+              onClick={handleExportDoctorsCSV}
+              className="text-[11px] font-bold text-[#2D6A4F] dark:text-[#52B788] hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <Download className="w-3 h-3" />
+              <span>Export CSV</span>
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
@@ -998,7 +1300,8 @@ export const ReportsAnalyticsDashboard: React.FC<ReportsAnalyticsDashboardProps>
                 <th className="py-2.5 px-3">Category</th>
                 <th className="py-2.5 px-3">Channel</th>
                 <th className="py-2.5 px-3 text-right">Settled Amount</th>
-                <th className="py-2.5 px-3 text-center rounded-r-lg">Status</th>
+                <th className="py-2.5 px-3 text-center">Status</th>
+                <th className="py-2.5 px-3 text-right rounded-r-lg">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E2E6D8]/60 dark:divide-[#333D29]/60 font-mono">
@@ -1031,6 +1334,19 @@ export const ReportsAnalyticsDashboard: React.FC<ReportsAnalyticsDashboardProps>
                   <td className="py-2.5 px-3 text-center">
                     <StatusBadge status={tx.status} size="sm" />
                   </td>
+                  <td className="py-2.5 px-3 text-right">
+                    {(tx.status === 'PARTIAL' || tx.status === 'PENDING' || (tx.balanceDue && tx.balanceDue > 0)) ? (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenCollectDue(tx)}
+                        className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <Wallet className="w-3 h-3" /> Collect Due
+                      </button>
+                    ) : (
+                      <span className="text-[10px] font-bold text-slate-400">Settled</span>
+                    )}
+                  </td>
                 </tr>
               ))}
 
@@ -1045,6 +1361,113 @@ export const ReportsAnalyticsDashboard: React.FC<ReportsAnalyticsDashboardProps>
           </table>
         </div>
       </div>
+
+      {/* Modal: Collect Due / Partial Payment Clearance (Item 5) */}
+      {selectedTxForDue && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in font-sans">
+          <div className="w-full max-w-md bg-white dark:bg-[#1E2717] border border-slate-200 dark:border-[#2F3E29] rounded-2xl p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#2F3E29] pb-3">
+              <div>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Wallet className="w-4 h-4 text-emerald-600" /> Collect Outstanding Balance
+                </h4>
+                <p className="text-[11px] text-slate-500 dark:text-[#A4AC86]">
+                  Invoice #{selectedTxForDue.invoiceNumber} • Patient: {selectedTxForDue.patientName}
+                </p>
+              </div>
+              <button onClick={() => setSelectedTxForDue(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Balance Summary Box */}
+            <div className="grid grid-cols-3 gap-2 p-3 rounded-xl bg-slate-50 dark:bg-[#141B10] border border-slate-100 dark:border-[#2F3E29] text-center font-mono">
+              <div>
+                <span className="text-[10px] text-slate-500 font-bold uppercase block">Gross Bill</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  Rs. {selectedTxForDue.totalAmount?.toLocaleString() || '0'}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-500 font-bold uppercase block">Paid So Far</span>
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                  Rs. {selectedTxForDue.amountPaid?.toLocaleString() || '0'}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-rose-500 font-bold uppercase block">Balance Due</span>
+                <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
+                  Rs. {(selectedTxForDue.balanceDue ?? (selectedTxForDue.totalAmount - selectedTxForDue.amountPaid)).toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            {/* Form Inputs */}
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Amount to Collect Now (PKR) *
+                </label>
+                <input
+                  type="number"
+                  value={collectDueAmount}
+                  onChange={e => setCollectDueAmount(e.target.value)}
+                  className="w-full py-2 px-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white font-mono font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Payment Channel
+                </label>
+                <select
+                  value={collectDueMethod}
+                  onChange={e => setCollectDueMethod(e.target.value)}
+                  className="w-full py-2 px-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                >
+                  <option value="CASH">Cash Counter</option>
+                  <option value="CARD">Debit / Credit Card POS</option>
+                  <option value="BANK_TRANSFER">Direct Bank Transfer</option>
+                  <option value="JAZZCASH">JazzCash</option>
+                  <option value="EASYPAISA">EasyPaisa</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Collection Notes / Reference (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Cleared remaining 2nd installment..."
+                  value={collectDueNotes}
+                  onChange={e => setCollectDueNotes(e.target.value)}
+                  className="w-full py-2 px-3 rounded-xl border border-slate-200 dark:border-[#2F3E29] bg-slate-50 dark:bg-[#171F13] text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-[#2F3E29]">
+              <button
+                type="button"
+                onClick={() => setSelectedTxForDue(null)}
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-[#202C1B] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isCollectingDue || !collectDueAmount || parseFloat(collectDueAmount) <= 0}
+                onClick={handleConfirmCollectDue}
+                className="px-4 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              >
+                {isCollectingDue ? 'Processing...' : 'Confirm Payment'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

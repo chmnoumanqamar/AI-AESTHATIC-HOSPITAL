@@ -173,6 +173,23 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Remember Me Persistence
+  const [rememberMe, setRememberMe] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('skinlab_remember_me') === 'true';
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedId = localStorage.getItem('skinlab_saved_identifier');
+      if (savedId && localStorage.getItem('skinlab_remember_me') === 'true') {
+        setIdentifier(savedId);
+      }
+    }
+  }, []);
+
   // 2-Step OTP Reset States
   const [isForgotMode, setIsForgotMode] = useState(false);
   const [forgotStep, setForgotStep] = useState<'REQUEST_OTP' | 'VERIFY_OTP'>('REQUEST_OTP');
@@ -280,6 +297,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
       const res = await api.post('/auth/login', { identifier, password });
       const { token, user } = res.data.data;
       localStorage.setItem('hospital_token', token);
+      if (rememberMe) {
+        localStorage.setItem('skinlab_remember_me', 'true');
+        localStorage.setItem('skinlab_saved_identifier', identifier);
+      } else {
+        localStorage.removeItem('skinlab_remember_me');
+        localStorage.removeItem('skinlab_saved_identifier');
+      }
       onLoginSuccess(token, user);
     } catch (err: any) {
       const msg = err.response?.data?.error?.message || err.response?.data?.message || 'Invalid username/email or password.';
@@ -1131,6 +1155,21 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, isolatedPo
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
+                </div>
+
+                {/* Remember Me Checkbox */}
+                <div className="flex items-center justify-between pt-0.5">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={e => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-300 dark:border-[#333D29] text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-emerald-600"
+                    />
+                    <span className="text-xs font-semibold" style={{ color: isDark ? '#C2C5AA' : '#475569' }}>
+                      Remember my login ID on this device
+                    </span>
+                  </label>
                 </div>
 
                 {/* Submit Button */}

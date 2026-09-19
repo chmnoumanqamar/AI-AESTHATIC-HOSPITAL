@@ -258,6 +258,31 @@ export class AdminController {
       next(err);
     }
   }
+
+  async getClinicProfile(req: Request, res: Response, next: NextFunction) {
+    try {
+      const profile = adminService.getClinicProfile();
+      res.json({
+        status: 'SUCCESS',
+        data: profile
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateClinicProfile(req: Request, res: Response, next: NextFunction) {
+    try {
+      const profile = adminService.updateClinicProfile(req.body);
+      res.json({
+        status: 'SUCCESS',
+        message: 'Clinic profile and receipt configuration updated successfully',
+        data: profile
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const adminController = new AdminController();

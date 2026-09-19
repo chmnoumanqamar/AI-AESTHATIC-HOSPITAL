@@ -6,10 +6,15 @@ export class PatientService {
   async getAllPatients() {
     return db.patients.map(p => {
       const user = db.users.find(u => u.id === p.userId);
+      const patientPayments = db.payments.filter(pay => pay.patientId === p.id);
+      const dueBalance = patientPayments.reduce((sum, pay) => sum + (pay.balanceDue || 0), 0);
+      const advanceBalance = p.advance_balance || 0;
       return {
         ...p,
         phone: user?.phone,
-        email: user?.email
+        email: user?.email,
+        dueBalance,
+        advanceBalance
       };
     });
   }
@@ -20,10 +25,15 @@ export class PatientService {
       throw AppError.notFound('Patient record not found');
     }
     const user = db.users.find(u => u.id === patient.userId);
+    const patientPayments = db.payments.filter(pay => pay.patientId === patient.id);
+    const dueBalance = patientPayments.reduce((sum, pay) => sum + (pay.balanceDue || 0), 0);
+    const advanceBalance = patient.advance_balance || 0;
     return {
       ...patient,
       phone: user?.phone,
-      email: user?.email
+      email: user?.email,
+      dueBalance,
+      advanceBalance
     };
   }
 

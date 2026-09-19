@@ -465,7 +465,66 @@ export class PharmacyService {
    * Procurement Orders Management
    */
   async getProcurementOrders() {
-    return db.procurementOrders;
+    return db.procurementOrders || [];
+  }
+
+  async createProcurementOrder(payload: {
+    supplierName: string;
+    supplierContact?: string;
+    expectedDelivery?: string;
+    deliveryCharges?: number;
+    notes?: string;
+    items: Array<{ id?: string; name: string; quantity: number; unitCost: number }>;
+  }) {
+    if (!payload.supplierName) throw AppError.badRequest('Supplier name is required');
+    if (!payload.items || payload.items.length === 0) throw AppError.badRequest('At least one item is required in PO');
+
+    if (!db.procurementOrders) db.procurementOrders = [];
+    const seq = db.procurementOrders.length + 1;
+    const year = new Date().getFullYear();
+    const poNumber = `PO-QA-${year}-${String(seq).padStart(4, '0')}`;
+
+    const itemsCost = payload.items.reduce((sum, it) => sum + (Number(it.quantity) || 1) * (Number(it.unitCost) || 0), 0);
+    const deliveryCharges = Number(payload.deliveryCharges) || 0;
+    const totalCost = itemsCost + deliveryCharges;
+
+    const newOrder = {
+      id: `po-${Date.now()}`,
+      poNumber,
+      supplierName: payload.supplierName,
+      supplierContact: payload.supplierContact || 'Direct Supplier Dispatch',
+      status: 'ORDERED' as const,
+      orderDate: new Date().toISOString().split('T')[0],
+      expectedDelivery: payload.expectedDelivery || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      deliveryCharges,
+      totalCost,
+      items: payload.items.map(it => ({
+        id: it.id,
+        name: it.name,
+        quantity: Number(it.quantity) || 1,
+        unitCost: Number(it.unitCost) || 0
+      })),
+      notes: payload.notes || undefined,
+      createdAt: new Date().toISOString()
+    };
+
+    db.procurementOrders.unshift(newOrder);
+    db.saveToDisk();
+
+    recordAuditLog({
+      actorId: 'procurement',
+      actorType: 'STAFF',
+      action: 'CREATE_PROCUREMENT_ORDER',
+      resourceType: 'ProcurementOrder',
+      resourceId: newOrder.id,
+      metadata: {
+        poNumber: newOrder.poNumber,
+        supplierName: newOrder.supplierName,
+        totalCost: newOrder.totalCost
+      }
+    });
+
+    return newOrder;
   }
 
   async receiveProcurementOrder(orderId: string) {
@@ -478,17 +537,22 @@ export class PharmacyService {
       throw AppError.badRequest('This order has already been received into inventory');
     }
 
-    // Increment stock for each item
+    // Increment stock for each item (medicines + aesthetic clinical/retail products)
     for (const item of order.items) {
       const med = db.medicines.find(m => m.name.toLowerCase().includes(item.name.toLowerCase()));
       if (med) {
         med.stockQuantity += item.quantity;
         med.updatedAt = new Date().toISOString();
       }
+      const prod = db.aestheticProducts?.find(p => (item.id && p.id === item.id) || p.name.toLowerCase().includes(item.name.toLowerCase()));
+      if (prod) {
+        prod.stockQuantity += item.quantity;
+      }
     }
 
     order.status = 'RECEIVED';
     order.receivedAt = new Date().toISOString();
+    db.saveToDisk();
 
     recordAuditLog({
       actorId: 'pharmacy',

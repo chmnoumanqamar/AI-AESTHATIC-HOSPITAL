@@ -33,7 +33,13 @@ interface DatabaseStats {
   doctors: number;
   receptionists: number;
   services: number;
+  medicines?: number;
   auditLogs: number;
+  patientPackages?: number;
+  assignedLabTests?: number;
+  dispenseRecords?: number;
+  procurementOrders?: number;
+  salesReturns?: number;
   timestamp: string;
 }
 
@@ -86,16 +92,20 @@ export const AdminDatabaseMaintenance: React.FC = () => {
       });
 
       const data = res.data?.data;
+      if (data?.currentStats) {
+        setStats(data.currentStats);
+      }
+
       setFeedback({
         type: 'SUCCESS',
         title: 'Rough Data Successfully Purged!',
-        message: 'All dummy patients, appointments, queue, clinical notes, and billing records have been cleared. System is 100% clean and ready for live patients.',
+        message: 'All dummy patients, appointments, issued tokens, queue tickets, clinical notes, packages, lab tests, and billing records have been cleared. System is 100% clean and ready for live patients.',
         details: data?.purgeResult?.purged
       });
 
       setIsPurgeModalOpen(false);
       setConfirmationInput('');
-      fetchStats();
+      await fetchStats();
     } catch (err: any) {
       setFeedback({
         type: 'ERROR',
@@ -114,6 +124,11 @@ export const AdminDatabaseMaintenance: React.FC = () => {
         action: 'RESET_DEMO'
       });
 
+      const data = res.data?.data;
+      if (data?.currentStats) {
+        setStats(data.currentStats);
+      }
+
       setFeedback({
         type: 'SUCCESS',
         title: 'Factory Demo Data Restored!',
@@ -122,7 +137,7 @@ export const AdminDatabaseMaintenance: React.FC = () => {
       });
 
       setIsResetModalOpen(false);
-      fetchStats();
+      await fetchStats();
     } catch (err: any) {
       setFeedback({
         type: 'ERROR',
@@ -316,6 +331,7 @@ export const AdminDatabaseMaintenance: React.FC = () => {
                 <li>All booked, pending, and historical appointments.</li>
                 <li>Live OPD queue entries and issued daily tokens.</li>
                 <li>All doctor clinical exam notes, diagnoses, and prescriptions.</li>
+                <li>All patient aesthetic packages, sessions, and diagnostic lab orders.</li>
                 <li>All billing transactions, invoices, and POS payments.</li>
                 <li>Audit vault reset with a single clean-slate genesis entry.</li>
               </ul>
@@ -433,7 +449,7 @@ export const AdminDatabaseMaintenance: React.FC = () => {
                 <span>Irreversible Data Deletion Warning</span>
               </div>
               <p className="text-[11px] leading-relaxed opacity-95">
-                This will permanently delete all {stats?.patients ?? 0} dummy patients, {stats?.appointments ?? 0} appointments, {stats?.queueEntries ?? 0} queue tickets, and {stats?.payments ?? 0} payments. Staff and admin credentials will be preserved.
+                This will permanently delete all {stats?.patients ?? 0} dummy patients, {stats?.appointments ?? 0} appointments, {stats?.queueEntries ?? 0} queue tickets, {stats?.patientPackages ?? 0} treatment packages, {stats?.assignedLabTests ?? 0} diagnostic orders, and {stats?.payments ?? 0} billing records. Staff credentials and clinic master catalogs will be preserved.
               </p>
             </div>
 
@@ -445,6 +461,12 @@ export const AdminDatabaseMaintenance: React.FC = () => {
                 type="text"
                 value={confirmationInput}
                 onChange={e => setConfirmationInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && isPurgeReady && !actionLoading) {
+                    e.preventDefault();
+                    handleExecutePurge();
+                  }
+                }}
                 placeholder="Type CLEAR to confirm..."
                 autoFocus
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-[#38482E] bg-white dark:bg-[#151D12] text-slate-900 dark:text-white text-sm font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-red-500"

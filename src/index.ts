@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import path from 'path';
+import fs from 'fs';
 import { ENV } from './config/env.config';
 import { BRAND_TOKENS } from './config/colors.config';
 import { logger } from './common/utils/logger';
@@ -87,6 +89,18 @@ app.post('/api/ai/chat', (req, res, next) => {
   }
   return aiController.chat(req, res, next);
 });
+
+// Production Client Static Serving & SPA Fallback (Unified Single-Port Architecture)
+const clientDistPath = path.join(process.cwd(), 'client', 'dist');
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/') || req.path === '/health') {
+      return next();
+    }
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+}
 
 // Global Error Handler Middleware
 app.use(errorHandler);

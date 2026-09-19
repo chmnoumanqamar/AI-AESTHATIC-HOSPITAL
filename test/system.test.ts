@@ -29,6 +29,7 @@ function assert(condition: boolean, testName: string, detail?: string) {
 }
 
 async function runSystemTestSuite() {
+  db.resetToDefaultDemo();
   console.log('\n========================================================');
   console.log('🧪 RUNNING HOSPITAL MANAGEMENT SYSTEM ARCHITECTURAL TESTS');
   console.log('========================================================\n');
